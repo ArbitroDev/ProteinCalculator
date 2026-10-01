@@ -1,44 +1,90 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/app.dart';
 
-Future<void> pumpApp(WidgetTester tester) async {
-  await tester.pumpWidget(const ProviderScope(child: ProteinCalculatorApp()));
-  await tester.pumpAndSettle();
-}
-
-Finder pageTitle(String text) => find.widgetWithText(AppBar, text);
+import 'helpers.dart';
 
 void main() {
-  group('navigation', () {
-    testWidgets('starts on the today tab', (tester) async {
-      await pumpApp(tester);
+  group('first launch', () {
+    testWidgets('asks for the daily goal and saves it', (tester) async {
+      final db = openTestDatabase();
+      await pumpApp(tester, db);
 
-      expect(pageTitle('Today'), findsOneWidget);
+      expect(find.text('Your daily goal'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '150,5');
+      await tester.tap(find.text('Get started'));
+      await tester.pumpAndSettle();
+
+      expect(await db.settingsDao.getDailyGoal(), 150.5);
+      expect(find.text('Thursday, October 1'), findsOneWidget);
+      await disposeApp(tester, db);
     });
 
+    testWidgets('refuses a goal out of range', (tester) async {
+      final db = openTestDatabase();
+      await pumpApp(tester, db);
+
+      await tester.enterText(find.byType(TextField), '0');
+      await tester.tap(find.text('Get started'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Enter a number between 1 and 1,000.'), findsOneWidget);
+      expect(await db.settingsDao.getDailyGoal(), isNull);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('is skipped once a goal is set', (tester) async {
+      final db = openTestDatabase();
+      await db.settingsDao.setDailyGoal(140);
+      await pumpApp(tester, db);
+
+      expect(find.text('Your daily goal'), findsNothing);
+      expect(find.text('Thursday, October 1'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+  });
+
+  group('navigation', () {
     testWidgets('switches between the four tabs', (tester) async {
-      await pumpApp(tester);
+      final db = openTestDatabase();
+      await db.settingsDao.setDailyGoal(140);
+      await pumpApp(tester, db);
 
-      for (final tab in ['History', 'Products', 'Menu', 'Today']) {
-        await tester.tap(find.widgetWithText(NavigationDestination, tab));
+      for (final tab in ['History', 'Products', 'Menu']) {
+        await tester.tap(find.text(tab).last);
         await tester.pumpAndSettle();
-
-        expect(pageTitle(tab), findsOneWidget);
+        expect(find.widgetWithText(AppBar, tab), findsOneWidget);
       }
+      await tester.tap(find.text('Today'));
+      await tester.pumpAndSettle();
+      expect(find.text('Thursday, October 1'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('opens the new entry form above the tabs', (tester) async {
+      final db = openTestDatabase();
+      await db.settingsDao.setDailyGoal(140);
+      await pumpApp(tester, db);
+
+      await tester.tap(find.text('Add'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('New entry'), findsOneWidget);
+      expect(find.text('History'), findsNothing);
+      await disposeApp(tester, db);
     });
   });
 
   group('localization', () {
     testWidgets('uses French when the device is in French', (tester) async {
-      tester.platformDispatcher.localesTestValue = const [Locale('fr', 'FR')];
-      addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+      final db = openTestDatabase();
+      await db.settingsDao.setDailyGoal(140);
+      await pumpApp(tester, db, locales: const [Locale('fr', 'FR')]);
 
-      await pumpApp(tester);
-
-      expect(pageTitle("Aujourd'hui"), findsOneWidget);
+      expect(find.text('Jeudi 1 octobre'), findsOneWidget);
       expect(find.text('Historique'), findsOneWidget);
+      await disposeApp(tester, db);
     });
 
     test('picks the first supported device language', () {

@@ -4,5 +4,19 @@
   "tabToday": "Today",
   "tabHistory": "History",
   "tabProducts": "Products",
-  "tabMenu": "Menu"
+  "tabMenu": "Menu",
+  "gramsUnit": "g",
+  "grams": "{grams} g",
+  "todayGoal": "Goal {goal} g",
+  "todayEntryCount": "{count, plural, =0{No entries} =1{1 entry} other{{count} entries}}",
+  "todayRemaining": "{grams} g left to shake",
+  "todayGoalReached": "goal reached",
+  "shakerDescription": "{total} g of protein out of a {goal} g goal",
+  "addEntry": "Add",
+  "newEntryTitle": "New entry",
+  "close": "Close",
+  "onboardingTitle": "Your daily goal",
+  "onboardingBody": "How many grams of protein do you aim for each day? You can change it later in the menu.",
+  "onboardingStart": "Get started",
+  "goalInvalid": "Enter a number between {min} and {max}."
 }

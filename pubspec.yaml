@@ -17,6 +17,7 @@ dependencies:
   flutter_riverpod: ^3.4.3
   go_router: ^18.0.2
   intl: ^0.20.3
+  lucide_icons_flutter: ^3.1.21
 
 dev_dependencies:
   flutter_test:
@@ -28,3 +29,25 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+
+  assets:
+    - assets/fonts/OFL-Outfit.txt
+    - assets/fonts/OFL-SairaSemiCondensed.txt
+
+  fonts:
+    - family: Saira Semi Condensed
+      fonts:
+        - asset: assets/fonts/SairaSemiCondensed-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/SairaSemiCondensed-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/SairaSemiCondensed-ExtraBold.ttf
+          weight: 800
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Outfit-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Outfit-SemiBold.ttf
+          weight: 600

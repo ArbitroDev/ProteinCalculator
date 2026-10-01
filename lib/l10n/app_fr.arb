@@ -19,5 +19,97 @@
   "tabMenu": "Menu",
   "@tabMenu": {
     "description": "Bottom navigation label of the menu tab."
+  },
+  "gramsUnit": "g",
+  "@gramsUnit": {
+    "description": "Unit symbol for grams."
+  },
+  "grams": "{grams} g",
+  "@grams": {
+    "description": "A quantity in grams, already formatted.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "todayGoal": "Objectif {goal} g",
+  "@todayGoal": {
+    "description": "Daily goal shown above the total on the today screen.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "todayEntryCount": "{count, plural, =0{Aucune entrée} =1{1 entrée} other{{count} entrées}}",
+  "@todayEntryCount": {
+    "description": "Number of entries added today.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayRemaining": "encore {grams} g à secouer",
+  "@todayRemaining": {
+    "description": "Protein left to reach the daily goal, with a pun on the shaker.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "todayGoalReached": "objectif atteint",
+  "@todayGoalReached": {
+    "description": "Shown once the daily goal is reached."
+  },
+  "shakerDescription": "{total} g de protéines sur un objectif de {goal} g",
+  "@shakerDescription": {
+    "description": "Screen reader description of the shaker gauge.",
+    "placeholders": {
+      "total": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "addEntry": "Ajouter",
+  "@addEntry": {
+    "description": "Button opening the new entry form."
+  },
+  "newEntryTitle": "Nouvelle entrée",
+  "@newEntryTitle": {
+    "description": "Title of the new entry form."
+  },
+  "close": "Fermer",
+  "@close": {
+    "description": "Tooltip of the button closing a form."
+  },
+  "onboardingTitle": "Ton objectif quotidien",
+  "@onboardingTitle": {
+    "description": "Title of the first launch screen."
+  },
+  "onboardingBody": "Combien de grammes de protéines vises-tu par jour ? Tu pourras le modifier dans le menu.",
+  "@onboardingBody": {
+    "description": "Explanation on the first launch screen."
+  },
+  "onboardingStart": "Commencer",
+  "@onboardingStart": {
+    "description": "Button saving the daily goal on the first launch screen."
+  },
+  "goalInvalid": "Entre un nombre entre {min} et {max}.",
+  "@goalInvalid": {
+    "description": "Error shown when the daily goal is not a valid number.",
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
   }
 }
