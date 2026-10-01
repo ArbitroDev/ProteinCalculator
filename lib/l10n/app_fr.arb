@@ -298,5 +298,136 @@
   "addToToday": "Ajouter à la journée",
   "@addToToday": {
     "description": "Accessibility hint: tapping a product adds it to the day."
+  },
+  "menuGoal": "Objectif quotidien",
+  "@menuGoal": {
+    "description": "Title of the daily goal card in the menu."
+  },
+  "menuPrivacy": "Données et confidentialité",
+  "@menuPrivacy": {
+    "description": "Menu item opening the data and privacy page."
+  },
+  "menuLicenses": "Licences open source",
+  "@menuLicenses": {
+    "description": "Menu item opening the open source licenses."
+  },
+  "menuAbout": "À propos",
+  "@menuAbout": {
+    "description": "Menu item opening the about page."
+  },
+  "menuDataFooter": "Tes données restent sur ton téléphone.",
+  "@menuDataFooter": {
+    "description": "Reminder at the bottom of the menu."
+  },
+  "appVersion": "Version {version}",
+  "@appVersion": {
+    "description": "App version.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "goalSheetBody": "Combien de grammes de protéines vises-tu par jour ?",
+  "@goalSheetBody": {
+    "description": "Explanation when editing the daily goal."
+  },
+  "privacyLocal": "Tes données restent sur ton téléphone. Protein Calculator ne demande pas de compte, n'accède pas à Internet et ne collecte aucune donnée.",
+  "@privacyLocal": {
+    "description": "Privacy page: data stays on the device."
+  },
+  "privacyBackup": "Si la sauvegarde Google est activée sur ton appareil, Android peut inclure les données de l'app dans cette sauvegarde, chiffrée et accessible à toi seul. Tu peux la désactiver dans les réglages de ton téléphone.",
+  "@privacyBackup": {
+    "description": "Privacy page: Android backup."
+  },
+  "aboutDescription": "Suis chaque jour ton apport en protéines, simplement.",
+  "@aboutDescription": {
+    "description": "Short description of the app."
+  },
+  "aboutLicense": "Le code source est consultable publiquement. Tous droits réservés.",
+  "@aboutLicense": {
+    "description": "Licensing summary."
+  },
+  "aboutGitHub": "Voir le code source sur GitHub",
+  "@aboutGitHub": {
+    "description": "Link opening the public source code repository on GitHub."
+  },
+  "licensesExplanation": "Protein Calculator s'appuie sur des composants open source, dont la plupart viennent de Flutter. Leurs licences demandent que leur texte accompagne l'app : les voici.",
+  "@licensesExplanation": {
+    "description": "Explanation at the top of the open source licenses page."
+  },
+  "backupTitle": "Sauvegarde",
+  "@backupTitle": {
+    "description": "Section title for export and import."
+  },
+  "backupBody": "Exporte tes données dans un fichier pour les garder à l'abri ou les transférer sur un autre téléphone. Importer une sauvegarde remplace toutes les données actuelles.",
+  "@backupBody": {
+    "description": "Explanation of export and import."
+  },
+  "exportData": "Exporter mes données",
+  "@exportData": {
+    "description": "Button exporting all data to a file."
+  },
+  "importData": "Importer une sauvegarde",
+  "@importData": {
+    "description": "Button importing a backup file."
+  },
+  "exportDone": "Données exportées",
+  "@exportDone": {
+    "description": "Snack bar after a successful export."
+  },
+  "importDone": "Données importées",
+  "@importDone": {
+    "description": "Snack bar after a successful import."
+  },
+  "importInvalid": "Ce fichier n'est pas une sauvegarde Protein Calculator valide.",
+  "@importInvalid": {
+    "description": "Error when the imported file is not a valid backup."
+  },
+  "importConfirmTitle": "Remplacer tes données ?",
+  "@importConfirmTitle": {
+    "description": "Title of the dialog confirming an import."
+  },
+  "importConfirmBody": "Tes données actuelles seront remplacées par celles du fichier ({entries}, {products}). Cette action est définitive.",
+  "@importConfirmBody": {
+    "description": "Body of the dialog confirming an import.",
+    "placeholders": {
+      "entries": {
+        "type": "String"
+      },
+      "products": {
+        "type": "String"
+      }
+    }
+  },
+  "backupEntryCount": "{count, plural, =0{aucune entrée} =1{1 entrée} other{{count} entrées}}",
+  "@backupEntryCount": {
+    "description": "Number of entries in a backup.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProductCount": "{count, plural, =0{aucun produit} =1{1 produit} other{{count} produits}}",
+  "@backupProductCount": {
+    "description": "Number of products in a backup.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importConfirm": "Remplacer",
+  "@importConfirm": {
+    "description": "Button confirming an import."
+  },
+  "cancel": "Annuler",
+  "@cancel": {
+    "description": "Button closing a dialog without doing anything."
+  },
+  "aboutContribute": "Protein Calculator est développé ouvertement : tu peux participer en signalant un problème, en proposant une idée ou en contribuant au code sur GitHub.",
+  "@aboutContribute": {
+    "description": "Invitation to contribute on GitHub."
   }
 }

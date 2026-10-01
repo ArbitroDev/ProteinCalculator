@@ -12,3 +12,12 @@ double? parseGrams(String input) {
 /// Smallest and largest daily goal accepted, in grams.
 const minDailyGoal = 1.0;
 const maxDailyGoal = 1000.0;
+
+/// Daily goal typed by the user, or null if it is not a number between
+/// [minDailyGoal] and [maxDailyGoal].
+double? parseDailyGoal(String input) {
+  final goal = parseGrams(input);
+  return goal != null && goal >= minDailyGoal && goal <= maxDailyGoal
+      ? goal
+      : null;
+}

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
@@ -74,3 +75,8 @@ final sortedProductsProvider = StreamProvider<List<Product>>((ref) {
   final sort = ref.watch(productSortProvider).value ?? ProductSort.alphabetical;
   return ref.watch(databaseProvider).productsDao.watchAll(sort);
 });
+
+/// Version of the app, read from the package.
+final appVersionProvider = FutureProvider<String>(
+  (ref) async => (await PackageInfo.fromPlatform()).version,
+);

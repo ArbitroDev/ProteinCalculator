@@ -5,6 +5,7 @@ import 'package:protein_calculator/features/entry_form/entry_form_page.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
 import 'package:protein_calculator/features/history/day_detail_page.dart';
 import 'package:protein_calculator/features/history/history_page.dart';
+import 'package:protein_calculator/features/menu/info_pages.dart';
 import 'package:protein_calculator/features/menu/menu_page.dart';
 import 'package:protein_calculator/features/onboarding/onboarding_page.dart';
 import 'package:protein_calculator/features/products/products_page.dart';
@@ -24,6 +25,9 @@ abstract final class AppRoutes {
   static String editEntry(int entryId) => '/entries/$entryId';
 
   static String historyDay(int dayKey) => '$history/$dayKey';
+
+  static const dataPrivacy = '$menu/data';
+  static const about = '$menu/about';
 
   static const newProduct = '/products/new';
 
@@ -83,6 +87,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.menu,
                 builder: (context, state) => const MenuPage(),
+                routes: [
+                  GoRoute(
+                    path: 'data',
+                    builder: (context, state) => const DataPrivacyPage(),
+                  ),
+                  GoRoute(
+                    path: 'about',
+                    builder: (context, state) => const AboutPage(),
+                  ),
+                ],
               ),
             ],
           ),

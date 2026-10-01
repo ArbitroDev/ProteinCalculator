@@ -6,7 +6,7 @@ import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
-import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
+import 'package:protein_calculator/core/widgets/goal_field.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -20,7 +20,7 @@ class OnboardingPage extends ConsumerStatefulWidget {
 
 class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   final _controller = TextEditingController();
-  String? _error;
+  bool _showError = false;
   bool _saving = false;
 
   @override
@@ -29,24 +29,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     super.dispose();
   }
 
-  double? get _validGoal {
-    final goal = parseGrams(_controller.text);
-    if (goal == null || goal < minDailyGoal || goal > maxDailyGoal) {
-      return null;
-    }
-    return goal;
-  }
-
   Future<void> _save() async {
-    final goal = _validGoal;
+    final goal = parseDailyGoal(_controller.text);
     if (goal == null) {
-      final locale = Localizations.localeOf(context).toString();
-      setState(
-        () => _error = AppLocalizations.of(context).goalInvalid(
-          formatGrams(minDailyGoal, locale),
-          formatGrams(maxDailyGoal, locale),
-        ),
-      );
+      setState(() => _showError = true);
       return;
     }
     setState(() => _saving = true);
@@ -58,11 +44,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
-    final colors = AppColors.of(context);
     final locale = Localizations.localeOf(context).toString();
-    const underline = UnderlineInputBorder(
-      borderSide: BorderSide(color: AppColors.accent, width: 2),
-    );
 
     return Scaffold(
       body: SafeArea(
@@ -76,7 +58,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   width: 78,
                   child: Shaker(
                     layers: const [],
-                    goal: _validGoal ?? 140,
+                    goal: parseDailyGoal(_controller.text) ?? 140,
                     semanticLabel: '',
                     formatGrams: (grams) => formatGrams(grams, locale),
                   ),
@@ -90,44 +72,25 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               const SizedBox(height: 6),
               Text(
                 l10n.onboardingBody,
-                style: textTheme.bodyMedium!.copyWith(
-                  color: colors.textSecondary,
+                style: textTheme.bodyLarge!.copyWith(
+                  color: AppColors.of(context).textSecondary,
                   height: 1.5,
                 ),
               ),
               const SizedBox(height: 18),
-              TextField(
+              GoalField(
                 controller: _controller,
                 autofocus: true,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                inputFormatters: [GramsInputFormatter()],
-                textInputAction: TextInputAction.done,
-                onChanged: (_) => setState(() => _error = null),
+                showError: _showError,
+                onChanged: (_) => setState(() => _showError = false),
                 onSubmitted: (_) => _save(),
-                style: textTheme.displayLarge!.copyWith(fontSize: 56),
-                decoration: InputDecoration(
-                  filled: false,
-                  hintText: '140',
-                  hintStyle: textTheme.displayLarge!.copyWith(
-                    fontSize: 56,
-                    color: colors.textSecondary.withValues(alpha: 0.4),
-                  ),
-                  suffixText: l10n.gramsUnit,
-                  suffixStyle: textTheme.titleMedium!.copyWith(
-                    fontSize: 22,
-                    color: colors.textSecondary,
-                  ),
-                  errorText: _error,
-                  enabledBorder: underline,
-                  focusedBorder: underline,
-                  errorBorder: underline,
-                  focusedErrorBorder: underline,
-                ),
               ),
               const SizedBox(height: 32),
               FilledButton(
                 onPressed: _saving ? null : _save,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
                 child: Text(l10n.onboardingStart),
               ),
             ],

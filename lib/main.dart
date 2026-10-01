@@ -9,7 +9,7 @@ import 'package:protein_calculator/core/router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  LicenseRegistry.addLicense(_fontLicenses);
+  LicenseRegistry.addLicense(_bundledLicenses);
 
   // Reading the goal before the first frame avoids flashing the today
   // screen before the first launch screen.
@@ -29,12 +29,15 @@ Future<void> main() async {
   );
 }
 
-Stream<LicenseEntry> _fontLicenses() async* {
-  const fonts = {
+/// Licenses of the fonts and icons bundled as files, shown in the licenses
+/// page next to those of the packages.
+Stream<LicenseEntry> _bundledLicenses() async* {
+  const licenses = {
     'Outfit': 'assets/fonts/OFL-Outfit.txt',
     'Saira Semi Condensed': 'assets/fonts/OFL-SairaSemiCondensed.txt',
+    'Octicons (GitHub mark)': 'assets/licenses/LICENSE-Octicons.txt',
   };
-  for (final MapEntry(key: font, value: path) in fonts.entries) {
-    yield LicenseEntryWithLineBreaks([font], await rootBundle.loadString(path));
+  for (final MapEntry(key: name, value: path) in licenses.entries) {
+    yield LicenseEntryWithLineBreaks([name], await rootBundle.loadString(path));
   }
 }
