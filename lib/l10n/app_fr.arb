@@ -1,0 +1,23 @@
+{
+  "@@locale": "fr",
+  "appTitle": "Protein Calculator",
+  "@appTitle": {
+    "description": "Application name."
+  },
+  "tabToday": "Aujourd'hui",
+  "@tabToday": {
+    "description": "Bottom navigation label of the today tab."
+  },
+  "tabHistory": "Historique",
+  "@tabHistory": {
+    "description": "Bottom navigation label of the history tab."
+  },
+  "tabProducts": "Produits",
+  "@tabProducts": {
+    "description": "Bottom navigation label of the products tab."
+  },
+  "tabMenu": "Menu",
+  "@tabMenu": {
+    "description": "Bottom navigation label of the menu tab."
+  }
+}

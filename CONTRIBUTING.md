@@ -22,8 +22,39 @@ request.
    - the code is formatted with `dart format .`.
 4. Open a pull request and check the CLA box in the template.
 
+Every pull request runs the automated checks (formatting, analysis, tests,
+commit messages). A pull request can only be merged once all checks pass.
+
+## Commit messages
+
+Commit titles and pull request titles follow
+[Conventional Commits](https://www.conventionalcommits.org):
+
+```
+<type>(<optional scope>)!: <description>
+```
+
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`,
+  `ci`, `chore`, `revert`.
+- Add `!` for a breaking change.
+- Write the description in English, in the imperative mood, without a capital
+  first letter, 100 characters maximum for the whole title.
+- Leave a blank line between the title and the body.
+
+Examples: `feat(today): show daily protein total`,
+`fix(history): count 1 a.m. entries in the previous day`.
+
 ## Development setup
 
-- Flutter (stable channel)
+- Flutter 3.47.5 (stable channel), the version used by the automated checks
 - Android SDK for Android builds
 - Chrome for web debugging: `flutter run -d chrome`
+
+Generated files (such as localizations) are not committed: `flutter pub get`
+regenerates them.
+
+## Translations
+
+The app is available in French and English. User-facing text lives in
+`lib/l10n/app_fr.arb` (reference file) and `lib/l10n/app_en.arb`: every key
+must exist in both files. Never hard-code user-facing text in widgets.
