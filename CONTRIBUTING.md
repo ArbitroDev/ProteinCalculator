@@ -50,8 +50,28 @@ Examples: `feat(today): show daily protein total`,
 - Android SDK for Android builds
 - Chrome for web debugging: `flutter run -d chrome`
 
-Generated files (such as localizations) are not committed: `flutter pub get`
-regenerates them.
+Generated files are not committed. After cloning or pulling, run:
+
+```bash
+flutter pub get
+dart run build_runner build
+```
+
+`flutter pub get` generates the localizations, `build_runner` generates the
+database code (`*.g.dart`).
+
+## Database changes
+
+The local database uses [Drift](https://drift.simonbinder.eu). When changing
+its schema:
+
+1. Increase `schemaVersion` in `lib/core/database/app_database.dart` and write
+   the migration.
+2. Run `dart run drift_dev make-migrations`: it saves the new schema in
+   `drift_schemas/` and generates tests checking that existing data survives
+   the migration.
+3. Make sure these tests pass. A schema change without migration tests will
+   not be merged.
 
 ## Translations
 
