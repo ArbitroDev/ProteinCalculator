@@ -207,5 +207,50 @@
         "type": "String"
       }
     }
+  },
+  "slotMorning": "Matinée",
+  "@slotMorning": {
+    "description": "Part of the day from 3 a.m. to noon."
+  },
+  "slotAfternoon": "Journée",
+  "@slotAfternoon": {
+    "description": "Part of the day from noon to 6 p.m."
+  },
+  "slotEvening": "Soirée",
+  "@slotEvening": {
+    "description": "Part of the day from 6 p.m. to 3 a.m."
+  },
+  "unnamedEntry": "Sans nom",
+  "@unnamedEntry": {
+    "description": "Shown for an entry without a name."
+  },
+  "entryDeleted": "Entrée supprimée",
+  "@entryDeleted": {
+    "description": "Snack bar shown after deleting an entry."
+  },
+  "undo": "Annuler",
+  "@undo": {
+    "description": "Snack bar action restoring a deleted item."
+  },
+  "delete": "Supprimer",
+  "@delete": {
+    "description": "Accessibility action deleting an item."
+  },
+  "dayGoalOf": "sur {goal} g",
+  "@dayGoalOf": {
+    "description": "Daily goal next to the total of a day, as in '86 g of 140 g'.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "historyEmpty": "Ton historique apparaîtra ici dès ta première entrée.",
+  "@historyEmpty": {
+    "description": "Shown in the history tab before the first entry."
+  },
+  "dayEmpty": "Aucune entrée ce jour-là.",
+  "@dayEmpty": {
+    "description": "Shown in the detail of a day once all its entries are deleted."
   }
 }

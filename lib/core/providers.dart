@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
@@ -56,4 +57,9 @@ final productsProvider = StreamProvider<List<Product>>(
       .watch(databaseProvider)
       .productsDao
       .watchAll(ProductSort.alphabetical),
+);
+
+/// Days having at least one entry, most recent first.
+final historyProvider = StreamProvider<List<DaySummary>>(
+  (ref) => ref.watch(databaseProvider).entriesDao.watchHistory(),
 );

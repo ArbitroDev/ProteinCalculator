@@ -221,6 +221,25 @@ abstract final class AppTheme {
         selectionHandleColor: AppColors.accent,
       ),
       dividerTheme: DividerThemeData(color: colors.divider, thickness: 1),
+      // Snack bars use the inverse surface: navy on the light theme, white
+      // on the dark one.
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: brightness == Brightness.light
+            ? AppColors.light.text
+            : AppColors.light.surfaceRaised,
+        contentTextStyle: body(
+          15,
+          FontWeight.w400,
+          brightness == Brightness.light
+              ? AppColors.light.surfaceRaised
+              : AppColors.dark.background,
+        ),
+        actionTextColor: brightness == Brightness.light
+            ? AppColors.accent
+            : AppColors.light.accentText,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 }

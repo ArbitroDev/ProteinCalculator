@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
+import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 
 import 'test_database.dart';
@@ -89,9 +90,12 @@ void main() {
     await addEntry(15, DateTime(2026, 9, 30, 8));
     await addEntry(10, DateTime(2026, 10, 1, 1));
 
-    expect(await dao.watchHistory().first, [
-      (dayKey: 20260930, proteinGrams: 25.0),
-      (dayKey: 20260928, proteinGrams: 20.0),
+    expect(await dao.watchHistory().first, const [
+      DaySummary(
+        dayKey: 20260930,
+        bySlot: {DaySlot.morning: 15, DaySlot.evening: 10},
+      ),
+      DaySummary(dayKey: 20260928, bySlot: {DaySlot.afternoon: 20}),
     ]);
   });
 

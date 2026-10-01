@@ -40,5 +40,15 @@
   "errorAboveReference": "Can't be more than the reference quantity.",
   "errorNameRequired": "Give the product a name.",
   "errorNameTaken": "A product already has this name.",
-  "productPerReference": "{protein} g / {reference} g"
+  "productPerReference": "{protein} g / {reference} g",
+  "slotMorning": "Morning",
+  "slotAfternoon": "Afternoon",
+  "slotEvening": "Evening",
+  "unnamedEntry": "Unnamed",
+  "entryDeleted": "Entry deleted",
+  "undo": "Undo",
+  "delete": "Delete",
+  "dayGoalOf": "of {goal} g",
+  "historyEmpty": "Your history will show up here after your first entry.",
+  "dayEmpty": "No entries that day."
 }

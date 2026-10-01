@@ -1,16 +1,42 @@
 import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/tables.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 
 part 'entries_dao.g.dart';
 
-/// Protein total of one app day.
-typedef DaySummary = ({int dayKey, double proteinGrams});
+/// Protein total of one app day, split by part of the day.
+@immutable
+class DaySummary {
+  const DaySummary({required this.dayKey, required this.bySlot});
+
+  final int dayKey;
+
+  /// Protein grams per part of the day; parts without entries are absent.
+  final Map<DaySlot, double> bySlot;
+
+  double get proteinGrams => bySlot.values.sum;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DaySummary &&
+      other.dayKey == dayKey &&
+      const MapEquality<DaySlot, double>().equals(other.bySlot, bySlot);
+
+  @override
+  int get hashCode =>
+      Object.hash(dayKey, const MapEquality<DaySlot, double>().hash(bySlot));
+
+  @override
+  String toString() => 'DaySummary($dayKey, $bySlot)';
+}
 
 @DriftAccessor(tables: [Entries, Products])
 class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
@@ -25,20 +51,25 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   }
 
   /// Days having at least one entry, most recent first.
+  ///
+  /// The split by part of the day is computed in Dart from the local time of
+  /// each entry: SQLite time zone support is unreliable on the web.
   Stream<List<DaySummary>> watchHistory() {
-    final total = entries.proteinGrams.sum();
     final query = selectOnly(entries)
-      ..addColumns([entries.dayKey, total])
-      ..groupBy([entries.dayKey])
+      ..addColumns([entries.dayKey, entries.createdAt, entries.proteinGrams])
       ..orderBy([OrderingTerm.desc(entries.dayKey)]);
-    return query
-        .map(
-          (row) => (
-            dayKey: row.read(entries.dayKey)!,
-            proteinGrams: row.read(total) ?? 0,
-          ),
-        )
-        .watch();
+    return query.watch().map((rows) {
+      final days = <int, Map<DaySlot, double>>{};
+      for (final row in rows) {
+        final bySlot = days.putIfAbsent(row.read(entries.dayKey)!, () => {});
+        final slot = DaySlot.of(row.read(entries.createdAt)!);
+        bySlot[slot] = (bySlot[slot] ?? 0) + row.read(entries.proteinGrams)!;
+      }
+      return [
+        for (final MapEntry(key: dayKey, value: bySlot) in days.entries)
+          DaySummary(dayKey: dayKey, bySlot: bySlot),
+      ];
+    });
   }
 
   /// Entries of one app day, in the order they were added.

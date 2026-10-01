@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:protein_calculator/core/home_shell.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_page.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
+import 'package:protein_calculator/features/history/day_detail_page.dart';
 import 'package:protein_calculator/features/history/history_page.dart';
 import 'package:protein_calculator/features/menu/menu_page.dart';
 import 'package:protein_calculator/features/onboarding/onboarding_page.dart';
@@ -21,6 +22,8 @@ abstract final class AppRoutes {
   static String newEntryFrom(int productId) => '$newEntry?productId=$productId';
 
   static String editEntry(int entryId) => '/entries/$entryId';
+
+  static String historyDay(int dayKey) => '$history/$dayKey';
 }
 
 /// First page shown: the first launch screen until a daily goal is saved.
@@ -52,6 +55,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.history,
                 builder: (context, state) => const HistoryPage(),
+                routes: [
+                  GoRoute(
+                    path: ':dayKey',
+                    builder: (context, state) => DayDetailPage(
+                      dayKey: int.parse(state.pathParameters['dayKey']!),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
