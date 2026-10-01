@@ -6,6 +6,7 @@ import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -99,9 +100,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 controller: _controller,
                 autofocus: true,
                 textAlign: TextAlign.center,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [GramsInputFormatter()],
                 textInputAction: TextInputAction.done,
                 onChanged: (_) => setState(() => _error = null),
                 onSubmitted: (_) => _save(),

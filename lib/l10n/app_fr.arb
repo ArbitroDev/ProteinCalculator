@@ -111,5 +111,101 @@
         "type": "String"
       }
     }
+  },
+  "editEntryTitle": "Modifier l'entrée",
+  "@editEntryTitle": {
+    "description": "Title of the form editing an entry."
+  },
+  "newProductTitle": "Nouveau produit",
+  "@newProductTitle": {
+    "description": "Title of the form creating a product."
+  },
+  "editProductTitle": "Modifier le produit",
+  "@editProductTitle": {
+    "description": "Title of the form editing a product."
+  },
+  "formNameOptional": "Nom (facultatif)",
+  "@formNameOptional": {
+    "description": "Label of the optional name field of an entry."
+  },
+  "formName": "Nom",
+  "@formName": {
+    "description": "Label of the name field of a product."
+  },
+  "formNameHint": "Skyr nature",
+  "@formNameHint": {
+    "description": "Example name shown in the empty name field."
+  },
+  "modeDirect": "Protéines directes",
+  "@modeDirect": {
+    "description": "Mode where the protein amount is typed directly."
+  },
+  "modePerQuantity": "Selon le produit",
+  "@modePerQuantity": {
+    "description": "Mode where the protein amount is computed from the product content."
+  },
+  "formProtein": "Protéines",
+  "@formProtein": {
+    "description": "Label of the protein amount field."
+  },
+  "formConsumed": "Quantité consommée",
+  "@formConsumed": {
+    "description": "Label of the quantity eaten."
+  },
+  "formPortion": "Portion habituelle",
+  "@formPortion": {
+    "description": "Label of the usual portion of a product."
+  },
+  "formProductProtein": "Protéines du produit",
+  "@formProductProtein": {
+    "description": "Label of the protein content of the product."
+  },
+  "formPer": "pour",
+  "@formPer": {
+    "description": "Between the protein content and the reference quantity, as in '10 g for 100 g'."
+  },
+  "formResult": "de protéines",
+  "@formResult": {
+    "description": "After the computed protein amount, as in '15 g of protein'."
+  },
+  "saveAsProduct": "Enregistrer comme produit",
+  "@saveAsProduct": {
+    "description": "Checkbox also saving the entry as a product."
+  },
+  "save": "Enregistrer",
+  "@save": {
+    "description": "Button saving an edited entry or a product."
+  },
+  "errorRequired": "Entre une quantité.",
+  "@errorRequired": {
+    "description": "Error when a quantity is missing or not a number."
+  },
+  "errorNotPositive": "Entre une quantité supérieure à 0.",
+  "@errorNotPositive": {
+    "description": "Error when a quantity is zero or negative."
+  },
+  "errorAboveReference": "Ne peut pas dépasser la quantité de référence.",
+  "@errorAboveReference": {
+    "description": "Error when the protein content is higher than the reference quantity."
+  },
+  "errorNameRequired": "Donne un nom au produit.",
+  "@errorNameRequired": {
+    "description": "Error when a product has no name."
+  },
+  "errorNameTaken": "Un produit porte déjà ce nom.",
+  "@errorNameTaken": {
+    "description": "Error when another product has the same name."
+  },
+  "productPerReference": "{protein} g / {reference} g",
+  "@productPerReference": {
+    "description": "Protein content of a product per reference quantity.",
+    "placeholders": {
+      "protein": {
+        "type": "String"
+      },
+      "reference": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:protein_calculator/core/home_shell.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_page.dart';
+import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
 import 'package:protein_calculator/features/history/history_page.dart';
 import 'package:protein_calculator/features/menu/menu_page.dart';
 import 'package:protein_calculator/features/onboarding/onboarding_page.dart';
@@ -15,6 +16,11 @@ abstract final class AppRoutes {
   static const products = '/products';
   static const menu = '/menu';
   static const newEntry = '/entries/new';
+
+  /// New entry prefilled with a product.
+  static String newEntryFrom(int productId) => '$newEntry?productId=$productId';
+
+  static String editEntry(int entryId) => '/entries/$entryId';
 }
 
 /// First page shown: the first launch screen until a daily goal is saved.
@@ -70,7 +76,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Full screen, above the tab bar.
       GoRoute(
         path: AppRoutes.newEntry,
-        builder: (context, state) => const EntryFormPage(),
+        builder: (context, state) => EntryFormPage(
+          args: EntryFormArgs.newEntry(
+            productId: int.tryParse(
+              state.uri.queryParameters['productId'] ?? '',
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/entries/:id',
+        builder: (context, state) => EntryFormPage(
+          args: EntryFormArgs.editEntry(int.parse(state.pathParameters['id']!)),
+        ),
       ),
     ],
   );

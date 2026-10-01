@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/product_sort.dart';
 
 /// The app database, opened in `main` before the first frame.
 final databaseProvider = Provider<AppDatabase>(
@@ -47,4 +48,12 @@ final dailyGoalProvider = StreamProvider<double?>(
 final dayEntriesProvider = StreamProvider.family<List<Entry>, int>(
   (ref, dayKey) =>
       ref.watch(databaseProvider).entriesDao.watchDayEntries(dayKey),
+);
+
+/// Saved products, in alphabetical order.
+final productsProvider = StreamProvider<List<Product>>(
+  (ref) => ref
+      .watch(databaseProvider)
+      .productsDao
+      .watchAll(ProductSort.alphabetical),
 );
