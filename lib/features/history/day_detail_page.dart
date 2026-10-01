@@ -81,49 +81,55 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
         title: Text(formatLongDate(dateOfDayKey(widget.dayKey), locale)),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
+        padding: const EdgeInsets.fromLTRB(6, 4, 6, 24),
         children: [
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 10,
-            children: [
-              Text(grams(total), style: textTheme.displayMedium),
-              if (reached)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      LucideIcons.circleCheck,
-                      size: 18,
-                      color: colors.accentText,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      l10n.todayGoalReached,
-                      style: textTheme.bodyLarge!.copyWith(
+          for (final header in [
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 10,
+              children: [
+                Text(grams(total), style: textTheme.displayMedium),
+                if (reached)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        LucideIcons.circleCheck,
+                        size: 18,
                         color: colors.accentText,
-                        fontWeight: FontWeight.w600,
                       ),
+                      const SizedBox(width: 4),
+                      Text(
+                        l10n.todayGoalReached,
+                        style: textTheme.bodyLarge!.copyWith(
+                          color: colors.accentText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    l10n.dayGoalOf(formatGrams(goal, locale)),
+                    style: textTheme.bodyLarge!.copyWith(
+                      color: colors.textSecondary,
                     ),
-                  ],
-                )
-              else
-                Text(
-                  l10n.dayGoalOf(formatGrams(goal, locale)),
-                  style: textTheme.bodyLarge!.copyWith(
-                    color: colors.textSecondary,
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          StackedBar(
-            bySlot: {
-              for (final MapEntry(key: slot, value: list) in bySlot.entries)
-                slot: sum(list),
-            },
-            goal: goal,
-          ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            StackedBar(
+              bySlot: {
+                for (final MapEntry(key: slot, value: list) in bySlot.entries)
+                  slot: sum(list),
+              },
+              goal: goal,
+            ),
+          ])
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: header,
+            ),
           if (entries.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 32),
@@ -168,7 +174,7 @@ class _SlotHeader extends StatelessWidget {
       DaySlot.evening => l10n.slotEvening,
     };
     return Padding(
-      padding: const EdgeInsets.only(top: 18, bottom: 4),
+      padding: const EdgeInsets.fromLTRB(12, 18, 12, 4),
       child: Row(
         children: [
           Container(
@@ -225,8 +231,9 @@ class _DismissibleEntry extends StatelessWidget {
           color: colors.background,
           child: InkWell(
             onTap: () => context.push(AppRoutes.editEntry(entry.id)),
+            borderRadius: BorderRadius.circular(10),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: colors.divider)),
               ),

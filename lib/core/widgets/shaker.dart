@@ -41,6 +41,10 @@ class Shaker extends StatelessWidget {
   /// Width / height ratio of the drawing.
   static const aspectRatio = 110 / 290;
 
+  /// Empty space under the bottom of the drawing, as a fraction of its
+  /// height, to align other widgets with the visible bottom of the shaker.
+  static const bottomInset = (290 - 283.5) / 290;
+
   @override
   Widget build(BuildContext context) {
     final total = layers.fold(0.0, (sum, layer) => sum + layer.grams);

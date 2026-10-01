@@ -107,7 +107,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
     }
     return ListView.builder(
       // Room for the floating button over the last product.
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 88),
+      padding: const EdgeInsets.fromLTRB(6, 0, 6, 88),
       itemCount: products.length,
       itemBuilder: (context, index) {
         final product = products[index];
@@ -228,8 +228,9 @@ class _ProductTile extends StatelessWidget {
           color: colors.background,
           child: InkWell(
             onTap: () => context.push(AppRoutes.editProduct(product.id)),
+            borderRadius: BorderRadius.circular(10),
             child: Container(
-              padding: const EdgeInsets.only(top: 5, bottom: 5),
+              padding: const EdgeInsets.fromLTRB(12, 5, 4, 5),
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: colors.divider)),
               ),

@@ -114,72 +114,78 @@ class _DayGauge extends StatelessWidget {
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Spacer(),
-                  ExcludeSemantics(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text.rich(
-                        TextSpan(
-                          text: grams(total),
-                          children: [
-                            TextSpan(
-                              text: ' ${l10n.gramsUnit}',
-                              style: textTheme.displayLarge!.copyWith(
-                                fontSize: 28,
+              child: Padding(
+                // Ends at the visible bottom of the shaker.
+                padding: EdgeInsets.only(
+                  bottom: shakerWidth / Shaker.aspectRatio * Shaker.bottomInset,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Spacer(),
+                    ExcludeSemantics(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text.rich(
+                          TextSpan(
+                            text: grams(total),
+                            children: [
+                              TextSpan(
+                                text: ' ${l10n.gramsUnit}',
+                                style: textTheme.displayLarge!.copyWith(
+                                  fontSize: 28,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                          style: textTheme.displayLarge!.copyWith(fontSize: 76),
                         ),
-                        style: textTheme.displayLarge!.copyWith(fontSize: 76),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(text: l10n.todayEntryCount(entries.length)),
-                        const TextSpan(text: ' · '),
-                        if (reached) ...[
-                          WidgetSpan(
-                            alignment: PlaceholderAlignment.middle,
-                            child: Icon(
-                              LucideIcons.circleCheck,
-                              size: 16,
-                              color: colors.accentText,
+                    const SizedBox(height: 8),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: l10n.todayEntryCount(entries.length)),
+                          const TextSpan(text: ' · '),
+                          if (reached) ...[
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.middle,
+                              child: Icon(
+                                LucideIcons.circleCheck,
+                                size: 16,
+                                color: colors.accentText,
+                              ),
                             ),
-                          ),
-                          const TextSpan(text: ' '),
-                          TextSpan(
-                            text: l10n.todayGoalReached,
-                            style: status.copyWith(
-                              color: colors.accentText,
-                              fontWeight: FontWeight.w600,
+                            const TextSpan(text: ' '),
+                            TextSpan(
+                              text: l10n.todayGoalReached,
+                              style: status.copyWith(
+                                color: colors.accentText,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ] else
-                          TextSpan(
-                            text: l10n.todayRemaining(grams(goal - total)),
-                          ),
-                      ],
+                          ] else
+                            TextSpan(
+                              text: l10n.todayRemaining(grams(goal - total)),
+                            ),
+                        ],
+                      ),
+                      style: status,
                     ),
-                    style: status,
-                  ),
-                  const SizedBox(height: 14),
-                  FilledButton.icon(
-                    onPressed: () => context.push(AppRoutes.newEntry),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      textStyle: textTheme.labelLarge!.copyWith(fontSize: 16),
+                    const SizedBox(height: 14),
+                    FilledButton.icon(
+                      onPressed: () => context.push(AppRoutes.newEntry),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 52),
+                        textStyle: textTheme.labelLarge!.copyWith(fontSize: 16),
+                      ),
+                      icon: const Icon(LucideIcons.plus, size: 20),
+                      label: Text(l10n.addEntry),
                     ),
-                    icon: const Icon(LucideIcons.plus, size: 20),
-                    label: Text(l10n.addEntry),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

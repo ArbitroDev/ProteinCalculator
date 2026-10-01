@@ -37,7 +37,7 @@ class HistoryPage extends ConsumerWidget {
           ),
         ),
         _ => ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
           itemCount: days.length,
           itemBuilder: (context, index) =>
               _DayTile(day: days[index], goal: goal),
@@ -64,8 +64,9 @@ class _DayTile extends StatelessWidget {
 
     return InkWell(
       onTap: () => context.go(AppRoutes.historyDay(day.dayKey)),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: colors.divider)),
         ),
