@@ -11,10 +11,8 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
+import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
-
-/// How long a deleted entry can be restored.
-const undoDuration = Duration(seconds: 3);
 
 /// Entries of one day grouped by part of the day. Swiping an entry deletes
 /// it, with a few seconds to undo.
@@ -39,22 +37,15 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
 
     final deleted = await dao.deleteEntry(entry.id);
     if (deleted == null) return;
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          duration: undoDuration,
-          persist: false,
-          content: _UndoCountdown(label: l10n.entryDeleted),
-          action: SnackBarAction(
-            label: l10n.undo,
-            onPressed: () async {
-              await dao.restoreEntry(deleted);
-              if (mounted) setState(() => _hidden.remove(entry.id));
-            },
-          ),
-        ),
-      );
+    showUndoSnackBar(
+      messenger,
+      l10n: l10n,
+      label: l10n.entryDeleted,
+      onUndo: () async {
+        await dao.restoreEntry(deleted);
+        if (mounted) setState(() => _hidden.remove(entry.id));
+      },
+    );
   }
 
   @override
@@ -266,38 +257,6 @@ class _DismissibleEntry extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Snack bar content with a ring emptying while the deletion can be undone.
-class _UndoCountdown extends StatelessWidget {
-  const _UndoCountdown({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final track = DefaultTextStyle.of(context).style.color
-        ?.withValues(alpha: 0.2);
-    return Row(
-      children: [
-        SizedBox.square(
-          dimension: 20,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 1, end: 0),
-            duration: undoDuration,
-            builder: (context, value, _) => CircularProgressIndicator(
-              value: value,
-              strokeWidth: 3,
-              color: AppColors.accent,
-              backgroundColor: track,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Text(label)),
-      ],
     );
   }
 }

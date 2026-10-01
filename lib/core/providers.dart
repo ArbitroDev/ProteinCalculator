@@ -63,3 +63,14 @@ final productsProvider = StreamProvider<List<Product>>(
 final historyProvider = StreamProvider<List<DaySummary>>(
   (ref) => ref.watch(databaseProvider).entriesDao.watchHistory(),
 );
+
+/// Sort order chosen in the products tab, remembered between launches.
+final productSortProvider = StreamProvider<ProductSort>(
+  (ref) => ref.watch(databaseProvider).settingsDao.watchProductSort(),
+);
+
+/// Saved products in the order chosen in the products tab.
+final sortedProductsProvider = StreamProvider<List<Product>>((ref) {
+  final sort = ref.watch(productSortProvider).value ?? ProductSort.alphabetical;
+  return ref.watch(databaseProvider).productsDao.watchAll(sort);
+});

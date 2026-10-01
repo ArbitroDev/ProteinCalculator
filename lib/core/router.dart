@@ -24,6 +24,10 @@ abstract final class AppRoutes {
   static String editEntry(int entryId) => '/entries/$entryId';
 
   static String historyDay(int dayKey) => '$history/$dayKey';
+
+  static const newProduct = '/products/new';
+
+  static String editProduct(int productId) => '$products/$productId';
 }
 
 /// First page shown: the first launch screen until a daily goal is saved.
@@ -92,6 +96,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             productId: int.tryParse(
               state.uri.queryParameters['productId'] ?? '',
             ),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.newProduct,
+        builder: (context, state) =>
+            const EntryFormPage(args: EntryFormArgs.newProduct()),
+      ),
+      GoRoute(
+        path: '/products/:id',
+        builder: (context, state) => EntryFormPage(
+          args: EntryFormArgs.editProduct(
+            int.parse(state.pathParameters['id']!),
           ),
         ),
       ),

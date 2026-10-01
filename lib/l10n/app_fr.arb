@@ -252,5 +252,51 @@
   "dayEmpty": "Aucune entrée ce jour-là.",
   "@dayEmpty": {
     "description": "Shown in the detail of a day once all its entries are deleted."
+  },
+  "sortAlphabetical": "A–Z",
+  "@sortAlphabetical": {
+    "description": "Sort products alphabetically."
+  },
+  "sortMostUsed": "Plus utilisés",
+  "@sortMostUsed": {
+    "description": "Sort products by number of uses."
+  },
+  "sortRecentlyUsed": "Récents",
+  "@sortRecentlyUsed": {
+    "description": "Sort products by last use."
+  },
+  "productPortion": "portion {grams} g",
+  "@productPortion": {
+    "description": "Usual portion of a product.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "productUseCount": "{count, plural, =0{jamais utilisé} =1{utilisé 1 fois} other{utilisé {count} fois}}",
+  "@productUseCount": {
+    "description": "Number of times a product was used.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "productDeleted": "Produit supprimé",
+  "@productDeleted": {
+    "description": "Snack bar shown after deleting a product."
+  },
+  "productsEmpty": "Enregistre tes produits habituels pour les ajouter en un geste.",
+  "@productsEmpty": {
+    "description": "Shown in the products tab before the first product."
+  },
+  "edit": "Modifier",
+  "@edit": {
+    "description": "Accessibility action editing an item."
+  },
+  "addToToday": "Ajouter à la journée",
+  "@addToToday": {
+    "description": "Accessibility hint: tapping a product adds it to the day."
   }
 }

@@ -50,5 +50,14 @@
   "delete": "Delete",
   "dayGoalOf": "of {goal} g",
   "historyEmpty": "Your history will show up here after your first entry.",
-  "dayEmpty": "No entries that day."
+  "dayEmpty": "No entries that day.",
+  "sortAlphabetical": "A–Z",
+  "sortMostUsed": "Most used",
+  "sortRecentlyUsed": "Recent",
+  "productPortion": "{grams} g portion",
+  "productUseCount": "{count, plural, =0{never used} =1{used once} other{used {count} times}}",
+  "productDeleted": "Product deleted",
+  "productsEmpty": "Save the products you eat often to add them in one tap.",
+  "edit": "Edit",
+  "addToToday": "Add to the day"
 }
