@@ -20,6 +20,9 @@ AppDatabase openTestDatabase() {
 
 /// Starts the app on an in-memory [database] at a fixed time [now].
 ///
+/// In widget tests, read the database with direct queries (`get`), not
+/// streams (`watch`): streams never emit in the fake time of widget tests.
+///
 /// Starts on the first launch screen if the database has no daily goal.
 Future<void> pumpApp(
   WidgetTester tester,
@@ -27,6 +30,9 @@ Future<void> pumpApp(
   DateTime? now,
   List<Locale> locales = const [Locale('en', 'US')],
 }) async {
+  // A blinking cursor would keep pumpAndSettle waiting forever.
+  EditableText.debugDeterministicCursor = true;
+  addTearDown(() => EditableText.debugDeterministicCursor = false);
   final time = now ?? defaultNow;
   final goal = await database.settingsDao.getDailyGoal();
   tester.platformDispatcher.localesTestValue = locales;
@@ -54,5 +60,8 @@ Future<void> pumpApp(
 /// the test.
 Future<void> disposeApp(WidgetTester tester, AppDatabase database) async {
   await tester.pumpWidget(const SizedBox());
+  // Drift closes the streams of removed widgets after a short delay: let
+  // the fake time of widget tests run before closing the database.
+  await tester.pump(const Duration(seconds: 1));
   await database.close();
 }

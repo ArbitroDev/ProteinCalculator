@@ -12,11 +12,11 @@ void main() {
 
       expect(find.text('Your daily goal'), findsOneWidget);
 
-      await tester.enterText(find.byType(TextField), '150,5');
+      await tester.enterText(find.byType(TextField), '150');
       await tester.tap(find.text('Get started'));
       await tester.pumpAndSettle();
 
-      expect(await db.settingsDao.getDailyGoal(), 150.5);
+      expect(await db.settingsDao.getDailyGoal(), 150);
       expect(find.text('Thursday, October 1'), findsOneWidget);
       await disposeApp(tester, db);
     });

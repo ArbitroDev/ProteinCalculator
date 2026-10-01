@@ -22,7 +22,7 @@ void main() {
     await pumpApp(tester, db);
 
     expect(find.text('0 g'), findsOneWidget);
-    expect(find.text('goal 140 g'), findsOneWidget);
+    expect(find.text('Goal 140 g'), findsOneWidget);
     expect(find.text('No entries · 140 g left to shake'), findsOneWidget);
     await disposeApp(tester, db);
   });
