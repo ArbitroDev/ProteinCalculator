@@ -28,4 +28,4 @@ All rights reserved.
 
 The source code is public so that you can read it and contribute to it.
 Copying, redistribution and republication are not allowed. See
-[LICENSE](LICENSE) for details.
+[LICENSE](LICENSE.md) for details.

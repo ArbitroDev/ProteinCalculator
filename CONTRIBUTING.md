@@ -6,7 +6,7 @@ request.
 ## Before you start
 
 - This project is **source-available, not open source**. Read the
-  [LICENSE](LICENSE): you may fork, clone and modify the code **only** to
+  [LICENSE](LICENSE.md): you may fork, clone and modify the code **only** to
   contribute to this repository. Redistribution and republication are
   prohibited.
 - Every contribution requires agreement to the

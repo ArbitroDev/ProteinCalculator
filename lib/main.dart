@@ -8,8 +8,10 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Registered before the binding adds the packages licenses, so the license
+  // of the app comes first and stays at the top of the licenses page.
   LicenseRegistry.addLicense(_bundledLicenses);
+  WidgetsFlutterBinding.ensureInitialized();
 
   // Reading the goal before the first frame avoids flashing the today
   // screen before the first launch screen.
@@ -29,10 +31,11 @@ Future<void> main() async {
   );
 }
 
-/// Licenses of the fonts and icons bundled as files, shown in the licenses
-/// page next to those of the packages.
+/// License of the app, then those of the fonts and icons bundled as files,
+/// shown in the licenses page next to those of the packages.
 Stream<LicenseEntry> _bundledLicenses() async* {
   const licenses = {
+    'Protein Calculator': 'LICENSE.md',
     'Outfit': 'assets/fonts/OFL-Outfit.txt',
     'Saira Semi Condensed': 'assets/fonts/OFL-SairaSemiCondensed.txt',
     'Octicons (GitHub mark)': 'assets/licenses/LICENSE-Octicons.txt',

@@ -2,7 +2,7 @@ name: protein_calculator
 description: "Daily protein intake tracker."
 publish_to: 'none'
 
-version: 0.1.0+1
+version: 0.3.0+4
 
 environment:
   sdk: ^3.13.0
@@ -37,6 +37,7 @@ flutter:
   generate: true
 
   assets:
+    - LICENSE.md
     - assets/fonts/OFL-Outfit.txt
     - assets/fonts/OFL-SairaSemiCondensed.txt
     - assets/licenses/LICENSE-Octicons.txt

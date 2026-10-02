@@ -311,9 +311,9 @@
   "@menuPrivacy": {
     "description": "Menu item opening the data and privacy page."
   },
-  "menuLicenses": "Licences open source",
+  "menuLicenses": "Licences",
   "@menuLicenses": {
-    "description": "Menu item opening the open source licenses."
+    "description": "Menu item opening the licenses of the app and of its components."
   },
   "menuAbout": "À propos",
   "@menuAbout": {
@@ -356,9 +356,9 @@
   "@aboutGitHub": {
     "description": "Link opening the public source code repository on GitHub."
   },
-  "licensesExplanation": "Protein Calculator s'appuie sur des composants open source, dont la plupart viennent de Flutter. Leurs licences demandent que leur texte accompagne l'app : les voici.",
+  "licensesExplanation": "Protein Calculator est distribuée sous sa propre licence, en tête de liste : son code est consultable, mais elle n'est pas open source. Elle s'appuie sur des composants open source, dont la plupart viennent de Flutter, et leurs licences demandent que leur texte accompagne l'app.",
   "@licensesExplanation": {
-    "description": "Explanation at the top of the open source licenses page."
+    "description": "Explanation at the top of the licenses page."
   },
   "backupTitle": "Sauvegarde",
   "@backupTitle": {
