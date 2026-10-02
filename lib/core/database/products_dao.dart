@@ -82,6 +82,20 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
+  /// Makes [id] the favorite product, replacing the previous one, or removes
+  /// it from favorites when [favorite] is false.
+  Future<void> setFavorite(int id, {required bool favorite}) {
+    return transaction(() async {
+      await (update(products)..where((p) => p.isFavorite.equals(true))).write(
+        const ProductsCompanion(isFavorite: Value(false)),
+      );
+      if (!favorite) return;
+      await (update(products)..where((p) => p.id.equals(id))).write(
+        const ProductsCompanion(isFavorite: Value(true)),
+      );
+    });
+  }
+
   /// Deletes a product and returns it, so the deletion can be undone with
   /// [restoreProduct]. Entries are not affected: they keep their own copy of
   /// the values.
@@ -102,13 +116,19 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       if (await isNameTaken(product.name)) {
         throw DuplicateProductNameException(product.name);
       }
-      await into(products).insert(product);
+      // Another product may have become the favorite meanwhile.
+      final favoriteTaken = await (select(
+        products,
+      )..where((p) => p.isFavorite.equals(true))).getSingleOrNull();
+      await into(products).insert(
+        favoriteTaken == null ? product : product.copyWith(isFavorite: false),
+      );
     });
   }
 }
 
-/// Sorts [products] by [sort], using the accent-insensitive alphabetical
-/// order to break ties.
+/// Sorts [products] by [sort], the favorite first, using the
+/// accent-insensitive alphabetical order to break ties.
 List<Product> sortProducts(List<Product> products, ProductSort sort) {
   int alphabetical(Product a, Product b) => a.nameKey.compareTo(b.nameKey);
 
@@ -129,6 +149,7 @@ List<Product> sortProducts(List<Product> products, ProductSort sort) {
   };
 
   return [...products]..sort((a, b) {
+    if (a.isFavorite != b.isFavorite) return a.isFavorite ? -1 : 1;
     final result = primary(a, b);
     return result != 0 ? result : alphabetical(a, b);
   });

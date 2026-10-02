@@ -33,4 +33,12 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> setProductSort(ProductSort sort) =>
       _write(AppSettingsCompanion(productSort: Value(sort)));
+
+  Future<bool> getCrashReports() async => (await _row.getSingle()).crashReports;
+
+  Stream<bool> watchCrashReports() =>
+      _row.watchSingle().map((settings) => settings.crashReports);
+
+  Future<void> setCrashReports(bool enabled) =>
+      _write(AppSettingsCompanion(crashReports: Value(enabled)));
 }

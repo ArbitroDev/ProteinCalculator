@@ -38,6 +38,9 @@ class Products extends Table {
   IntColumn get useCount => integer().withDefault(const Constant(0))();
   DateTimeColumn get lastUsedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
+
+  /// The favorite product, listed first whatever the sort; one at most.
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
 }
 
 /// Single-row table holding the app settings.
@@ -50,6 +53,9 @@ class AppSettings extends Table {
   TextColumn get productSort => textEnum<ProductSort>().withDefault(
     Constant(ProductSort.alphabetical.name),
   )();
+
+  /// Whether crash reports are sent; off until the user agrees.
+  BoolColumn get crashReports => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:protein_calculator/core/database/app_database.steps.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
@@ -28,11 +29,17 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
+    onUpgrade: stepByStep(
+      from1To2: (m, schema) async {
+        await m.addColumn(schema.appSettings, schema.appSettings.crashReports);
+        await m.addColumn(schema.products, schema.products.isFavorite);
+      },
+    ),
     beforeOpen: (details) async {
       await into(appSettings).insert(
         AppSettingsCompanion.insert(id: const Value(SettingsDao.rowId)),

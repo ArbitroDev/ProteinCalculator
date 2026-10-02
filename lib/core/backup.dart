@@ -85,6 +85,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'useCount': p.useCount,
           'lastUsedAt': p.lastUsedAt?.toUtc().toIso8601String(),
           'createdAt': p.createdAt.toUtc().toIso8601String(),
+          'isFavorite': p.isFavorite,
         },
     ],
   });
@@ -115,6 +116,9 @@ Backup parseBackup(String text) {
     final names = products.map((p) => p.nameKey.value).toSet();
     if (names.length != products.length) {
       throw const InvalidBackupException('duplicate product names');
+    }
+    if (products.where((p) => p.isFavorite.value).length > 1) {
+      throw const InvalidBackupException('several favorite products');
     }
 
     return Backup(
@@ -185,6 +189,8 @@ ProductsCompanion _product(Map<String, dynamic> p) {
       lastUsedAt == null ? null : DateTime.parse(lastUsedAt).toLocal(),
     ),
     createdAt: DateTime.parse(p['createdAt'] as String).toLocal(),
+    // Absent from backups made before favorites existed.
+    isFavorite: Value(p['isFavorite'] as bool? ?? false),
   );
 }
 
