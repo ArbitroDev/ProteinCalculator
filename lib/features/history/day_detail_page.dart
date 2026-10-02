@@ -161,6 +161,8 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
           ],
         ),
     ];
+    final landscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
 
     return Scaffold(
       appBar: AppBar(
@@ -171,10 +173,31 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
         ),
         title: Text(formatLongDate(dateOfDayKey(widget.dayKey), locale)),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(6, 4, 6, 24),
-        children: [...summary, ...cards],
-      ),
+      body: landscape
+          // The summary on the left, the cards on the right.
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(6, 4, 6, 24),
+                    children: summary,
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(6, 4, 6, 24),
+                    children: cards,
+                  ),
+                ),
+              ],
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(6, 4, 6, 24),
+              children: [...summary, ...cards],
+            ),
     );
   }
 }

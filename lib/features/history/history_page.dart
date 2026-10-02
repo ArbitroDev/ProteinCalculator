@@ -9,6 +9,7 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
+import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// History tab: every day with entries, most recent first.
@@ -23,26 +24,28 @@ class HistoryPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tabHistory)),
-      body: switch (days) {
-        null => const SizedBox.shrink(),
-        [] => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Text(
-              l10n.historyEmpty,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge!
-                  .copyWith(color: AppColors.of(context).textSecondary),
+      body: ContentWidth(
+        child: switch (days) {
+          null => const SizedBox.shrink(),
+          [] => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                l10n.historyEmpty,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge!
+                    .copyWith(color: AppColors.of(context).textSecondary),
+              ),
             ),
           ),
-        ),
-        _ => ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          itemCount: days.length,
-          itemBuilder: (context, index) =>
-              _DayTile(day: days[index], goal: goal),
-        ),
-      },
+          _ => ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            itemCount: days.length,
+            itemBuilder: (context, index) =>
+                _DayTile(day: days[index], goal: goal),
+          ),
+        },
+      ),
     );
   }
 }

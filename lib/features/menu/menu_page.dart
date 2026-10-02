@@ -8,6 +8,7 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/goal_field.dart';
+import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Menu tab: daily goal, privacy, licenses and about.
@@ -25,69 +26,71 @@ class MenuPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tabMenu)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
-        children: [
-          Material(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(14),
-            child: InkWell(
+      body: ContentWidth(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+          children: [
+            Material(
+              color: colors.surface,
               borderRadius: BorderRadius.circular(14),
-              onTap: goal == null ? null : () => _editGoal(context, goal),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(l10n.menuGoal, style: textTheme.bodySmall),
-                          Text(
-                            goal == null
-                                ? ''
-                                : l10n.grams(formatGrams(goal, locale)),
-                            style: textTheme.displaySmall!.copyWith(
-                              fontSize: 36,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: goal == null ? null : () => _editGoal(context, goal),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l10n.menuGoal, style: textTheme.bodySmall),
+                            Text(
+                              goal == null
+                                  ? ''
+                                  : l10n.grams(formatGrams(goal, locale)),
+                              style: textTheme.displaySmall!.copyWith(
+                                fontSize: 36,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Text(
-                      l10n.edit,
-                      style: textTheme.bodyLarge!.copyWith(
-                        color: colors.accentText,
-                        fontWeight: FontWeight.w600,
+                      Text(
+                        l10n.edit,
+                        style: textTheme.bodyLarge!.copyWith(
+                          color: colors.accentText,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          _MenuItem(
-            icon: LucideIcons.shieldCheck,
-            label: l10n.menuPrivacy,
-            onTap: () => context.go(AppRoutes.dataPrivacy),
-          ),
-          _MenuItem(
-            icon: LucideIcons.fileText,
-            label: l10n.menuLicenses,
-            onTap: () => showLicensePage(
-              context: context,
-              applicationName: l10n.appTitle,
-              applicationVersion: version,
-              applicationLegalese: l10n.licensesExplanation,
+            const SizedBox(height: 16),
+            _MenuItem(
+              icon: LucideIcons.shieldCheck,
+              label: l10n.menuPrivacy,
+              onTap: () => context.go(AppRoutes.dataPrivacy),
             ),
-          ),
-          _MenuItem(
-            icon: LucideIcons.info,
-            label: l10n.menuAbout,
-            onTap: () => context.go(AppRoutes.about),
-          ),
-        ],
+            _MenuItem(
+              icon: LucideIcons.fileText,
+              label: l10n.menuLicenses,
+              onTap: () => showLicensePage(
+                context: context,
+                applicationName: l10n.appTitle,
+                applicationVersion: version,
+                applicationLegalese: l10n.licensesExplanation,
+              ),
+            ),
+            _MenuItem(
+              icon: LucideIcons.info,
+              label: l10n.menuAbout,
+              onTap: () => context.go(AppRoutes.about),
+            ),
+          ],
+        ),
       ),
     );
   }

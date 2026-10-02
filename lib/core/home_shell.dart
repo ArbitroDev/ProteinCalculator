@@ -21,25 +21,41 @@ class HomeShell extends StatelessWidget {
       (LucideIcons.shoppingBasket, l10n.tabProducts),
       (LucideIcons.menu, l10n.tabMenu),
     ];
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: _TabBar(
-        tabs: tabs,
-        selectedIndex: navigationShell.currentIndex,
-        // Tapping the active tab again brings it back to its root page.
-        onSelected: (index) => navigationShell.goBranch(
-          index,
-          initialLocation: index == navigationShell.currentIndex,
-        ),
-        addLabel: l10n.addEntry,
-        onAdd: () => context.push(AppRoutes.newEntry),
+    final bar = _TabBar(
+      tabs: tabs,
+      selectedIndex: navigationShell.currentIndex,
+      // Tapping the active tab again brings it back to its root page.
+      onSelected: (index) => navigationShell.goBranch(
+        index,
+        initialLocation: index == navigationShell.currentIndex,
       ),
+      addLabel: l10n.addEntry,
+      onAdd: () => context.push(AppRoutes.newEntry),
+      // In landscape, height is scarce: the bar stands on the left.
+      vertical: MediaQuery.orientationOf(context) == Orientation.landscape,
     );
+    return bar.vertical
+        ? Scaffold(
+            body: Row(
+              children: [
+                bar,
+                // The bar already keeps clear of the left edge cutouts.
+                Expanded(
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeLeft: true,
+                    child: navigationShell,
+                  ),
+                ),
+              ],
+            ),
+          )
+        : Scaffold(body: navigationShell, bottomNavigationBar: bar);
   }
 }
 
 /// Floating pill of tab icons, next to a round button adding an entry from
-/// any tab.
+/// any tab: at the bottom, or on the left when [vertical].
 class _TabBar extends StatelessWidget {
   const _TabBar({
     required this.tabs,
@@ -47,6 +63,7 @@ class _TabBar extends StatelessWidget {
     required this.onSelected,
     required this.addLabel,
     required this.onAdd,
+    required this.vertical,
   });
 
   final List<(IconData, String)> tabs;
@@ -54,60 +71,78 @@ class _TabBar extends StatelessWidget {
   final ValueChanged<int> onSelected;
   final String addLabel;
   final VoidCallback onAdd;
+  final bool vertical;
 
-  static const _height = 60.0;
+  /// Thickness of the pill and size of the add button.
+  static const _thickness = 60.0;
+
+  /// Length of a tab in the vertical pill.
+  static const _tabLength = 46.0;
+  static const _gap = 4.0;
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final direction = vertical ? Axis.vertical : Axis.horizontal;
+
+    final pill = Container(
+      width: vertical ? _thickness : null,
+      height: vertical
+          ? tabs.length * (_tabLength + _gap) - _gap + 12
+          : _thickness,
+      padding: const EdgeInsets.all(6),
+      decoration: ShapeDecoration(
+        color: colors.surface,
+        shape: StadiumBorder(side: BorderSide(color: colors.divider)),
+      ),
+      child: SlidingSelector(
+        selectedIndex: selectedIndex,
+        gap: _gap,
+        direction: direction,
+        shape: const StadiumBorder(),
+        children: [
+          for (final (index, (icon, label)) in tabs.indexed)
+            _Tab(
+              icon: icon,
+              label: label,
+              selected: index == selectedIndex,
+              onTap: () => onSelected(index),
+            ),
+        ],
+      ),
+    );
+    final addButton = SizedBox.square(
+      dimension: _thickness,
+      child: IconButton.filled(
+        onPressed: onAdd,
+        tooltip: addLabel,
+        style: IconButton.styleFrom(
+          backgroundColor: AppColors.accent,
+          foregroundColor: AppColors.onAccent,
+        ),
+        icon: const Icon(LucideIcons.plus, size: 28),
+      ),
+    );
 
     return ColoredBox(
       color: colors.background,
       child: SafeArea(
-        top: false,
+        top: vertical,
+        right: !vertical,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-          child: Row(
+          padding: vertical
+              ? const EdgeInsets.fromLTRB(12, 12, 4, 12)
+              : const EdgeInsets.fromLTRB(16, 6, 16, 12),
+          child: Flex(
+            direction: direction,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
-                child: Container(
-                  height: _height,
-                  padding: const EdgeInsets.all(6),
-                  decoration: ShapeDecoration(
-                    color: colors.surface,
-                    shape: StadiumBorder(
-                      side: BorderSide(color: colors.divider),
-                    ),
-                  ),
-                  child: SlidingSelector(
-                    selectedIndex: selectedIndex,
-                    gap: 4,
-                    shape: const StadiumBorder(),
-                    children: [
-                      for (final (index, (icon, label)) in tabs.indexed)
-                        _Tab(
-                          icon: icon,
-                          label: label,
-                          selected: index == selectedIndex,
-                          onTap: () => onSelected(index),
-                        ),
-                    ],
-                  ),
-                ),
+              if (vertical) pill else Expanded(child: pill),
+              SizedBox(
+                width: vertical ? null : 12,
+                height: vertical ? 12 : null,
               ),
-              const SizedBox(width: 12),
-              SizedBox.square(
-                dimension: _height,
-                child: IconButton.filled(
-                  onPressed: onAdd,
-                  tooltip: addLabel,
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    foregroundColor: AppColors.onAccent,
-                  ),
-                  icon: const Icon(LucideIcons.plus, size: 28),
-                ),
-              ),
+              addButton,
             ],
           ),
         ),

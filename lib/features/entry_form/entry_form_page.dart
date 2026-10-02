@@ -11,6 +11,7 @@ import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
+import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_notifier.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -41,9 +42,11 @@ class EntryFormPage extends ConsumerWidget {
         ),
         title: Text(title),
       ),
-      body: form == null
-          ? const SizedBox.shrink()
-          : _FormView(key: ValueKey(form.revision), args: args, form: form),
+      body: ContentWidth(
+        child: form == null
+            ? const SizedBox.shrink()
+            : _FormView(key: ValueKey(form.revision), args: args, form: form),
+      ),
     );
   }
 }

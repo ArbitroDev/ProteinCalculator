@@ -16,7 +16,8 @@ import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Main tab: the summary of the current app day, then the shaker with one
-/// label per entry next to it.
+/// label per entry next to it. In landscape, the shaker stands on the left
+/// and the summary tops the labels.
 class TodayPage extends ConsumerWidget {
   const TodayPage({super.key});
 
@@ -27,6 +28,29 @@ class TodayPage extends ConsumerWidget {
     if (dayKey == null || goal == null) return const Scaffold();
     final entries = ref.watch(dayEntriesProvider(dayKey)).value ?? const [];
     final locale = Localizations.localeOf(context).toString();
+
+    if (MediaQuery.orientationOf(context) == Orientation.landscape) {
+      return Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 14, 16, 12),
+            child: _ShakerWithLabels(
+              entries: entries,
+              goal: goal,
+              locale: locale,
+              // The add button of the tab bar is close at hand.
+              header: _Summary(
+                dayKey: dayKey,
+                entries: entries,
+                goal: goal,
+                locale: locale,
+                compact: true,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -58,19 +82,23 @@ class TodayPage extends ConsumerWidget {
   }
 }
 
-/// Date, goal, total, what is left, and the add button.
+/// Date, goal, total, what is left, and the add button unless [compact].
 class _Summary extends StatelessWidget {
   const _Summary({
     required this.dayKey,
     required this.entries,
     required this.goal,
     required this.locale,
+    this.compact = false,
   });
 
   final int dayKey;
   final List<Entry> entries;
   final double goal;
   final String locale;
+
+  /// Smaller, without the add button, for landscape.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -91,9 +119,9 @@ class _Summary extends StatelessWidget {
       children: [
         Text(
           formatLongDate(dateOfDayKey(dayKey), locale),
-          style: textTheme.headlineSmall!.copyWith(fontSize: 28),
+          style: textTheme.headlineSmall!.copyWith(fontSize: compact ? 22 : 28),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: compact ? 4 : 10),
         Row(
           // The button sits on the status line, at the bottom of the block.
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -118,7 +146,9 @@ class _Summary extends StatelessWidget {
                             ),
                           ],
                         ),
-                        style: textTheme.displayLarge!.copyWith(fontSize: 68),
+                        style: textTheme.displayLarge!.copyWith(
+                          fontSize: compact ? 54 : 68,
+                        ),
                       ),
                     ),
                   ),
@@ -167,20 +197,22 @@ class _Summary extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            FilledButton.icon(
-              onPressed: () => context.push(AppRoutes.newEntry),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 64),
-                padding: const EdgeInsets.symmetric(horizontal: 22),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+            if (!compact) ...[
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.newEntry),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 64),
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  textStyle: textTheme.labelLarge!.copyWith(fontSize: 19),
                 ),
-                textStyle: textTheme.labelLarge!.copyWith(fontSize: 19),
+                icon: const Icon(LucideIcons.plus, size: 26),
+                label: Text(l10n.addEntry),
               ),
-              icon: const Icon(LucideIcons.plus, size: 26),
-              label: Text(l10n.addEntry),
-            ),
+            ],
           ],
         ),
       ],
@@ -195,11 +227,15 @@ class _ShakerWithLabels extends StatefulWidget {
     required this.entries,
     required this.goal,
     required this.locale,
+    this.header,
   });
 
   final List<Entry> entries;
   final double goal;
   final String locale;
+
+  /// Shown above the labels, next to the shaker.
+  final Widget? header;
 
   @override
   State<_ShakerWithLabels> createState() => _ShakerWithLabelsState();
@@ -264,34 +300,46 @@ class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              // Sits at the bottom, next to the layers, while it fits; then
-              // scrolls with the latest entry kept on top.
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: NotificationListener<ScrollMetricsNotification>(
-                  onNotification: _onMetrics,
-                  child: RawScrollbar(
-                    controller: _scroll,
-                    thumbVisibility: true,
-                    thickness: 4,
-                    radius: const Radius.circular(2),
-                    thumbColor: colors.structure,
-                    child: ListView.separated(
-                      controller: _scroll,
-                      shrinkWrap: true,
-                      padding: EdgeInsets.only(
-                        bottom: bottomInset,
-                        right: _scrollable ? 10 : 0,
-                      ),
-                      itemCount: entries.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 6),
-                      itemBuilder: (context, index) => _EntryLabel(
-                        entry: entries[entries.length - 1 - index],
-                        locale: locale,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (widget.header case final header?) ...[
+                    header,
+                    const SizedBox(height: 12),
+                  ],
+                  Expanded(
+                    // Sits at the bottom, next to the layers, while it fits; then
+                    // scrolls with the latest entry kept on top.
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: NotificationListener<ScrollMetricsNotification>(
+                        onNotification: _onMetrics,
+                        child: RawScrollbar(
+                          controller: _scroll,
+                          thumbVisibility: true,
+                          thickness: 4,
+                          radius: const Radius.circular(2),
+                          thumbColor: colors.structure,
+                          child: ListView.separated(
+                            controller: _scroll,
+                            shrinkWrap: true,
+                            padding: EdgeInsets.only(
+                              bottom: bottomInset,
+                              right: _scrollable ? 10 : 0,
+                            ),
+                            itemCount: entries.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 6),
+                            itemBuilder: (context, index) => _EntryLabel(
+                              entry: entries[entries.length - 1 - index],
+                              locale: locale,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ],

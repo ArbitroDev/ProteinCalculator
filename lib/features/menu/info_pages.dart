@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/backup.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/features/menu/github_link.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -227,18 +228,20 @@ class _InfoScaffold extends StatelessWidget {
         ),
         title: Text(title),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-        children: [
-          ...header,
-          if (header.isNotEmpty) const SizedBox(height: 18),
-          for (final paragraph in paragraphs)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Text(paragraph, style: body),
-            ),
-          if (footer.isNotEmpty) ...[const SizedBox(height: 10), ...footer],
-        ],
+      body: ContentWidth(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+          children: [
+            ...header,
+            if (header.isNotEmpty) const SizedBox(height: 18),
+            for (final paragraph in paragraphs)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Text(paragraph, style: body),
+              ),
+            if (footer.isNotEmpty) ...[const SizedBox(height: 10), ...footer],
+          ],
+        ),
       ),
     );
   }

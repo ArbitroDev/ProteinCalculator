@@ -17,6 +17,12 @@ class ProteinCalculatorApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       localeListResolutionCallback: resolveLocale,
       routerConfig: ref.watch(routerProvider),
+      // In landscape, the Android navigation bar and the camera cutout sit
+      // on the sides: every screen keeps clear of them.
+      builder: (context, child) => ColoredBox(
+        color: AppColors.of(context).background,
+        child: SafeArea(top: false, bottom: false, child: child!),
+      ),
     );
   }
 }

@@ -13,6 +13,7 @@ import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
+import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Products tab. Tap a product to edit it, tap its "+" button to add it to
@@ -66,29 +67,31 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
         icon: const Icon(LucideIcons.plus, size: 20),
         label: Text(l10n.newProductTitle),
       ),
-      body: products == null
-          ? const SizedBox.shrink()
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
-                  child: _SortChips(
-                    sort: sort,
-                    onChanged: (value) => ref
-                        .read(databaseProvider)
-                        .settingsDao
-                        .setProductSort(value),
+      body: ContentWidth(
+        child: products == null
+            ? const SizedBox.shrink()
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+                    child: _SortChips(
+                      sort: sort,
+                      onChanged: (value) => ref
+                          .read(databaseProvider)
+                          .settingsDao
+                          .setProductSort(value),
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: _buildList([
-                    for (final product in products)
-                      if (!_hidden.contains(product.id)) product,
-                  ], sort),
-                ),
-              ],
-            ),
+                  Expanded(
+                    child: _buildList([
+                      for (final product in products)
+                        if (!_hidden.contains(product.id)) product,
+                    ], sort),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 
