@@ -119,6 +119,10 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
           product: product,
           showUses: sort == ProductSort.mostUsed,
           onDelete: () => _delete(product),
+          onToggleFavorite: () => ref
+              .read(databaseProvider)
+              .productsDao
+              .setFavorite(product.id, favorite: !product.isFavorite),
         );
       },
     );
@@ -195,11 +199,13 @@ class _ProductTile extends StatelessWidget {
     required this.product,
     required this.showUses,
     required this.onDelete,
+    required this.onToggleFavorite,
   });
 
   final Product product;
   final bool showUses;
   final VoidCallback onDelete;
+  final VoidCallback onToggleFavorite;
 
   @override
   Widget build(BuildContext context) {
@@ -242,12 +248,36 @@ class _ProductTile extends StatelessWidget {
           child: InkWell(
             onTap: () => context.push(AppRoutes.editProduct(product.id)),
             child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: colors.divider)),
               ),
               child: Row(
                 children: [
+                  SizedBox.square(
+                    dimension: 40,
+                    child: IconButton(
+                      onPressed: onToggleFavorite,
+                      tooltip: product.isFavorite
+                          ? l10n.removeFavorite
+                          : l10n.setFavorite,
+                      isSelected: product.isFavorite,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        LucideIcons.star,
+                        size: 20,
+                        color: colors.textSecondary,
+                      ),
+                      // Lucide has no filled icons: the favorite uses the
+                      // Material star, filled with the accent.
+                      selectedIcon: const Icon(
+                        Icons.star_rounded,
+                        size: 26,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

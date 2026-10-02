@@ -13,21 +13,54 @@ import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/motion_shaker.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
+import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
+import 'package:protein_calculator/features/today/quick_add.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Main tab: the summary of the current app day, then the shaker with one
 /// label per entry next to it. In landscape, the shaker stands on the left
 /// and the summary tops the labels.
-class TodayPage extends ConsumerWidget {
+class TodayPage extends ConsumerStatefulWidget {
   const TodayPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TodayPage> createState() => _TodayPageState();
+}
+
+class _TodayPageState extends ConsumerState<TodayPage> {
+  /// Where the quick added favorite falls.
+  final _shakerKey = GlobalKey();
+
+  /// Adds the favorite without the form: a drop flies from the button into
+  /// the shaker, then the entry lands, with a few seconds to undo.
+  Future<void> _quickAdd(Product product, BuildContext button) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final entries = ref.read(databaseProvider).entriesDao;
+    if (!MediaQuery.disableAnimationsOf(context)) {
+      await flyToShaker(
+        from: button,
+        shaker: _shakerKey,
+        color: AppColors.slot(DaySlot.of(ref.read(clockProvider)())),
+      );
+    }
+    final id = await quickAdd(ref, product);
+    showUndoSnackBar(
+      messenger,
+      l10n: l10n,
+      label: l10n.quickAdded(product.name),
+      onUndo: () => entries.deleteEntry(id),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final dayKey = ref.watch(currentDayKeyProvider).value;
     final goal = ref.watch(dailyGoalProvider).value;
     if (dayKey == null || goal == null) return const Scaffold();
     final entries = ref.watch(dayEntriesProvider(dayKey)).value ?? const [];
     final locale = Localizations.localeOf(context).toString();
+    final favorite = ref.watch(favoriteProductProvider);
 
     if (MediaQuery.orientationOf(context) == Orientation.landscape) {
       return Scaffold(
@@ -35,6 +68,7 @@ class TodayPage extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(8, 14, 16, 12),
             child: _ShakerWithLabels(
+              shakerKey: _shakerKey,
               entries: entries,
               goal: goal,
               locale: locale,
@@ -44,6 +78,8 @@ class TodayPage extends ConsumerWidget {
                 entries: entries,
                 goal: goal,
                 locale: locale,
+                favorite: favorite,
+                onQuickAdd: _quickAdd,
                 compact: true,
               ),
             ),
@@ -65,10 +101,13 @@ class TodayPage extends ConsumerWidget {
                 entries: entries,
                 goal: goal,
                 locale: locale,
+                favorite: favorite,
+                onQuickAdd: _quickAdd,
               ),
               const SizedBox(height: 16),
               Expanded(
                 child: _ShakerWithLabels(
+                  shakerKey: _shakerKey,
                   entries: entries,
                   goal: goal,
                   locale: locale,
@@ -82,13 +121,17 @@ class TodayPage extends ConsumerWidget {
   }
 }
 
-/// Date, goal, total, what is left, and the add button unless [compact].
+/// Date, goal, total, what is left, and the add button: the quick add of
+/// the [favorite] if any, otherwise the form, which landscape leaves to the
+/// tab bar.
 class _Summary extends StatelessWidget {
   const _Summary({
     required this.dayKey,
     required this.entries,
     required this.goal,
     required this.locale,
+    required this.favorite,
+    required this.onQuickAdd,
     this.compact = false,
   });
 
@@ -96,6 +139,8 @@ class _Summary extends StatelessWidget {
   final List<Entry> entries;
   final double goal;
   final String locale;
+  final Product? favorite;
+  final void Function(Product product, BuildContext button) onQuickAdd;
 
   /// Smaller, without the add button, for landscape.
   final bool compact;
@@ -197,7 +242,14 @@ class _Summary extends StatelessWidget {
                 ],
               ),
             ),
-            if (!compact) ...[
+            if (favorite case final favorite?) ...[
+              const SizedBox(width: 12),
+              QuickAddButton(
+                product: favorite,
+                locale: locale,
+                onPressed: (button) => onQuickAdd(favorite, button),
+              ),
+            ] else if (!compact) ...[
               const SizedBox(width: 12),
               FilledButton.icon(
                 onPressed: () => context.push(AppRoutes.newEntry),
@@ -224,12 +276,14 @@ class _Summary extends StatelessWidget {
 /// its right: the latest entry on top, like the layers.
 class _ShakerWithLabels extends StatefulWidget {
   const _ShakerWithLabels({
+    required this.shakerKey,
     required this.entries,
     required this.goal,
     required this.locale,
     this.header,
   });
 
+  final GlobalKey shakerKey;
   final List<Entry> entries;
   final double goal;
   final String locale;
@@ -282,6 +336,7 @@ class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             SizedBox(
+              key: widget.shakerKey,
               width: shakerWidth,
               child: MotionShaker(
                 layers: [

@@ -299,6 +299,32 @@
   "@edit": {
     "description": "Accessibility action editing an item."
   },
+  "quickAdd": "Ajouter {name}",
+  "@quickAdd": {
+    "description": "Today screen: button adding the favorite product at once.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "quickAdded": "Ajouté : {name}",
+  "@quickAdded": {
+    "description": "Undo banner after the favorite product was added at once.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "setFavorite": "Mettre en favori",
+  "@setFavorite": {
+    "description": "Star of a product: makes it the favorite, listed first."
+  },
+  "removeFavorite": "Retirer le favori",
+  "@removeFavorite": {
+    "description": "Star of the favorite product: removes it from favorite."
+  },
   "addToToday": "Ajouter à la journée",
   "@addToToday": {
     "description": "Accessibility hint: tapping a product adds it to the day."
