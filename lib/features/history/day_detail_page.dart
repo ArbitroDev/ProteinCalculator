@@ -14,8 +14,8 @@ import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// Entries of one day grouped by part of the day. Swiping an entry deletes
-/// it, with a few seconds to undo.
+/// Entries of one day on stacked cards, one per part of the day. Swiping an
+/// entry deletes it, with a few seconds to undo.
 class DayDetailPage extends ConsumerStatefulWidget {
   const DayDetailPage({super.key, required this.dayKey});
 
@@ -67,6 +67,10 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
     }
     double sum(Iterable<Entry> list) =>
         list.fold(0.0, (total, entry) => total + entry.proteinGrams);
+    final slots = [
+      for (final slot in DaySlot.values)
+        if (bySlot.containsKey(slot)) slot,
+    ];
     final total = sum(entries);
     final reached = goal > 0 && total >= goal;
     String grams(double value) => l10n.grams(formatGrams(value, locale));
@@ -141,54 +145,89 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
                 ),
               ),
             ),
-          for (final slot in DaySlot.values)
-            if (bySlot[slot] case final list?) ...[
-              _SlotHeader(slot: slot, total: grams(sum(list))),
-              for (final entry in list)
-                _DismissibleEntry(
-                  entry: entry,
-                  grams: grams(entry.proteinGrams),
-                  time: formatTime(entry.createdAt, locale),
-                  onDelete: () => _delete(entry),
-                ),
-            ],
+          if (slots.isNotEmpty) const SizedBox(height: 18),
+          // Each card slides over the bottom of the previous one, like cards
+          // in a wallet.
+          for (final (index, slot) in slots.indexed)
+            Transform.translate(
+              offset: Offset(0, -_SlotCard.overlap * index),
+              child: _SlotCard(
+                slot: slot,
+                total: grams(sum(bySlot[slot]!)),
+                coveredBelow: index < slots.length - 1,
+                children: [
+                  for (final entry in bySlot[slot]!)
+                    _DismissibleEntry(
+                      entry: entry,
+                      color: AppColors.slot(slot),
+                      grams: grams(entry.proteinGrams),
+                      time: formatTime(entry.createdAt, locale),
+                      onDelete: () => _delete(entry),
+                    ),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-class _SlotHeader extends StatelessWidget {
-  const _SlotHeader({required this.slot, required this.total});
+/// Card of one part of the day, in the color of its entries.
+class _SlotCard extends StatelessWidget {
+  const _SlotCard({
+    required this.slot,
+    required this.total,
+    required this.coveredBelow,
+    required this.children,
+  });
 
   final DaySlot slot;
   final String total;
 
+  /// Whether the next card covers the bottom of this one.
+  final bool coveredBelow;
+  final List<Widget> children;
+
+  /// Height of a card hidden under the next one.
+  static const overlap = 22.0;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final textTheme = Theme.of(context).textTheme;
-    final label = switch (slot) {
-      DaySlot.morning => l10n.slotMorning,
-      DaySlot.afternoon => l10n.slotAfternoon,
-      DaySlot.evening => l10n.slotEvening,
+    final style = Theme.of(context).textTheme.titleMedium!
+        .copyWith(color: AppColors.onAccent);
+    final (icon, label) = switch (slot) {
+      DaySlot.morning => (LucideIcons.sunrise, l10n.slotMorning),
+      DaySlot.afternoon => (LucideIcons.sun, l10n.slotAfternoon),
+      DaySlot.evening => (LucideIcons.moon, l10n.slotEvening),
     };
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 18, 12, 4),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: AppColors.slot(slot),
-              borderRadius: BorderRadius.circular(3),
-            ),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Material(
+        color: AppColors.slot(slot),
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: EdgeInsets.only(bottom: coveredBelow ? overlap + 6 : 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                child: Row(
+                  children: [
+                    Icon(icon, size: 18, color: AppColors.onAccent),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(label, style: style)),
+                    Text(total, style: style),
+                  ],
+                ),
+              ),
+              ...children,
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(label, style: textTheme.titleSmall)),
-          Text(total, style: textTheme.bodySmall!.copyWith(fontSize: 13)),
-        ],
+        ),
       ),
     );
   }
@@ -197,12 +236,16 @@ class _SlotHeader extends StatelessWidget {
 class _DismissibleEntry extends StatelessWidget {
   const _DismissibleEntry({
     required this.entry,
+    required this.color,
     required this.grams,
     required this.time,
     required this.onDelete,
   });
 
   final Entry entry;
+
+  /// Color of the card the entry sits on.
+  final Color color;
   final String grams;
   final String time;
   final VoidCallback onDelete;
@@ -210,8 +253,9 @@ class _DismissibleEntry extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final colors = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
+    const ink = AppColors.onAccent;
+    final faded = ink.withValues(alpha: 0.7);
 
     return Semantics(
       customSemanticsActions: {
@@ -228,14 +272,15 @@ class _DismissibleEntry extends StatelessWidget {
           child: const Icon(LucideIcons.trash2, color: Colors.white),
         ),
         child: Material(
-          color: colors.background,
+          color: color,
           child: InkWell(
             onTap: () => context.push(AppRoutes.editEntry(entry.id)),
-            borderRadius: BorderRadius.circular(10),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: colors.divider)),
+                border: Border(
+                  top: BorderSide(color: ink.withValues(alpha: 0.12)),
+                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -247,17 +292,23 @@ class _DismissibleEntry extends StatelessWidget {
                         text: entry.name ?? l10n.unnamedEntry,
                         style: entry.name == null
                             ? textTheme.bodyLarge!.copyWith(
-                                color: colors.textSecondary,
+                                color: faded,
                                 fontStyle: FontStyle.italic,
                               )
-                            : textTheme.bodyLarge,
+                            : textTheme.bodyLarge!.copyWith(color: ink),
                         children: [
-                          TextSpan(text: '  $time', style: textTheme.bodySmall),
+                          TextSpan(
+                            text: '  $time',
+                            style: textTheme.bodySmall!.copyWith(color: faded),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                  Text(grams, style: textTheme.titleMedium),
+                  Text(
+                    grams,
+                    style: textTheme.titleMedium!.copyWith(color: ink),
+                  ),
                 ],
               ),
             ),
