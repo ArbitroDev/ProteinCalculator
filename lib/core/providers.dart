@@ -66,6 +66,11 @@ final historyProvider = StreamProvider<List<DaySummary>>(
 );
 
 /// Sort order chosen in the products tab, remembered between launches.
+/// Whether the user agreed to send crash reports, see `setCrashReporting`.
+final crashReportsProvider = StreamProvider<bool>(
+  (ref) => ref.watch(databaseProvider).settingsDao.watchCrashReports(),
+);
+
 final productSortProvider = StreamProvider<ProductSort>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchProductSort(),
 );

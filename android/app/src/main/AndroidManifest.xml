@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Only used to send crash reports, when the user keeps them on. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="Protein Calculator"
         android:name="${applicationName}"

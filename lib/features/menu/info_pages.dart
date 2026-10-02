@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/backup.dart';
+import 'package:protein_calculator/core/crash_reporting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
@@ -96,15 +97,54 @@ class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
     messenger.showSnackBar(SnackBar(content: Text(l10n.importDone)));
   });
 
+  Future<void> _setCrashReports(bool enabled) async {
+    await ref.read(databaseProvider).settingsDao.setCrashReports(enabled);
+    await setCrashReporting(enabled);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
+    final colors = AppColors.of(context);
+    final crashReports = ref.watch(crashReportsProvider).value;
 
     return _InfoScaffold(
       title: l10n.menuPrivacy,
       paragraphs: [l10n.privacyLocal, l10n.privacyBackup],
       footer: [
+        if (crashReportingAvailable) ...[
+          Text(l10n.crashReportsTitle, style: textTheme.titleMedium),
+          const SizedBox(height: 6),
+          Text(
+            l10n.crashReportsBody,
+            style: textTheme.bodyLarge!.copyWith(
+              fontSize: 14,
+              color: colors.textSecondary,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Material(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(14),
+            child: SwitchListTile(
+              value: crashReports ?? false,
+              onChanged: crashReports == null ? null : _setCrashReports,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              title: Text(
+                l10n.crashReportsToggle,
+                style: textTheme.bodyLarge!.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
         Text(l10n.backupTitle, style: textTheme.titleMedium),
         const SizedBox(height: 6),
         Text(

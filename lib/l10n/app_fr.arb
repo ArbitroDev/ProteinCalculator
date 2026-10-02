@@ -332,9 +332,29 @@
   "@goalSheetBody": {
     "description": "Explanation when editing the daily goal."
   },
-  "privacyLocal": "Tes données restent sur ton téléphone. Protein Calculator ne demande pas de compte, n'accède pas à Internet et ne collecte aucune donnée.",
+  "privacyLocal": "Tes données restent sur ton téléphone. Protein Calculator ne demande pas de compte, et tes entrées et tes produits ne quittent jamais ton appareil.",
   "@privacyLocal": {
     "description": "Privacy page: data stays on the device."
+  },
+  "crashReportsTitle": "Rapports d'erreur",
+  "@crashReportsTitle": {
+    "description": "Privacy page: title of the crash reports section."
+  },
+  "crashReportsBody": "Quand l'app rencontre une erreur, un rapport technique est envoyé à Sentry pour aider à la corriger : l'erreur, la version de l'app, le modèle du téléphone et sa version d'Android. Il ne contient ni tes entrées, ni tes produits, ni ton objectif.",
+  "@crashReportsBody": {
+    "description": "Privacy page: what a crash report holds."
+  },
+  "crashReportsToggle": "Envoyer les rapports d'erreur",
+  "@crashReportsToggle": {
+    "description": "Switch turning crash reports on or off."
+  },
+  "onboardingCrashReports": "Envoyer les rapports d'erreur pour aider à corriger les bugs",
+  "@onboardingCrashReports": {
+    "description": "First launch: checkbox for crash reports, unchecked by default."
+  },
+  "onboardingCrashReportsHint": "Sans tes données de suivi. Modifiable à tout moment dans le menu.",
+  "@onboardingCrashReportsHint": {
+    "description": "First launch: note under the crash reports checkbox."
   },
   "privacyBackup": "Si la sauvegarde Google est activée sur ton appareil, Android peut inclure les données de l'app dans cette sauvegarde, chiffrée et accessible à toi seul. Tu peux la désactiver dans les réglages de ton téléphone.",
   "@privacyBackup": {

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/app.dart';
+import 'package:protein_calculator/core/crash_reporting.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
@@ -17,6 +18,12 @@ Future<void> main() async {
   // screen before the first launch screen.
   final database = AppDatabase.open();
   final goal = await database.settingsDao.getDailyGoal();
+
+  // Until the first launch screen is done, the user has not seen the
+  // choice: nothing is sent.
+  if (goal != null) {
+    await setCrashReporting(await database.settingsDao.getCrashReports());
+  }
 
   runApp(
     ProviderScope(

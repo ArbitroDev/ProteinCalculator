@@ -60,6 +60,28 @@ dart run build_runner build
 `flutter pub get` generates the localizations, `build_runner` generates the
 database code (`*.g.dart`).
 
+## Crash reports
+
+Crash reports go to [Sentry](https://sentry.io), and only when the user opts
+in. The project address (DSN) is not part of the source code: it is given at
+build time. Without it, crash reporting is left out entirely and the option
+does not show in the app, which is the case for the automated checks and for
+contributions. You do not need a DSN to work on the app.
+
+Release builds read it from a local `sentry.json` file, ignored by git:
+
+```bash
+flutter build apk --release --dart-define-from-file=sentry.json
+```
+
+```json
+{ "SENTRY_DSN": "https://...@....ingest.de.sentry.io/..." }
+```
+
+Never commit a DSN. Reports must hold no personal data: keep
+`sendDefaultPii` off and never attach entries, products or the goal to an
+event (`lib/core/crash_reporting.dart`).
+
 ## Database changes
 
 The local database uses [Drift](https://drift.simonbinder.eu). When changing
