@@ -38,6 +38,7 @@ class _MotionShakerState extends State<MotionShaker>
   bool _visible = true;
   bool _reduceMotion = false;
   bool _foreground = true;
+  bool _landscape = false;
 
   // Gravity estimated with a low-pass filter, in m/s².
   double _gx = 0, _gy = 9.81, _gz = 0;
@@ -75,6 +76,7 @@ class _MotionShakerState extends State<MotionShaker>
     // TickerMode turns off when the tab is hidden behind another one.
     _visible = TickerMode.valuesOf(context).enabled;
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    _landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
     _updateListening();
   }
 
@@ -124,7 +126,15 @@ class _MotionShakerState extends State<MotionShaker>
 
     // The surface stays level: when the phone rolls one way, the liquid
     // rises on the lower side of the screen.
-    _targetTilt = atan2(-_gx, _gy).clamp(-_maxTilt, _maxTilt);
+    // Sensor axes follow the phone, not the screen: in landscape, the
+    // screen is turned a quarter, one way or the other.
+    var angle = atan2(-_gx, _gy);
+    if (_landscape) {
+      angle += _gx > 0 ? pi / 2 : -pi / 2;
+      if (angle > pi) angle -= 2 * pi;
+      if (angle < -pi) angle += 2 * pi;
+    }
+    _targetTilt = angle.clamp(-_maxTilt, _maxTilt);
 
     // Ignores hand tremor: about one degree.
     final moving = (_targetTilt - _motion.tilt).abs() > 0.02;
