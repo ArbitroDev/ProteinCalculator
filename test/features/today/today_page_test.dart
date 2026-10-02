@@ -33,8 +33,9 @@ void main() {
     await addEntry(30, DateTime(2026, 9, 30, 20));
     await pumpApp(tester, db);
 
-    expect(find.text('60 g'), findsOneWidget);
-    expect(find.text('2 entries · 80 g left to shake'), findsOneWidget);
+    // 59.6 g shows truncated, and what is left follows the shown total.
+    expect(find.text('59 g'), findsOneWidget);
+    expect(find.text('2 entries · 81 g left to shake'), findsOneWidget);
     await disposeApp(tester, db);
   });
 
@@ -42,7 +43,8 @@ void main() {
     await addEntry(150, DateTime(2026, 10, 1, 12));
     await pumpApp(tester, db);
 
-    expect(find.text('150 g'), findsOneWidget);
+    // The total, and the label of the entry next to the shaker.
+    expect(find.text('150 g'), findsNWidgets(2));
     expect(find.textContaining('goal reached'), findsOneWidget);
     await disposeApp(tester, db);
   });

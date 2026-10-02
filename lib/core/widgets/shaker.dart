@@ -20,23 +20,49 @@ class ShakerLayer {
   int get hashCode => Object.hash(grams, slot);
 }
 
+/// Live state of the liquid, driven by the phone motion: only the drawing
+/// repaints when it changes, the widget tree does not rebuild.
+class ShakerMotion extends ChangeNotifier {
+  /// Angle of the liquid surface, in radians: it stays level while the
+  /// phone tilts.
+  double tilt = 0;
+
+  /// How mixed the layers are, from 0 (separate) to 1 (fully mixed).
+  double mix = 0;
+
+  /// Advances while mixing, to animate the swirl and the bubbles.
+  double phase = 0;
+
+  void update({
+    required double tilt,
+    required double mix,
+    required double phase,
+  }) {
+    this.tilt = tilt;
+    this.mix = mix;
+    this.phase = phase;
+    notifyListeners();
+  }
+}
+
 /// Protein shaker filled with one layer per entry, graduated up to [goal].
 ///
 /// The fill level animates when entries are added or removed, unless the
-/// device asks to reduce animations.
+/// device asks to reduce animations. An optional [motion] tilts and mixes
+/// the liquid.
 class Shaker extends StatelessWidget {
   const Shaker({
     super.key,
     required this.layers,
     required this.goal,
     required this.semanticLabel,
-    required this.formatGrams,
+    this.motion,
   });
 
   final List<ShakerLayer> layers;
   final double goal;
   final String semanticLabel;
-  final String Function(double grams) formatGrams;
+  final ShakerMotion? motion;
 
   /// Width / height ratio of the drawing.
   static const aspectRatio = 110 / 290;
@@ -49,8 +75,6 @@ class Shaker extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = layers.fold(0.0, (sum, layer) => sum + layer.grams);
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final labelStyle = Theme.of(context).textTheme.labelLarge!
-        .copyWith(fontSize: 12, color: AppColors.onAccent);
 
     return Semantics(
       label: semanticLabel,
@@ -63,14 +87,15 @@ class Shaker extends StatelessWidget {
               ? Duration.zero
               : const Duration(milliseconds: 700),
           curve: Curves.easeOutCubic,
-          builder: (context, level, _) => CustomPaint(
-            painter: _ShakerPainter(
-              layers: layers,
-              goal: goal,
-              level: level,
-              colors: AppColors.of(context),
-              labelStyle: labelStyle,
-              formatGrams: formatGrams,
+          builder: (context, level, _) => RepaintBoundary(
+            child: CustomPaint(
+              painter: _ShakerPainter(
+                layers: layers,
+                goal: goal,
+                level: level,
+                colors: AppColors.of(context),
+                motion: motion,
+              ),
             ),
           ),
         ),
@@ -85,22 +110,22 @@ class _ShakerPainter extends CustomPainter {
     required this.goal,
     required this.level,
     required this.colors,
-    required this.labelStyle,
-    required this.formatGrams,
-  });
+    required this.motion,
+  }) : super(repaint: motion);
 
   final List<ShakerLayer> layers;
   final double goal;
   final double level;
   final AppColors colors;
-  final TextStyle labelStyle;
-  final String Function(double grams) formatGrams;
+  final ShakerMotion? motion;
 
   // Drawing coordinates, in a 110 x 290 box.
   static const _width = 110.0;
   static const _bottom = 280.0;
   static const _fillHeight = 184.0;
-  static const _minLabelHeight = 22.0;
+  static const _left = 10.0;
+  static const _right = 100.0;
+  static const _center = 55.0;
 
   static final _body = Path()
     ..moveTo(17, 76)
@@ -119,12 +144,12 @@ class _ShakerPainter extends CustomPainter {
     final range = max(goal, total);
     double y(double grams) => _bottom - grams / range * _fillHeight;
 
-    _paintContent(canvas, y);
+    _paintContent(canvas, y, total);
     _paintGraduations(canvas, range, y);
     _paintLid(canvas);
   }
 
-  void _paintContent(Canvas canvas, double Function(double) y) {
+  void _paintContent(Canvas canvas, double Function(double) y, double total) {
     canvas
       ..save()
       ..clipPath(_body)
@@ -133,50 +158,81 @@ class _ShakerPainter extends CustomPainter {
         Paint()..color = colors.shakerInside,
       );
 
+    final tilt = motion?.tilt ?? 0;
+    final mix = motion?.mix ?? 0;
+    final phase = motion?.phase ?? 0;
+    final slope = tan(tilt);
+
+    // Height of the boundary between two layers, or of the surface, at x:
+    // tilted with the phone, waving while the layers mix.
+    double boundary(double grams, int index, double x, {bool surface = false}) {
+      var value = y(grams) - (x - _center) * slope;
+      if (surface) value -= 3 * sin((x - _left) / (_right - _left) * 2 * pi);
+      if (mix > 0) value += sin(x * 0.12 + phase + index * 1.7) * 6 * mix;
+      return value;
+    }
+
+    List<Offset> line(double grams, int index, {bool surface = false}) => [
+      for (var x = _left; x <= _right; x += 5)
+        Offset(x, boundary(grams, index, x, surface: surface)),
+    ];
+
+    final mixed = _averageColor(total);
     final separator = Paint()
-      ..color = AppColors.onAccent.withValues(alpha: 0.25)
-      ..strokeWidth = 1.2;
+      ..color = AppColors.onAccent.withValues(alpha: 0.25 * (1 - mix))
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+
     var start = 0.0;
     for (var i = 0; i < layers.length && start < level; i++) {
       final layer = layers[i];
       final fullEnd = start + layer.grams;
       final end = min(fullEnd, level);
-      final top = y(end);
-      final base = y(start);
-      final paint = Paint()..color = AppColors.slot(layer.slot);
+      final isTop = end >= level;
 
-      if (end >= level) {
-        // The surface ripples on the visible top layer.
-        canvas.drawPath(
-          Path()
-            ..moveTo(10, top)
-            ..quadraticBezierTo(32, top - 6, 55, top)
-            ..quadraticBezierTo(78, top + 6, 100, top)
-            ..lineTo(100, base + 1)
-            ..lineTo(10, base + 1)
-            ..close(),
-          paint,
-        );
-      } else {
-        canvas.drawRect(Rect.fromLTRB(10, top, 100, base + 1), paint);
-      }
-      if (i > 0) {
-        canvas.drawLine(Offset(10, base), Offset(100, base), separator);
-      }
-
-      if (end == fullEnd && base - top >= _minLabelHeight) {
-        final label = TextPainter(
-          text: TextSpan(text: formatGrams(layer.grams), style: labelStyle),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        label.paint(
-          canvas,
-          Offset(55 - label.width / 2, (top + base) / 2 - label.height / 2),
-        );
+      final upper = line(end, i + 1, surface: isTop);
+      final lower = i == 0
+          ? [const Offset(_right, 290), const Offset(_left, 290)]
+          : line(start, i).reversed.toList();
+      final color = Color.lerp(AppColors.slot(layer.slot), mixed, mix)!;
+      canvas.drawPath(
+        Path()..addPolygon([...upper, ...lower], true),
+        Paint()..color = color,
+      );
+      if (i > 0 && mix < 1) {
+        canvas.drawPath(Path()..addPolygon(line(start, i), false), separator);
       }
       start = fullEnd;
     }
+
+    if (mix > 0 && level > 0) _paintBubbles(canvas, y(level), mix, phase);
     canvas.restore();
+  }
+
+  /// Color of the whole content, each layer weighted by its grams.
+  Color _averageColor(double total) {
+    if (total == 0) return AppColors.slot(DaySlot.afternoon);
+    var r = 0.0, g = 0.0, b = 0.0;
+    for (final layer in layers) {
+      final color = AppColors.slot(layer.slot);
+      final weight = layer.grams / total;
+      r += color.r * weight;
+      g += color.g * weight;
+      b += color.b * weight;
+    }
+    return Color.from(alpha: 1, red: r, green: g, blue: b);
+  }
+
+  /// Bubbles rising through the liquid while it is shaken.
+  void _paintBubbles(Canvas canvas, double surface, double mix, double phase) {
+    final height = _bottom - surface;
+    if (height < 8) return;
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.35 * mix);
+    for (var i = 0; i < 12; i++) {
+      final x = 20 + (i * 37 % 70).toDouble();
+      final rise = (phase * 14 + i * 29) % height;
+      canvas.drawCircle(Offset(x, _bottom - rise), 1.5 + i % 3, paint);
+    }
   }
 
   void _paintGraduations(
@@ -256,11 +312,11 @@ class _ShakerPainter extends CustomPainter {
       )
       ..drawPath(
         Path()
-          ..moveTo(64, 40)
+          ..moveTo(64, 41)
           ..lineTo(64, 24)
           ..quadraticBezierTo(64, 12, 75, 12)
           ..quadraticBezierTo(86, 12, 86, 24)
-          ..lineTo(86, 40),
+          ..lineTo(86, 37),
         Paint()
           ..color = colors.structure
           ..style = PaintingStyle.stroke
@@ -273,7 +329,7 @@ class _ShakerPainter extends CustomPainter {
       old.level != level ||
       old.goal != goal ||
       old.colors != colors ||
-      old.labelStyle != labelStyle ||
+      old.motion != motion ||
       !_sameLayers(old.layers, layers);
 
   static bool _sameLayers(List<ShakerLayer> a, List<ShakerLayer> b) {

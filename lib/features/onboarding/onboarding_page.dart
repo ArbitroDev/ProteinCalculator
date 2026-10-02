@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
-import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
@@ -44,7 +43,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
-    final locale = Localizations.localeOf(context).toString();
 
     return Scaffold(
       body: SafeArea(
@@ -60,7 +58,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     layers: const [],
                     goal: parseDailyGoal(_controller.text) ?? 140,
                     semanticLabel: '',
-                    formatGrams: (grams) => formatGrams(grams, locale),
                   ),
                 ),
               ),
