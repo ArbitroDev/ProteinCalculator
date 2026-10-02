@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:protein_calculator/core/theme.dart';
 
-/// Row of options of equal width, with an accent pill behind the selected
-/// one that slides to the new selection.
+/// Row of options of equal width, with a pill behind the selected one that
+/// slides to the new selection.
 class SlidingSelector extends StatelessWidget {
   const SlidingSelector({
     super.key,
@@ -41,7 +41,7 @@ class SlidingSelector extends StatelessWidget {
               width: width,
               child: DecoratedBox(
                 decoration: ShapeDecoration(
-                  color: AppColors.accent,
+                  color: AppColors.selection,
                   shape: shape,
                 ),
               ),

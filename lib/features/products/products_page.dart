@@ -11,6 +11,7 @@ import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -138,41 +139,50 @@ class _SortChips extends StatelessWidget {
       ProductSort.recentlyUsed: l10n.sortRecentlyUsed,
     };
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final MapEntry(key: value, value: label) in labels.entries)
-          Semantics(
-            button: true,
-            selected: value == sort,
-            child: Material(
-              color: value == sort ? AppColors.accent : colors.surface,
-              borderRadius: BorderRadius.circular(20),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () => onChanged(value),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  child: Text(
-                    label,
-                    style: style.copyWith(
-                      color: value == sort
-                          ? AppColors.onAccent
-                          : colors.textSecondary,
-                      fontWeight: value == sort
-                          ? FontWeight.w600
-                          : FontWeight.w400,
+    final options = labels.keys.toList();
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: ShapeDecoration(
+        color: colors.surface,
+        shape: StadiumBorder(side: BorderSide(color: colors.divider)),
+      ),
+      // Same look as the tab bar.
+      child: SlidingSelector(
+        selectedIndex: options.indexOf(sort),
+        gap: 4,
+        shape: const StadiumBorder(),
+        children: [
+          for (final value in options)
+            Semantics(
+              button: true,
+              selected: value == sort,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: () => onChanged(value),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    child: Text(
+                      labels[value]!,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: style.copyWith(
+                        color: value == sort
+                            ? AppColors.onAccent
+                            : colors.textSecondary,
+                        fontWeight: value == sort
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

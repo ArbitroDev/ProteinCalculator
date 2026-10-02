@@ -38,6 +38,10 @@ class AppColors extends ThemeExtension<AppColors> {
 
   static const accent = Color(0xFFFF8A3D);
   static const onAccent = Color(0xFF1B0E05);
+
+  /// Selected option of the pill selectors (tabs, sorts, entry modes): a
+  /// lighter [accent], so it does not look like an add button.
+  static const selection = Color(0xFFFF9854);
   static const danger = Color(0xFFFF5C7A);
   static const cobalt = Color(0xFF2D3FE0);
 
