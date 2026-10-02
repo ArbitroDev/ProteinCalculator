@@ -109,6 +109,7 @@ class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
         Text(
           l10n.backupBody,
           style: textTheme.bodyLarge!.copyWith(
+            fontSize: 14,
             color: AppColors.of(context).textSecondary,
             height: 1.5,
           ),
@@ -215,7 +216,7 @@ class _InfoScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final body = Theme.of(context).textTheme.bodyLarge!
-        .copyWith(fontSize: 16, height: 1.55);
+        .copyWith(fontSize: 14, height: 1.55);
 
     return Scaffold(
       appBar: AppBar(

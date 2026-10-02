@@ -75,6 +75,93 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
     final reached = goal > 0 && total >= goal;
     String grams(double value) => l10n.grams(formatGrams(value, locale));
 
+    final summary = [
+      for (final header in [
+        // The goal sits on the baseline of the total.
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(grams(total), style: textTheme.displayMedium),
+            const SizedBox(width: 10),
+            if (reached)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Icon(
+                    LucideIcons.circleCheck,
+                    size: 18,
+                    color: colors.accentText,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    l10n.todayGoalReached,
+                    style: textTheme.bodyLarge!.copyWith(
+                      color: colors.accentText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Flexible(
+                child: Text(
+                  l10n.dayGoalOf(formatGrams(goal, locale)),
+                  style: textTheme.bodyLarge!.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        StackedBar(
+          bySlot: {
+            for (final MapEntry(key: slot, value: list) in bySlot.entries)
+              slot: sum(list),
+          },
+          goal: goal,
+        ),
+      ])
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: header,
+        ),
+    ];
+    final cards = [
+      if (entries.isEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 32),
+          child: Text(
+            l10n.dayEmpty,
+            textAlign: TextAlign.center,
+            style: textTheme.bodyLarge!.copyWith(color: colors.textSecondary),
+          ),
+        ),
+      if (slots.isNotEmpty) const SizedBox(height: 18),
+      // Each card seems to slide over the bottom of the previous one, like
+      // cards in a wallet.
+      for (final (index, slot) in slots.indexed)
+        _SlotCard(
+          slot: slot,
+          total: grams(sum(bySlot[slot]!)),
+          previous: index > 0 ? slots[index - 1] : null,
+          coveredBelow: index < slots.length - 1,
+          children: [
+            for (final entry in bySlot[slot]!)
+              _DismissibleEntry(
+                entry: entry,
+                color: AppColors.slot(slot),
+                grams: grams(entry.proteinGrams),
+                time: formatTime(entry.createdAt, locale),
+                onDelete: () => _delete(entry),
+              ),
+          ],
+        ),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -86,98 +173,23 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(6, 4, 6, 24),
-        children: [
-          for (final header in [
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 10,
-              children: [
-                Text(grams(total), style: textTheme.displayMedium),
-                if (reached)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        LucideIcons.circleCheck,
-                        size: 18,
-                        color: colors.accentText,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        l10n.todayGoalReached,
-                        style: textTheme.bodyLarge!.copyWith(
-                          color: colors.accentText,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Text(
-                    l10n.dayGoalOf(formatGrams(goal, locale)),
-                    style: textTheme.bodyLarge!.copyWith(
-                      color: colors.textSecondary,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            StackedBar(
-              bySlot: {
-                for (final MapEntry(key: slot, value: list) in bySlot.entries)
-                  slot: sum(list),
-              },
-              goal: goal,
-            ),
-          ])
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: header,
-            ),
-          if (entries.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 32),
-              child: Text(
-                l10n.dayEmpty,
-                textAlign: TextAlign.center,
-                style: textTheme.bodyLarge!.copyWith(
-                  color: colors.textSecondary,
-                ),
-              ),
-            ),
-          if (slots.isNotEmpty) const SizedBox(height: 18),
-          // Each card slides over the bottom of the previous one, like cards
-          // in a wallet.
-          for (final (index, slot) in slots.indexed)
-            Transform.translate(
-              offset: Offset(0, -_SlotCard.overlap * index),
-              child: _SlotCard(
-                slot: slot,
-                total: grams(sum(bySlot[slot]!)),
-                coveredBelow: index < slots.length - 1,
-                children: [
-                  for (final entry in bySlot[slot]!)
-                    _DismissibleEntry(
-                      entry: entry,
-                      color: AppColors.slot(slot),
-                      grams: grams(entry.proteinGrams),
-                      time: formatTime(entry.createdAt, locale),
-                      onDelete: () => _delete(entry),
-                    ),
-                ],
-              ),
-            ),
-        ],
+        children: [...summary, ...cards],
       ),
     );
   }
 }
 
 /// Card of one part of the day, in the color of its entries.
+///
+/// The cards are laid out one after the other, without overlapping, so
+/// every entry gets its taps: the wallet look comes from drawing, around
+/// the rounded top corners of a card, the color of the [previous] one, whose
+/// own bottom corners stay square.
 class _SlotCard extends StatelessWidget {
   const _SlotCard({
     required this.slot,
     required this.total,
+    required this.previous,
     required this.coveredBelow,
     required this.children,
   });
@@ -185,50 +197,73 @@ class _SlotCard extends StatelessWidget {
   final DaySlot slot;
   final String total;
 
-  /// Whether the next card covers the bottom of this one.
+  /// Part of the day of the card above, which seems to go on under this one.
+  final DaySlot? previous;
+
+  /// Whether the next card seems to cover the bottom of this one.
   final bool coveredBelow;
   final List<Widget> children;
 
-  /// Height of a card hidden under the next one.
-  static const overlap = 22.0;
+  static const _radius = Radius.circular(20);
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final style = Theme.of(context).textTheme.titleMedium!
-        .copyWith(color: AppColors.onAccent);
+    // The part of the day stands out more than its entries.
+    final style = Theme.of(context).textTheme.headlineSmall!
+        .copyWith(color: AppColors.onAccent, fontSize: 20);
     final (icon, label) = switch (slot) {
       DaySlot.morning => (LucideIcons.sunrise, l10n.slotMorning),
       DaySlot.afternoon => (LucideIcons.sun, l10n.slotAfternoon),
       DaySlot.evening => (LucideIcons.moon, l10n.slotEvening),
     };
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Material(
-        color: AppColors.slot(slot),
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: EdgeInsets.only(bottom: coveredBelow ? overlap + 6 : 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-                child: Row(
-                  children: [
-                    Icon(icon, size: 18, color: AppColors.onAccent),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(label, style: style)),
-                    Text(total, style: style),
-                  ],
-                ),
-              ),
-              ...children,
-            ],
-          ),
+    final card = Material(
+      color: AppColors.slot(slot),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: _radius,
+          bottom: coveredBelow ? Radius.zero : _radius,
         ),
       ),
+      child: Padding(
+        padding: EdgeInsets.only(bottom: coveredBelow ? 12 : 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+              child: Row(
+                children: [
+                  Icon(icon, size: 22, color: AppColors.onAccent),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(label, style: style)),
+                  Text(total, style: style),
+                ],
+              ),
+            ),
+            ...children,
+          ],
+        ),
+      ),
+    );
+    final previous = this.previous;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: previous == null
+          ? card
+          : Stack(
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: _radius.y,
+                  child: ColoredBox(color: AppColors.slot(previous)),
+                ),
+                card,
+              ],
+            ),
     );
   }
 }
@@ -275,13 +310,8 @@ class _DismissibleEntry extends StatelessWidget {
           color: color,
           child: InkWell(
             onTap: () => context.push(AppRoutes.editEntry(entry.id)),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: ink.withValues(alpha: 0.12)),
-                ),
-              ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
@@ -291,11 +321,11 @@ class _DismissibleEntry extends StatelessWidget {
                       TextSpan(
                         text: entry.name ?? l10n.unnamedEntry,
                         style: entry.name == null
-                            ? textTheme.bodyLarge!.copyWith(
+                            ? textTheme.bodyMedium!.copyWith(
                                 color: faded,
                                 fontStyle: FontStyle.italic,
                               )
-                            : textTheme.bodyLarge!.copyWith(color: ink),
+                            : textTheme.bodyMedium!.copyWith(color: ink),
                         children: [
                           TextSpan(
                             text: '  $time',
@@ -307,7 +337,10 @@ class _DismissibleEntry extends StatelessWidget {
                   ),
                   Text(
                     grams,
-                    style: textTheme.titleMedium!.copyWith(color: ink),
+                    style: textTheme.bodyMedium!.copyWith(
+                      color: ink,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),

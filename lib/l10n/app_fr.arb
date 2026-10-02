@@ -319,10 +319,6 @@
   "@menuAbout": {
     "description": "Menu item opening the about page."
   },
-  "menuDataFooter": "Tes données restent sur ton téléphone.",
-  "@menuDataFooter": {
-    "description": "Reminder at the bottom of the menu."
-  },
   "appVersion": "Version {version}",
   "@appVersion": {
     "description": "App version.",
@@ -356,7 +352,7 @@
   "@aboutGitHub": {
     "description": "Link opening the public source code repository on GitHub."
   },
-  "licensesExplanation": "Protein Calculator est distribuée sous sa propre licence, en tête de liste : son code est consultable, mais elle n'est pas open source. Elle s'appuie sur des composants open source, dont la plupart viennent de Flutter, et leurs licences demandent que leur texte accompagne l'app.",
+  "licensesExplanation": "Tu retrouveras ici la licence de Protein Calculator, ainsi que celles des composants open source qu'elle utilise.",
   "@licensesExplanation": {
     "description": "Explanation at the top of the licenses page."
   },

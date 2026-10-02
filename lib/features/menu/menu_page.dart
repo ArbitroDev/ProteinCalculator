@@ -87,15 +87,6 @@ class MenuPage extends ConsumerWidget {
             label: l10n.menuAbout,
             onTap: () => context.go(AppRoutes.about),
           ),
-          const SizedBox(height: 20),
-          Text(
-            l10n.menuDataFooter,
-            style: textTheme.bodyMedium!.copyWith(color: colors.textSecondary),
-          ),
-          if (version != null) ...[
-            const SizedBox(height: 4),
-            Text(l10n.appVersion(version), style: textTheme.bodySmall),
-          ],
         ],
       ),
     );

@@ -31,7 +31,8 @@ class TodayPage extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 20, 18, 14),
+          // Lined up with the tab bar.
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -81,7 +82,7 @@ class _Summary extends StatelessWidget {
     final total = entries.fold(0.0, (sum, entry) => sum + entry.proteinGrams);
     final reached = total >= goal;
     final status = textTheme.bodyLarge!.copyWith(
-      fontSize: 16,
+      fontSize: 14,
       color: colors.textSecondary,
     );
 
@@ -125,7 +126,7 @@ class _Summary extends StatelessWidget {
                   Text(
                     l10n.todayGoal(grams(goal)),
                     style: textTheme.bodyLarge!.copyWith(
-                      fontSize: 17,
+                      fontSize: 15,
                       color: colors.textSecondary,
                     ),
                   ),
@@ -207,6 +208,16 @@ class _ShakerWithLabels extends StatefulWidget {
 class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
   final _scroll = ScrollController();
 
+  /// Whether the labels overflow and scroll: only then is room kept on the
+  /// right for the scrollbar.
+  bool _scrollable = false;
+
+  bool _onMetrics(ScrollMetricsNotification notification) {
+    final scrollable = notification.metrics.maxScrollExtent > 0;
+    if (scrollable != _scrollable) setState(() => _scrollable = scrollable);
+    return false;
+  }
+
   @override
   void dispose() {
     _scroll.dispose();
@@ -257,21 +268,27 @@ class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
               // scrolls with the latest entry kept on top.
               child: Align(
                 alignment: Alignment.bottomCenter,
-                child: RawScrollbar(
-                  controller: _scroll,
-                  thumbVisibility: true,
-                  thickness: 4,
-                  radius: const Radius.circular(2),
-                  thumbColor: colors.structure,
-                  child: ListView.separated(
+                child: NotificationListener<ScrollMetricsNotification>(
+                  onNotification: _onMetrics,
+                  child: RawScrollbar(
                     controller: _scroll,
-                    shrinkWrap: true,
-                    padding: EdgeInsets.only(bottom: bottomInset, right: 10),
-                    itemCount: entries.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 6),
-                    itemBuilder: (context, index) => _EntryLabel(
-                      entry: entries[entries.length - 1 - index],
-                      locale: locale,
+                    thumbVisibility: true,
+                    thickness: 4,
+                    radius: const Radius.circular(2),
+                    thumbColor: colors.structure,
+                    child: ListView.separated(
+                      controller: _scroll,
+                      shrinkWrap: true,
+                      padding: EdgeInsets.only(
+                        bottom: bottomInset,
+                        right: _scrollable ? 10 : 0,
+                      ),
+                      itemCount: entries.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 6),
+                      itemBuilder: (context, index) => _EntryLabel(
+                        entry: entries[entries.length - 1 - index],
+                        locale: locale,
+                      ),
                     ),
                   ),
                 ),
