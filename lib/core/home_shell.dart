@@ -12,6 +12,20 @@ class HomeShell extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
+  /// Tapping the active tab again brings it back to its root page, closing
+  /// any sheet or dialog open over it.
+  void _select(int index) {
+    if (index == navigationShell.currentIndex) {
+      navigationShell.route.branches[index].navigatorKey.currentState?.popUntil(
+        (route) => route is! PopupRoute,
+      );
+    }
+    navigationShell.goBranch(
+      index,
+      initialLocation: index == navigationShell.currentIndex,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -24,11 +38,7 @@ class HomeShell extends StatelessWidget {
     final bar = _TabBar(
       tabs: tabs,
       selectedIndex: navigationShell.currentIndex,
-      // Tapping the active tab again brings it back to its root page.
-      onSelected: (index) => navigationShell.goBranch(
-        index,
-        initialLocation: index == navigationShell.currentIndex,
-      ),
+      onSelected: _select,
       addLabel: l10n.addEntry,
       onAdd: () => context.push(AppRoutes.newEntry),
       // In landscape, height is scarce: the bar stands on the left.
