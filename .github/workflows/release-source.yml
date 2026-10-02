@@ -1,0 +1,27 @@
+name: Release source
+
+# main only receives releases: pull requests from develop.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release-source:
+    name: Release source
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check that the pull request comes from develop
+        env:
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [ "$HEAD_REPO" != "$GITHUB_REPOSITORY" ] || [ "$HEAD_REF" != "develop" ]; then
+            echo "::error::main only accepts pull requests from develop (got ${HEAD_REPO}:${HEAD_REF})."
+            echo "Open your pull request against develop instead."
+            exit 1
+          fi
+          echo "Release pull request from develop."

@@ -15,15 +15,26 @@ request.
 ## Workflow
 
 1. Open an issue describing the bug or feature, or comment on an existing one.
-2. Fork the repository and create a branch from `main`.
+2. Fork the repository and create a branch from `develop`.
 3. Make your changes and make sure that:
    - `flutter analyze` reports no issues;
    - `flutter test` passes;
    - the code is formatted with `dart format .`.
-4. Open a pull request and check the CLA box in the template.
+4. Open a pull request **against `develop`** and check the CLA box in the
+   template.
 
 Every pull request runs the automated checks (formatting, analysis, tests,
 commit messages). A pull request can only be merged once all checks pass.
+
+### Branches and releases
+
+- `develop` gathers the accepted pull requests. It is the default branch.
+- `main` holds released versions only. It accepts pull requests from
+  `develop` alone, opened by the maintainer when a version is ready.
+- Every merge into `main` runs the release workflow: it builds the signed
+  app bundle, sends it to the closed testing track of Google Play and tags
+  the version (`v1.2.3`). The version in `pubspec.yaml` must therefore be
+  increased in `develop` before each release.
 
 ## Commit messages
 
