@@ -26,7 +26,7 @@ void main() {
 
   Future<void> openMenu(WidgetTester tester) async {
     await pumpApp(tester, db);
-    await tester.tap(find.text('Menu'));
+    await tester.tap(find.byTooltip('Menu'));
     await tester.pumpAndSettle();
   }
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Tab bar scaffold shared by the four main tabs.
@@ -29,49 +31,83 @@ class HomeShell extends StatelessWidget {
           index,
           initialLocation: index == navigationShell.currentIndex,
         ),
+        addLabel: l10n.addEntry,
+        onAdd: () => context.push(AppRoutes.newEntry),
       ),
     );
   }
 }
 
+/// Floating pill of tab icons, next to a round button adding an entry from
+/// any tab.
 class _TabBar extends StatelessWidget {
   const _TabBar({
     required this.tabs,
     required this.selectedIndex,
     required this.onSelected,
+    required this.addLabel,
+    required this.onAdd,
   });
 
   final List<(IconData, String)> tabs;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final String addLabel;
+  final VoidCallback onAdd;
+
+  static const _height = 60.0;
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final labelStyle = Theme.of(context).textTheme.labelSmall!;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? colors.background : colors.surface,
-        border: Border(top: BorderSide(color: colors.divider)),
-      ),
+    return ColoredBox(
+      color: colors.background,
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
           child: Row(
             children: [
-              for (final (index, (icon, label)) in tabs.indexed)
-                Expanded(
-                  child: _Tab(
-                    icon: icon,
-                    label: label,
-                    selected: index == selectedIndex,
-                    labelStyle: labelStyle,
-                    onTap: () => onSelected(index),
+              Expanded(
+                child: Container(
+                  height: _height,
+                  padding: const EdgeInsets.all(6),
+                  decoration: ShapeDecoration(
+                    color: colors.surface,
+                    shape: StadiumBorder(
+                      side: BorderSide(color: colors.divider),
+                    ),
+                  ),
+                  child: SlidingSelector(
+                    selectedIndex: selectedIndex,
+                    gap: 4,
+                    shape: const StadiumBorder(),
+                    children: [
+                      for (final (index, (icon, label)) in tabs.indexed)
+                        _Tab(
+                          icon: icon,
+                          label: label,
+                          selected: index == selectedIndex,
+                          onTap: () => onSelected(index),
+                        ),
+                    ],
                   ),
                 ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox.square(
+                dimension: _height,
+                child: IconButton.filled(
+                  onPressed: onAdd,
+                  tooltip: addLabel,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: AppColors.onAccent,
+                  ),
+                  icon: const Icon(LucideIcons.plus, size: 28),
+                ),
+              ),
             ],
           ),
         ),
@@ -80,54 +116,41 @@ class _TabBar extends StatelessWidget {
   }
 }
 
+/// Icon of a tab; its name shows as a tooltip and is read by screen readers.
 class _Tab extends StatelessWidget {
   const _Tab({
     required this.icon,
     required this.label,
     required this.selected,
-    required this.labelStyle,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
-  final TextStyle labelStyle;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = selected
-        ? AppColors.onAccent
-        : AppColors.of(context).textSecondary;
     return Semantics(
       button: true,
       selected: selected,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
+      label: label,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: label,
         child: Material(
-          color: selected ? AppColors.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
+          type: MaterialType.transparency,
           child: InkWell(
-            borderRadius: BorderRadius.circular(4),
+            customBorder: const StadiumBorder(),
             onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 20, color: color),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: labelStyle.copyWith(
-                      color: color,
-                      fontWeight: selected ? FontWeight.w600 : null,
-                    ),
-                  ),
-                ],
+            child: Center(
+              child: Icon(
+                icon,
+                size: 22,
+                color: selected
+                    ? AppColors.onAccent
+                    : AppColors.of(context).textSecondary,
               ),
             ),
           ),

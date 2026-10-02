@@ -228,9 +228,8 @@ class _ProductTile extends StatelessWidget {
           color: colors.background,
           child: InkWell(
             onTap: () => context.push(AppRoutes.editProduct(product.id)),
-            borderRadius: BorderRadius.circular(10),
             child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 5, 4, 5),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: colors.divider)),
               ),
@@ -252,14 +251,20 @@ class _ProductTile extends StatelessWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: () =>
-                        context.push(AppRoutes.newEntryFrom(product.id)),
-                    tooltip: l10n.addToToday,
-                    icon: Icon(
-                      LucideIcons.circlePlus,
-                      size: 26,
-                      color: colors.accentText,
+                  const SizedBox(width: 8),
+                  // Same look as the add button of the tab bar.
+                  SizedBox.square(
+                    dimension: 32,
+                    child: IconButton.filled(
+                      onPressed: () =>
+                          context.push(AppRoutes.newEntryFrom(product.id)),
+                      tooltip: l10n.addToToday,
+                      padding: EdgeInsets.zero,
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: AppColors.onAccent,
+                      ),
+                      icon: const Icon(LucideIcons.plus, size: 18),
                     ),
                   ),
                 ],

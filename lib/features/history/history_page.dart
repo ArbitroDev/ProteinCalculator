@@ -64,7 +64,6 @@ class _DayTile extends StatelessWidget {
 
     return InkWell(
       onTap: () => context.go(AppRoutes.historyDay(day.dayKey)),
-      borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(

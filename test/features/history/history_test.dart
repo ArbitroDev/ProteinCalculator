@@ -22,7 +22,7 @@ void main() {
 
   Future<void> openHistory(WidgetTester tester) async {
     await pumpApp(tester, db);
-    await tester.tap(find.text('History'));
+    await tester.tap(find.byTooltip('History'));
     await tester.pumpAndSettle();
   }
 

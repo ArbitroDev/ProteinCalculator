@@ -34,7 +34,7 @@ void main() {
 
   Future<void> openProducts(WidgetTester tester) async {
     await pumpApp(tester, db);
-    await tester.tap(find.text('Products'));
+    await tester.tap(find.byTooltip('Products'));
     await tester.pumpAndSettle();
   }
 

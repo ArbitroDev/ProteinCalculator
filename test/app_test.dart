@@ -52,11 +52,11 @@ void main() {
       await pumpApp(tester, db);
 
       for (final tab in ['History', 'Products', 'Menu']) {
-        await tester.tap(find.text(tab).last);
+        await tester.tap(find.byTooltip(tab));
         await tester.pumpAndSettle();
         expect(find.widgetWithText(AppBar, tab), findsOneWidget);
       }
-      await tester.tap(find.text('Today'));
+      await tester.tap(find.byTooltip('Today'));
       await tester.pumpAndSettle();
       expect(find.text('Thursday, October 1'), findsOneWidget);
       await disposeApp(tester, db);
@@ -71,7 +71,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('New entry'), findsOneWidget);
-      expect(find.text('History'), findsNothing);
+      expect(find.byTooltip('History'), findsNothing);
       await disposeApp(tester, db);
     });
   });
