@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
+import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_notifier.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -81,6 +85,15 @@ class _FormViewState extends ConsumerState<_FormView> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final separator = NumberFormat.decimalPattern(
+      Localizations.localeOf(context).toString(),
+    ).symbols.DECIMAL_SEP;
+    _per.text = _per.text.replaceAll('.', separator);
+  }
+
+  @override
   void dispose() {
     for (final controller in [_name, _protein, _consumed, _per, _reference]) {
       controller.dispose();
@@ -138,6 +151,9 @@ class _FormViewState extends ConsumerState<_FormView> {
                   controller: _name,
                   focusNode: _nameFocus,
                   textCapitalization: TextCapitalization.sentences,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(maxNameLength),
+                  ],
                   textInputAction: TextInputAction.next,
                   onChanged: _notifier.setName,
                   decoration: InputDecoration(
@@ -177,6 +193,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                       Expanded(
                         child: _GramsField(
                           controller: _per,
+                          decimal: true,
                           onChanged: _notifier.setProteinPerReference,
                           errorText: error(EntryFormField.proteinPerReference),
                         ),
@@ -214,7 +231,12 @@ class _FormViewState extends ConsumerState<_FormView> {
                 if (args.kind == EntryFormKind.newEntry)
                   _SaveAsProduct(
                     value: form.saveAsProduct,
-                    onChanged: _notifier.setSaveAsProduct,
+                    label: form.updatesProduct
+                        ? l10n.updateProduct
+                        : l10n.saveAsProduct,
+                    onChanged: form.canSaveAsProduct
+                        ? _notifier.setSaveAsProduct
+                        : null,
                   ),
                 FilledButton(
                   onPressed: _saving ? null : _submit,
@@ -257,9 +279,13 @@ class _GramsField extends StatelessWidget {
     required this.controller,
     required this.onChanged,
     required this.errorText,
+    this.decimal = false,
   });
 
   final TextEditingController controller;
+
+  /// Allows one decimal: only the protein content of a product needs it.
+  final bool decimal;
   final ValueChanged<String> onChanged;
   final String? errorText;
 
@@ -267,8 +293,8 @@ class _GramsField extends StatelessWidget {
   Widget build(BuildContext context) => TextField(
     controller: controller,
     onChanged: onChanged,
-    keyboardType: TextInputType.number,
-    inputFormatters: [GramsInputFormatter()],
+    keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+    inputFormatters: [GramsInputFormatter(maxDecimals: decimal ? 1 : 0)],
     textInputAction: TextInputAction.next,
     decoration: InputDecoration(
       suffixText: AppLocalizations.of(context).gramsUnit,
@@ -292,25 +318,22 @@ class _ModeSelector extends StatelessWidget {
 
     Widget option(EntryMode value, String label) {
       final selected = value == mode;
-      return Expanded(
-        child: Semantics(
-          button: true,
-          selected: selected,
-          child: Material(
-            color: selected ? AppColors.accent : Colors.transparent,
+      return Semantics(
+        button: true,
+        selected: selected,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
             borderRadius: BorderRadius.circular(9),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(9),
-              onTap: () => onChanged(value),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: style.copyWith(
-                    color: selected ? AppColors.onAccent : colors.textSecondary,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  ),
+            onTap: () => onChanged(value),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: style.copyWith(
+                  color: selected ? AppColors.onAccent : colors.textSecondary,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ),
@@ -325,10 +348,16 @@ class _ModeSelector extends StatelessWidget {
         color: colors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
+      child: SlidingSelector(
+        selectedIndex: EntryMode.values.indexOf(mode),
+        gap: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
         children: [
-          option(EntryMode.direct, l10n.modeDirect),
-          option(EntryMode.perQuantity, l10n.modePerQuantity),
+          for (final value in EntryMode.values)
+            option(value, switch (value) {
+              EntryMode.direct => l10n.modeDirect,
+              EntryMode.perQuantity => l10n.modePerQuantity,
+            }),
         ],
       ),
     );
@@ -379,7 +408,10 @@ class _Suggestions extends StatelessWidget {
                       product.mode == EntryMode.direct
                           ? l10n.grams(grams(product.proteinGrams))
                           : l10n.productPerReference(
-                              grams(product.proteinPerReference),
+                              formatProteinContent(
+                                product.proteinPerReference ?? 0,
+                                locale,
+                              ),
                               grams(product.referenceGrams),
                             ),
                       style: textTheme.bodySmall,
@@ -426,24 +458,35 @@ class _Result extends StatelessWidget {
 }
 
 class _SaveAsProduct extends StatelessWidget {
-  const _SaveAsProduct({required this.value, required this.onChanged});
+  const _SaveAsProduct({
+    required this.value,
+    required this.label,
+    required this.onChanged,
+  });
 
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final String label;
+
+  /// Null while the option is not available.
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final onChanged = this.onChanged;
+    final enabled = onChanged != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => onChanged(!value),
+        onTap: enabled ? () => onChanged(!value) : null,
         child: Row(
           children: [
             Checkbox(
               value: value,
-              onChanged: (checked) => onChanged(checked ?? false),
+              onChanged: enabled
+                  ? (checked) => onChanged(checked ?? false)
+                  : null,
               activeColor: AppColors.accent,
               checkColor: AppColors.onAccent,
               side: BorderSide(color: colors.textSecondary, width: 1.5),
@@ -452,8 +495,9 @@ class _SaveAsProduct extends StatelessWidget {
               ),
             ),
             Text(
-              AppLocalizations.of(context).saveAsProduct,
-              style: Theme.of(context).textTheme.bodyLarge,
+              label,
+              style: Theme.of(context).textTheme.bodyLarge!
+                  .copyWith(color: enabled ? null : colors.textSecondary),
             ),
           ],
         ),

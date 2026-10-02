@@ -8,8 +8,9 @@ void main() {
     await initializeDateFormatting('en');
   });
 
-  test('formatGrams rounds to the unit', () {
-    expect(formatGrams(85.6, 'en'), '86');
+  test('formatGrams truncates to the unit', () {
+    expect(formatGrams(85.6, 'en'), '85');
+    expect(formatGrams(59.999999999999, 'en'), '60');
     expect(formatGrams(1234.4, 'en'), '1,234');
   });
 

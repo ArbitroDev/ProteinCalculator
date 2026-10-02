@@ -1,3 +1,6 @@
+/// Longest name of an entry or a product.
+const maxNameLength = 40;
+
 const _foldedLetters = {
   'à': 'a',
   'á': 'a',

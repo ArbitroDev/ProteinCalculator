@@ -73,6 +73,8 @@ class EntryFormState {
     this.proteinPerReference = '',
     this.reference = '100',
     this.saveAsProduct = false,
+    this.canSaveAsProduct = true,
+    this.updatesProduct = false,
     this.errors = const {},
     this.revision = 0,
   });
@@ -84,6 +86,14 @@ class EntryFormState {
   final String proteinPerReference;
   final String reference;
   final bool saveAsProduct;
+
+  /// Whether a new entry can be saved as a product: when it starts from a
+  /// saved product, only once its values have been changed.
+  final bool canSaveAsProduct;
+
+  /// Whether saving as a product updates the product the entry starts from,
+  /// because it keeps its name, instead of creating a new one.
+  final bool updatesProduct;
   final Map<EntryFormField, EntryFormError> errors;
 
   /// Increases when the values are replaced as a whole (a product is
@@ -156,6 +166,8 @@ class EntryFormState {
     String? proteinPerReference,
     String? reference,
     bool? saveAsProduct,
+    bool? canSaveAsProduct,
+    bool? updatesProduct,
     Map<EntryFormField, EntryFormError>? errors,
     int? revision,
   }) => EntryFormState(
@@ -166,6 +178,8 @@ class EntryFormState {
     proteinPerReference: proteinPerReference ?? this.proteinPerReference,
     reference: reference ?? this.reference,
     saveAsProduct: saveAsProduct ?? this.saveAsProduct,
+    canSaveAsProduct: canSaveAsProduct ?? this.canSaveAsProduct,
+    updatesProduct: updatesProduct ?? this.updatesProduct,
     errors: errors ?? this.errors,
     revision: revision ?? this.revision,
   );

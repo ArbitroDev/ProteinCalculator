@@ -201,7 +201,7 @@ class _ProductTile extends StatelessWidget {
         l10n.grams(grams(product.proteinGrams))
       else ...[
         l10n.productPerReference(
-          grams(product.proteinPerReference),
+          formatProteinContent(product.proteinPerReference ?? 0, locale),
           grams(product.referenceGrams),
         ),
         if (product.consumedGrams != null)

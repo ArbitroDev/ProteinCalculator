@@ -34,6 +34,7 @@
   "formPer": "per",
   "formResult": "of protein",
   "saveAsProduct": "Save as a product",
+  "updateProduct": "Update the product",
   "save": "Save",
   "errorRequired": "Enter a quantity.",
   "errorNotPositive": "Enter a quantity greater than 0.",

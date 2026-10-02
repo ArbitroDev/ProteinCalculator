@@ -39,6 +39,10 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
 
   AppDatabase get _db => ref.read(databaseProvider);
 
+  /// Product a new entry starts from: opened from it or picked among the
+  /// suggestions.
+  Product? _source;
+
   @override
   Future<EntryFormState> build() async {
     final db = ref.read(databaseProvider);
@@ -47,9 +51,9 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         final productId = args.id;
         if (productId == null) return const EntryFormState();
         final product = await db.productsDao.getProduct(productId);
-        return product == null
-            ? const EntryFormState()
-            : _fromProduct(const EntryFormState(), product);
+        if (product == null) return const EntryFormState();
+        _source = product;
+        return _withSourceStatus(_fromProduct(const EntryFormState(), product));
       case EntryFormKind.newProduct:
         return const EntryFormState();
       case EntryFormKind.editEntry:
@@ -60,7 +64,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
           mode: entry.mode,
           protein: _text(entry.proteinGrams),
           consumed: _text(entry.consumedGrams),
-          proteinPerReference: _text(entry.proteinPerReference),
+          proteinPerReference: _decimalText(entry.proteinPerReference),
           reference: _text(entry.referenceGrams, fallback: '100'),
         );
       case EntryFormKind.editProduct:
@@ -77,7 +81,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         mode: product.mode,
         protein: _text(product.proteinGrams),
         consumed: _text(product.consumedGrams),
-        proteinPerReference: _text(product.proteinPerReference),
+        proteinPerReference: _decimalText(product.proteinPerReference),
         reference: _text(product.referenceGrams, fallback: '100'),
         errors: const {},
         revision: base.revision + 1,
@@ -88,9 +92,42 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
   static String _text(double? value, {String fallback = ''}) =>
       value == null ? fallback : value.round().toString();
 
+  /// Text of the protein content of a product, the only quantity typed with
+  /// a decimal: "10.5", "23".
+  static String _decimalText(double? value) {
+    if (value == null) return '';
+    final tenths = (value * 10).round();
+    return tenths % 10 == 0 ? '${tenths ~/ 10}' : (tenths / 10).toString();
+  }
+
   void _update(EntryFormState Function(EntryFormState) change) {
     final current = state.value;
-    if (current != null) state = AsyncData(change(current));
+    if (current != null) state = AsyncData(_withSourceStatus(change(current)));
+  }
+
+  /// Allows saving as a product only once the values differ from the
+  /// product the entry starts from.
+  EntryFormState _withSourceStatus(EntryFormState form) {
+    final source = _source;
+    if (args.kind != EntryFormKind.newEntry || source == null) return form;
+    final changed = !_matches(form, source);
+    return form.copyWith(
+      canSaveAsProduct: changed,
+      saveAsProduct: changed && form.saveAsProduct,
+      updatesProduct: productNameKey(form.name) == source.nameKey,
+    );
+  }
+
+  /// Whether [form] holds the same name and quantities as [product].
+  bool _matches(EntryFormState form, Product product) {
+    final saved = _fromProduct(const EntryFormState(), product);
+    bool same(String a, String b) => parseGrams(a) == parseGrams(b);
+    if (productNameKey(form.name) != product.nameKey) return false;
+    if (form.mode != saved.mode) return false;
+    if (form.mode == EntryMode.direct) return same(form.protein, saved.protein);
+    return same(form.consumed, saved.consumed) &&
+        same(form.proteinPerReference, saved.proteinPerReference) &&
+        same(form.reference, saved.reference);
   }
 
   void setName(String value) =>
@@ -124,8 +161,10 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
   );
 
   /// Fills the form with the values of a suggested product.
-  void applyProduct(Product product) =>
-      _update((s) => _fromProduct(s, product));
+  void applyProduct(Product product) {
+    _source = product;
+    _update((s) => _fromProduct(s, product));
+  }
 
   /// Validates and saves the form. Returns whether it was saved.
   Future<bool> submit() async {
@@ -137,7 +176,11 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
     if (needsName && !errors.containsKey(EntryFormField.name)) {
       final taken = await _db.productsDao.isNameTaken(
         current.name,
-        exceptId: args.kind == EntryFormKind.editProduct ? args.id : null,
+        exceptId: switch (args.kind) {
+          EntryFormKind.editProduct => args.id,
+          EntryFormKind.newEntry when current.updatesProduct => _source?.id,
+          _ => null,
+        },
       );
       if (taken) errors[EntryFormField.name] = EntryFormError.nameTaken;
     }
@@ -181,11 +224,31 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       createdAt: now,
     );
 
+    Future<void> updateProduct(Product product) => db.productsDao.updateProduct(
+      product.copyWith(
+        name: name,
+        mode: form.mode,
+        proteinGrams: Value(direct ? proteinGrams : null),
+        consumedGrams: Value(consumed),
+        proteinPerReference: Value(per),
+        referenceGrams: Value(reference),
+      ),
+    );
+
     switch (args.kind) {
       case EntryFormKind.newEntry:
         await db.transaction(() async {
           // The product goes first so this entry counts as its first use.
-          if (form.saveAsProduct) await insertProduct();
+          if (form.saveAsProduct) {
+            final source = form.updatesProduct && _source != null
+                ? await db.productsDao.getProduct(_source!.id)
+                : null;
+            if (source != null) {
+              await updateProduct(source);
+            } else {
+              await insertProduct();
+            }
+          }
           await db.entriesDao.insertEntry(
             name: name.isEmpty ? null : name,
             mode: form.mode,
@@ -213,17 +276,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         await insertProduct();
       case EntryFormKind.editProduct:
         final product = await db.productsDao.getProduct(args.id!);
-        if (product == null) return;
-        await db.productsDao.updateProduct(
-          product.copyWith(
-            name: name,
-            mode: form.mode,
-            proteinGrams: Value(direct ? proteinGrams : null),
-            consumedGrams: Value(consumed),
-            proteinPerReference: Value(per),
-            referenceGrams: Value(reference),
-          ),
-        );
+        if (product != null) await updateProduct(product);
     }
   }
 }

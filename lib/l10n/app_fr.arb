@@ -172,6 +172,10 @@
   "@saveAsProduct": {
     "description": "Checkbox also saving the entry as a product."
   },
+  "updateProduct": "Mettre à jour le produit",
+  "@updateProduct": {
+    "description": "Checkbox also saving the changed values to the product the entry starts from."
+  },
   "save": "Enregistrer",
   "@save": {
     "description": "Button saving an edited entry or a product."
