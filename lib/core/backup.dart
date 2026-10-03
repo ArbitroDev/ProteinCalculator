@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
@@ -93,6 +95,9 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
 
 /// Reads a backup file. Throws [InvalidBackupException] if it is not a
 /// valid Protein Calculator backup.
+///
+/// Values follow the rules of the forms, so a damaged or hand-edited file
+/// cannot bring data the app was never meant to show.
 Backup parseBackup(String text) {
   try {
     final json = jsonDecode(text);
@@ -113,18 +118,28 @@ Backup parseBackup(String text) {
       for (final p in json['products'] as List)
         _product(p as Map<String, dynamic>),
     ];
-    final names = products.map((p) => p.nameKey.value).toSet();
-    if (names.length != products.length) {
+    if (!_unique(entries.map((e) => e.id.value))) {
+      throw const InvalidBackupException('duplicate entry ids');
+    }
+    if (!_unique(products.map((p) => p.id.value))) {
+      throw const InvalidBackupException('duplicate product ids');
+    }
+    if (!_unique(products.map((p) => p.nameKey.value))) {
       throw const InvalidBackupException('duplicate product names');
     }
     if (products.where((p) => p.isFavorite.value).length > 1) {
       throw const InvalidBackupException('several favorite products');
     }
 
+    final dailyGoal = _optionalDouble(settings['dailyGoalGrams']);
+    if (dailyGoal != null && !isValidDailyGoal(dailyGoal)) {
+      throw const InvalidBackupException('daily goal out of range');
+    }
+
     return Backup(
       entries: entries,
       products: products,
-      dailyGoal: _optionalDouble(settings['dailyGoalGrams']),
+      dailyGoal: dailyGoal,
       productSort: ProductSort.values.byName(settings['productSort'] as String),
     );
   } on InvalidBackupException {
@@ -159,32 +174,46 @@ Future<void> restoreBackup(AppDatabase db, Backup backup) {
   });
 }
 
-EntriesCompanion _entry(Map<String, dynamic> e) => EntriesCompanion.insert(
-  id: Value(e['id'] as int),
-  name: Value(e['name'] as String?),
-  mode: EntryMode.values.byName(e['mode'] as String),
-  proteinGrams: _double(e['proteinGrams']),
-  consumedGrams: Value(_optionalDouble(e['consumedGrams'])),
-  proteinPerReference: Value(_optionalDouble(e['proteinPerReference'])),
-  referenceGrams: Value(_optionalDouble(e['referenceGrams'])),
-  createdAt: DateTime.parse(e['createdAt'] as String).toLocal(),
-  dayKey: e['dayKey'] as int,
-);
+EntriesCompanion _entry(Map<String, dynamic> e) {
+  final mode = EntryMode.values.byName(e['mode'] as String);
+  final quantities = _perQuantity(e, mode);
+  final dayKey = e['dayKey'] as int;
+  if (!isValidDayKey(dayKey)) throw const InvalidBackupException('invalid day');
+  return EntriesCompanion.insert(
+    id: Value(_id(e['id'])),
+    name: Value(e['name'] as String?),
+    mode: mode,
+    proteinGrams: _quantity(e['proteinGrams']),
+    consumedGrams: Value(quantities.consumed),
+    proteinPerReference: Value(quantities.perReference),
+    referenceGrams: Value(quantities.reference),
+    createdAt: DateTime.parse(e['createdAt'] as String).toLocal(),
+    dayKey: dayKey,
+  );
+}
 
 ProductsCompanion _product(Map<String, dynamic> p) {
   final name = (p['name'] as String).trim();
   if (name.isEmpty) throw const InvalidBackupException('empty product name');
+  final mode = EntryMode.values.byName(p['mode'] as String);
+  final quantities = _perQuantity(p, mode);
+  final proteinGrams = _optionalQuantity(p['proteinGrams']);
+  if (mode == EntryMode.direct && proteinGrams == null) {
+    throw const InvalidBackupException('missing protein amount');
+  }
+  final useCount = p['useCount'] as int;
+  if (useCount < 0) throw const InvalidBackupException('negative use count');
   final lastUsedAt = p['lastUsedAt'] as String?;
   return ProductsCompanion.insert(
-    id: Value(p['id'] as int),
+    id: Value(_id(p['id'])),
     name: name,
     nameKey: productNameKey(name),
-    mode: EntryMode.values.byName(p['mode'] as String),
-    proteinGrams: Value(_optionalDouble(p['proteinGrams'])),
-    consumedGrams: Value(_optionalDouble(p['consumedGrams'])),
-    proteinPerReference: Value(_optionalDouble(p['proteinPerReference'])),
-    referenceGrams: Value(_optionalDouble(p['referenceGrams'])),
-    useCount: Value(p['useCount'] as int),
+    mode: mode,
+    proteinGrams: Value(proteinGrams),
+    consumedGrams: Value(quantities.consumed),
+    proteinPerReference: Value(quantities.perReference),
+    referenceGrams: Value(quantities.reference),
+    useCount: Value(useCount),
     lastUsedAt: Value(
       lastUsedAt == null ? null : DateTime.parse(lastUsedAt).toLocal(),
     ),
@@ -194,6 +223,48 @@ ProductsCompanion _product(Map<String, dynamic> p) {
   );
 }
 
-double _double(Object? value) => (value as num).toDouble();
+/// Quantities of the "per quantity" mode of an entry or a product. In that
+/// mode, like in the form, all three are needed and the protein content
+/// cannot exceed the reference quantity.
+({double? consumed, double? perReference, double? reference}) _perQuantity(
+  Map<String, dynamic> json,
+  EntryMode mode,
+) {
+  final consumed = _optionalQuantity(json['consumedGrams']);
+  final perReference = _optionalQuantity(json['proteinPerReference']);
+  final reference = _optionalQuantity(json['referenceGrams']);
+  if (mode == EntryMode.perQuantity &&
+      (consumed == null ||
+          perReference == null ||
+          reference == null ||
+          perReference > reference)) {
+    throw const InvalidBackupException('invalid quantities');
+  }
+  return (consumed: consumed, perReference: perReference, reference: reference);
+}
+
+int _id(Object? value) {
+  final id = value as int;
+  if (id <= 0) throw const InvalidBackupException('invalid id');
+  return id;
+}
+
+double _quantity(Object? value) =>
+    _optionalQuantity(value) ??
+    (throw const InvalidBackupException('missing quantity'));
+
+/// A quantity in grams, or null if absent; see [isValidQuantity].
+double? _optionalQuantity(Object? value) {
+  final grams = _optionalDouble(value);
+  if (grams != null && !isValidQuantity(grams)) {
+    throw const InvalidBackupException('quantity out of range');
+  }
+  return grams;
+}
 
 double? _optionalDouble(Object? value) => (value as num?)?.toDouble();
+
+bool _unique(Iterable<Object?> values) {
+  final list = values.toList();
+  return list.toSet().length == list.length;
+}

@@ -16,4 +16,19 @@ void main() {
     expect(parseGrams('1,2,3'), isNull);
     expect(parseGrams('Infinity'), isNull);
   });
+
+  test('accepts quantities above zero, up to four digits', () {
+    expect(isValidQuantity(0.1), isTrue);
+    expect(isValidQuantity(maxGrams), isTrue);
+    expect(isValidQuantity(0), isFalse);
+    expect(isValidQuantity(-1), isFalse);
+    expect(isValidQuantity(maxGrams + 1), isFalse);
+  });
+
+  test('accepts daily goals between the bounds', () {
+    expect(isValidDailyGoal(minDailyGoal), isTrue);
+    expect(isValidDailyGoal(maxDailyGoal), isTrue);
+    expect(isValidDailyGoal(0), isFalse);
+    expect(isValidDailyGoal(maxDailyGoal + 1), isFalse);
+  });
 }

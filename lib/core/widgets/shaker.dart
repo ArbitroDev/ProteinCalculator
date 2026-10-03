@@ -260,7 +260,8 @@ class _ShakerPainter extends CustomPainter {
     final tick = Paint()
       ..color = colors.structure.withValues(alpha: 0.75)
       ..strokeWidth = 1.5;
-    final step = range <= 200 ? 10.0 : 50.0;
+    // At most about 40 ticks, however large the day's total.
+    final step = range <= 200 ? 10.0 : 50.0 * (range / 2000).ceil();
     for (var grams = step; grams <= range; grams += step) {
       final major = grams % 50 == 0 || grams == goal;
       canvas.drawLine(

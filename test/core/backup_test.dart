@@ -135,5 +135,66 @@ void main() {
       products.add({...products.first, 'id': 99, 'name': 'SKYR  nature'});
       expectInvalid(jsonEncode(json));
     });
+
+    test('with duplicate ids', () async {
+      final json = await exported();
+      final entries = json['entries'] as List;
+      entries.add({...entries.first, 'name': 'Copy'});
+      expectInvalid(jsonEncode(json));
+
+      final other = await exported();
+      final products = other['products'] as List;
+      products.add({...products.first, 'name': 'Other'});
+      expectInvalid(jsonEncode(other));
+    });
+
+    test('with a daily goal out of range', () async {
+      for (final goal in [0, -5, 1001, 1e9]) {
+        final json = await exported();
+        (json['settings'] as Map)['dailyGoalGrams'] = goal;
+        expectInvalid(jsonEncode(json));
+      }
+    });
+
+    test('with a quantity that is not positive or too large', () async {
+      for (final grams in [0, -15, 10000, 1e12]) {
+        final json = await exported();
+        (json['entries'] as List).last['proteinGrams'] = grams;
+        expectInvalid(jsonEncode(json));
+      }
+    });
+
+    test('with a quantity missing in "per quantity" mode', () async {
+      final json = await exported();
+      (json['products'] as List).first['referenceGrams'] = null;
+      expectInvalid(jsonEncode(json));
+    });
+
+    test('with a protein content above the reference quantity', () async {
+      final json = await exported();
+      (json['entries'] as List).first['proteinPerReference'] = 150;
+      expectInvalid(jsonEncode(json));
+    });
+
+    test('with a direct product without its protein amount', () async {
+      final json = await exported();
+      final products = json['products'] as List;
+      products.first
+        ..['mode'] = 'direct'
+        ..['proteinGrams'] = null;
+      expectInvalid(jsonEncode(json));
+    });
+
+    test('with a day that does not exist', () async {
+      final json = await exported();
+      (json['entries'] as List).first['dayKey'] = 20260931;
+      expectInvalid(jsonEncode(json));
+    });
+
+    test('with a negative use count', () async {
+      final json = await exported();
+      (json['products'] as List).first['useCount'] = -1;
+      expectInvalid(jsonEncode(json));
+    });
   });
 }

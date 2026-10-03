@@ -33,6 +33,17 @@ void main() {
     expect(dateOfDayKey(20261231), DateTime(2026, 12, 31));
   });
 
+  test('isValidDayKey accepts real calendar dates only', () {
+    expect(isValidDayKey(20260930), isTrue);
+    expect(isValidDayKey(20280229), isTrue);
+    expect(isValidDayKey(20260931), isFalse);
+    expect(isValidDayKey(20270229), isFalse);
+    expect(isValidDayKey(20261300), isFalse);
+    expect(isValidDayKey(0), isFalse);
+    expect(isValidDayKey(-20260930), isFalse);
+    expect(isValidDayKey(999999999), isFalse);
+  });
+
   group('nextDayStart', () {
     test('is 3 a.m. the next calendar day during the day', () {
       expect(nextDayStart(DateTime(2026, 9, 30, 14)), DateTime(2026, 10, 1, 3));

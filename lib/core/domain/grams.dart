@@ -9,15 +9,24 @@ double? parseGrams(String input) {
   return value != null && value.isFinite ? value : null;
 }
 
+/// Largest quantity accepted, in grams: the four digits the forms let type.
+const maxGrams = 9999.0;
+
+/// Whether [grams] is a quantity the forms accept: above zero and at most
+/// [maxGrams].
+bool isValidQuantity(double grams) => grams > 0 && grams <= maxGrams;
+
 /// Smallest and largest daily goal accepted, in grams.
 const minDailyGoal = 1.0;
 const maxDailyGoal = 1000.0;
+
+/// Whether [goal] is between [minDailyGoal] and [maxDailyGoal].
+bool isValidDailyGoal(double goal) =>
+    goal >= minDailyGoal && goal <= maxDailyGoal;
 
 /// Daily goal typed by the user, or null if it is not a number between
 /// [minDailyGoal] and [maxDailyGoal].
 double? parseDailyGoal(String input) {
   final goal = parseGrams(input);
-  return goal != null && goal >= minDailyGoal && goal <= maxDailyGoal
-      ? goal
-      : null;
+  return goal != null && isValidDailyGoal(goal) ? goal : null;
 }
