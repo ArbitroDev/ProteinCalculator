@@ -6,9 +6,14 @@ import 'package:protein_calculator/core/domain/product_sort.dart';
 /// Protein entries. Each entry keeps a full copy of the values it was created
 /// with, so editing or deleting a product never changes the history.
 @TableIndex(name: 'entries_day_key', columns: {#dayKey})
+@TableIndex(name: 'entries_name_key', columns: {#nameKey})
 class Entries extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().nullable()();
+
+  /// Normalized [name], see `productNameKey`; null without a name. Links the
+  /// entry to the product of the same name, to count its uses.
+  TextColumn get nameKey => text().nullable()();
   TextColumn get mode => textEnum<EntryMode>()();
 
   /// Final protein amount, entered or computed, so totals are plain sums.
@@ -43,6 +48,9 @@ class Products extends Table {
   RealColumn get consumedGrams => real().nullable()();
   RealColumn get proteinPerReference => real().nullable()();
   RealColumn get referenceGrams => real().nullable()();
+
+  /// Number of entries with the name of the product, and when the latest
+  /// was added: computed from the entries, see `AppDatabase.refreshUses`.
   IntColumn get useCount => integer().withDefault(const Constant(0))();
   DateTimeColumn get lastUsedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();

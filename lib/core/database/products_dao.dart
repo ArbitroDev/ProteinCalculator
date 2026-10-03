@@ -48,7 +48,7 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
     final columns = amountColumns(amount);
     return transaction(() async {
       if (await isNameTaken(name)) throw DuplicateProductNameException(name);
-      return into(products).insert(
+      final id = await into(products).insert(
         ProductsCompanion.insert(
           name: name.trim(),
           nameKey: productNameKey(name),
@@ -60,6 +60,9 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
           createdAt: createdAt,
         ),
       );
+      // Entries made before with its name count as uses.
+      await attachedDatabase.refreshUses(productNameKey(name));
+      return id;
     });
   }
 
@@ -77,6 +80,8 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
           nameKey: productNameKey(product.name),
         ),
       );
+      // A new name counts the entries with that name instead.
+      await attachedDatabase.refreshUses(productNameKey(product.name));
     });
   }
 
@@ -121,6 +126,7 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       await into(products).insert(
         favoriteTaken == null ? product : product.copyWith(isFavorite: false),
       );
+      await attachedDatabase.refreshUses(product.nameKey);
     });
   }
 }

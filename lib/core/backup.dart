@@ -167,6 +167,8 @@ Future<void> restoreBackup(AppDatabase db, Backup backup) {
         ..insertAll(db.entries, backup.entries)
         ..insertAll(db.products, backup.products);
     });
+    // Uses follow the restored entries, whatever the file says.
+    await db.refreshUses();
     await (db.update(
       db.appSettings,
     )..where((s) => s.id.equals(SettingsDao.rowId))).write(
@@ -193,6 +195,7 @@ EntriesCompanion _entry(Map<String, dynamic> e, int version) {
   return EntriesCompanion.insert(
     id: Value(_id(e['id'])),
     name: Value(name),
+    nameKey: Value(entryNameKey(name)),
     mode: columns.mode,
     proteinGrams: amount.proteinGrams,
     consumedGrams: Value(columns.consumedGrams),

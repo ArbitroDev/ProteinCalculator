@@ -90,6 +90,21 @@ void main() {
     expect(products.map((p) => p.name), ['Skyr nature']);
   });
 
+  test('counts the uses of products from the restored entries', () async {
+    final json = jsonDecode(await export()) as Map<String, dynamic>;
+    rows(json, 'products').first
+      ..['useCount'] = 42
+      ..['lastUsedAt'] = null;
+    final target = openTestDatabase();
+    addTearDown(target.close);
+
+    await restoreBackup(target, parseBackup(jsonEncode(json)));
+
+    final product = await target.select(target.products).getSingle();
+    expect(product.useCount, 1);
+    expect(product.lastUsedAt, DateTime(2026, 10, 1, 1, 10));
+  });
+
   test('keeps the app day of entries made after midnight', () async {
     final backup = parseBackup(await export());
 

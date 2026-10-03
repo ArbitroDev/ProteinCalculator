@@ -202,6 +202,71 @@ void main() {
       expect((await db.productsDao.getProduct(eggs.id))!.useCount, 1);
     });
 
+    test('goes back to the previous use when the latest is deleted', () async {
+      final product = await addProduct('Skyr');
+      await addEntry(15, DateTime(2026, 9, 28, 8), name: 'Skyr');
+      final id = await addEntry(15, DateTime(2026, 9, 30, 8), name: 'Skyr');
+
+      final deleted = await dao.deleteEntry(id);
+      var updated = (await db.productsDao.getProduct(product.id))!;
+      expect(updated.useCount, 1);
+      expect(updated.lastUsedAt, DateTime(2026, 9, 28, 8));
+
+      await dao.restoreEntry(deleted!);
+      updated = (await db.productsDao.getProduct(product.id))!;
+      expect(updated.lastUsedAt, DateTime(2026, 9, 30, 8));
+    });
+
+    test('has no last use once every entry is deleted', () async {
+      final product = await addProduct('Skyr');
+      final id = await addEntry(15, DateTime(2026, 9, 30, 8), name: 'Skyr');
+
+      await dao.deleteEntry(id);
+
+      expect((await db.productsDao.getProduct(product.id))!.lastUsedAt, isNull);
+    });
+
+    test('dates the new product of a renamed entry', () async {
+      final skyr = await addProduct('Skyr');
+      final eggs = await addProduct('Œufs');
+      await addEntry(15, DateTime(2026, 9, 28, 8), name: 'Skyr');
+      final id = await addEntry(15, DateTime(2026, 9, 30, 8), name: 'Skyr');
+
+      final entry = (await dao.getEntry(id))!;
+      await dao.updateEntry(entry.copyWith(name: const Value('oeufs')));
+
+      expect(
+        (await db.productsDao.getProduct(skyr.id))!.lastUsedAt,
+        DateTime(2026, 9, 28, 8),
+      );
+      expect(
+        (await db.productsDao.getProduct(eggs.id))!.lastUsedAt,
+        DateTime(2026, 9, 30, 8),
+      );
+    });
+
+    test('counts the entries made before the product', () async {
+      await addEntry(15, DateTime(2026, 9, 28, 8), name: 'Skyr');
+      await addEntry(15, DateTime(2026, 9, 30, 8), name: 'skyr');
+
+      final product = await addProduct('Skyr');
+
+      expect(product.useCount, 2);
+      expect(product.lastUsedAt, DateTime(2026, 9, 30, 8));
+    });
+
+    test('counts the entries of the new name of a product', () async {
+      final product = await addProduct('Skyr');
+      await addEntry(15, DateTime(2026, 9, 28, 8), name: 'Skyr');
+      await addEntry(15, DateTime(2026, 9, 30, 8), name: 'Whey');
+
+      await db.productsDao.updateProduct(product.copyWith(name: 'Whey'));
+
+      final renamed = (await db.productsDao.getProduct(product.id))!;
+      expect(renamed.useCount, 1);
+      expect(renamed.lastUsedAt, DateTime(2026, 9, 30, 8));
+    });
+
     test('never goes below zero', () async {
       final id = await addEntry(15, DateTime(2026, 9, 30, 8), name: 'Skyr');
       final product = await addProduct('Skyr');

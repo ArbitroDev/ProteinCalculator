@@ -10,6 +10,7 @@ import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
+import 'generated/schema_v4.dart' as v4;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -178,6 +179,57 @@ void main() {
               slot: slots[id]!,
             ),
         ]);
+      },
+    );
+  });
+
+  test('migration from v3 to v4 links entries and counts uses', () async {
+    v3.EntriesData entry(int id, String? name, int createdAt) => v3.EntriesData(
+      id: id,
+      name: name,
+      mode: 'direct',
+      proteinGrams: 20,
+      createdAt: createdAt,
+      dayKey: 20261001,
+      slot: 'morning',
+    );
+    // Counts left wrong by the previous versions.
+    const product = v3.ProductsData(
+      id: 1,
+      name: 'Pâté',
+      nameKey: 'pate',
+      mode: 'direct',
+      proteinGrams: 10,
+      useCount: 5,
+      lastUsedAt: 1790000500,
+      createdAt: 1780000000,
+      isFavorite: 0,
+    );
+
+    await verifier.testWithDataIntegrity(
+      oldVersion: 3,
+      newVersion: 4,
+      createOld: v3.DatabaseAtV3.new,
+      createNew: v4.DatabaseAtV4.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch
+          ..insertAll(oldDb.entries, [
+            entry(1, 'Pâté', 1790000000),
+            entry(2, ' PATE ', 1790000100),
+            entry(3, 'Skyr', 1790000200),
+            entry(4, null, 1790000300),
+          ])
+          ..insert(oldDb.products, product);
+      },
+      validateItems: (newDb) async {
+        expect(
+          (await newDb.select(newDb.entries).get()).map((e) => e.nameKey),
+          ['pate', 'pate', 'skyr', null],
+        );
+        final counted = await newDb.select(newDb.products).getSingle();
+        expect(counted.useCount, 2);
+        expect(counted.lastUsedAt, 1790000100);
       },
     );
   });

@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show immutable;
@@ -8,7 +6,6 @@ import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/tables.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
-import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 
 part 'entries_dao.g.dart';
@@ -80,7 +77,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   Future<Entry?> getEntry(int id) =>
       (select(entries)..where((e) => e.id.equals(id))).getSingleOrNull();
 
-  /// Adds an entry and counts a use of the product having the same name.
+  /// Adds an entry, a use of the product having the same name.
   Future<int> insertEntry({
     String? name,
     required ProteinAmount amount,
@@ -91,6 +88,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
       final id = await into(entries).insert(
         EntriesCompanion.insert(
           name: Value(name),
+          nameKey: Value(entryNameKey(name)),
           mode: columns.mode,
           proteinGrams: amount.proteinGrams,
           consumedGrams: Value(columns.consumedGrams),
@@ -101,7 +99,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
           slot: Value(DaySlot.of(createdAt)),
         ),
       );
-      await _countUse(name, 1, usedAt: createdAt);
+      await attachedDatabase.refreshUses(entryNameKey(name));
       return id;
     });
   }
@@ -115,22 +113,19 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
       );
 
   /// Saves the edited values of an existing entry. Its time, app day and
-  /// part of the day are kept, and use counts follow a name change.
+  /// part of the day are kept, and the uses of products follow a name change.
   Future<void> updateEntry(Entry entry) {
     return transaction(() async {
       final previous = await getEntry(entry.id);
       if (previous == null) return;
-      await update(entries).replace(
-        entry.copyWith(
-          createdAt: previous.createdAt,
-          dayKey: previous.dayKey,
-          slot: previous.slot,
-        ),
+      final updated = entry.copyWith(
+        nameKey: Value(entryNameKey(entry.name)),
+        createdAt: previous.createdAt,
+        dayKey: previous.dayKey,
+        slot: previous.slot,
       );
-      if (_nameKey(previous.name) != _nameKey(entry.name)) {
-        await _countUse(previous.name, -1);
-        await _countUse(entry.name, 1);
-      }
+      await update(entries).replace(updated);
+      await _refreshUses({previous.nameKey, updated.nameKey});
     });
   }
 
@@ -141,7 +136,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
       final entry = await getEntry(id);
       if (entry == null) return null;
       await (delete(entries)..where((e) => e.id.equals(id))).go();
-      await _countUse(entry.name, -1);
+      await _refreshUses({entry.nameKey});
       return entry;
     });
   }
@@ -150,28 +145,14 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   Future<void> restoreEntry(Entry entry) {
     return transaction(() async {
       await into(entries).insert(entry);
-      await _countUse(entry.name, 1);
+      await _refreshUses({entry.nameKey});
     });
   }
 
-  String? _nameKey(String? name) {
-    if (name == null) return null;
-    final key = productNameKey(name);
-    return key.isEmpty ? null : key;
-  }
-
-  Future<void> _countUse(String? name, int delta, {DateTime? usedAt}) async {
-    final key = _nameKey(name);
-    if (key == null) return;
-    final product = await (select(
-      products,
-    )..where((p) => p.nameKey.equals(key))).getSingleOrNull();
-    if (product == null) return;
-    await (update(products)..where((p) => p.id.equals(product.id))).write(
-      ProductsCompanion(
-        useCount: Value(max(0, product.useCount + delta)),
-        lastUsedAt: usedAt == null ? const Value.absent() : Value(usedAt),
-      ),
-    );
+  /// Computes again the uses of the products named by [nameKeys].
+  Future<void> _refreshUses(Set<String?> nameKeys) async {
+    for (final key in nameKeys.nonNulls) {
+      await attachedDatabase.refreshUses(key);
+    }
   }
 }
