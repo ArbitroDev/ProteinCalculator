@@ -13,8 +13,9 @@ A Flutter application to calculate protein intake.
 
 ```bash
 flutter pub get
-flutter run -d chrome     # web (debug)
-flutter run               # Android device or emulator
+dart run build_runner build   # generates the database code
+flutter run -d chrome         # web (debug)
+flutter run                   # Android device or emulator
 ```
 
 Crash reporting is off in these builds: see
@@ -28,6 +29,11 @@ sent to [Sentry](https://sentry.io) (EU region) only if the user turns them
 on, on the first launch screen or in *Data and privacy*. A report holds the
 error, the app version, the phone model and its Android version, never the
 user's entries, products or goal.
+
+The user can export all their data to a backup file and import it again, on
+the same phone or another one, from *Data and privacy*. If the data ever
+cannot be opened at launch, the app offers to try again or to start over
+from a backup: the unreadable data is set aside on the phone, never erased.
 
 ## Contributing
 

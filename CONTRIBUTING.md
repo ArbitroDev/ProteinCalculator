@@ -132,6 +132,27 @@ upgrading these packages, replace them with the files of the same versions:
 `drift_worker.js` from the
 [drift releases](https://github.com/simolus3/drift/releases).
 
+## Values and display
+
+- Protein amounts typed by the user (the amount itself, or the protein
+  content of a product) take one decimal at most; quantities of food are
+  whole grams. The protein computed from a quantity is rounded to one
+  decimal when the entry is saved (`computeProtein`).
+- Values are stored exactly. Totals, what is left and the goal are shown
+  truncated to the unit (`formatGrams`), so the goal only shows as reached
+  once it really is; the protein of one entry or one product shows with one
+  decimal at most (`formatProtein`).
+- Backups follow the same rules: `parseBackup` refuses any value the forms
+  would not accept.
+
+## Errors
+
+Run every change made by the user (saving, deleting, importing...) through
+`runUserAction` (`lib/core/widgets/user_action.dart`): a failure is reported
+and the user is told, and the screen never stays stuck waiting. Deleting the
+rows of a list with undo goes through `SwipeToDelete` and `UndoableDeletion`
+(`lib/core/widgets/swipe_to_delete.dart`).
+
 ## Translations
 
 The app is available in French and English. User-facing text lives in
