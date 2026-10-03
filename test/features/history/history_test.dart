@@ -1,3 +1,4 @@
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
@@ -101,6 +102,22 @@ void main() {
 
       expect(find.textContaining('Skyr'), findsOneWidget);
       expect(await db.select(db.entries).get(), hasLength(3));
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('shows an entry again when deleting it fails', (tester) async {
+      await db.customStatement(
+        'CREATE TRIGGER fail BEFORE DELETE ON entries '
+        "BEGIN SELECT RAISE(ABORT, 'disk full'); END",
+      );
+      await openDay(tester);
+
+      await tester.drag(find.textContaining('Skyr'), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isA<SqliteException>());
+      expect(find.text('Something went wrong, please try again.'), findsOne);
+      expect(find.textContaining('Skyr'), findsOneWidget);
       await disposeApp(tester, db);
     });
   });

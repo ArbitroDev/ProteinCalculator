@@ -1,3 +1,4 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
@@ -96,6 +97,22 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
 
+    expect(find.text('Amandes'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('shows a product again when deleting it fails', (tester) async {
+    await db.customStatement(
+      'CREATE TRIGGER fail BEFORE DELETE ON products '
+      "BEGIN SELECT RAISE(ABORT, 'disk full'); END",
+    );
+    await openProducts(tester);
+
+    await tester.drag(find.text('Amandes'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isA<SqliteException>());
+    expect(find.text('Something went wrong, please try again.'), findsOne);
     expect(find.text('Amandes'), findsOneWidget);
     await disposeApp(tester, db);
   });

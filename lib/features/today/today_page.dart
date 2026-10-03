@@ -14,6 +14,7 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/motion_shaker.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
+import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/features/today/quick_add.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -44,12 +45,18 @@ class _TodayPageState extends ConsumerState<TodayPage> {
         color: AppColors.slot(DaySlot.of(ref.read(clockProvider)())),
       );
     }
-    final id = await quickAdd(ref, product);
+    final id = await runUserAction(
+      messenger,
+      l10n,
+      () => quickAdd(ref, product),
+    );
+    if (id == null) return;
     showUndoSnackBar(
       messenger,
       l10n: l10n,
       label: l10n.quickAdded(product.name),
-      onUndo: () => entries.deleteEntry(id),
+      onUndo: () =>
+          runUserAction(messenger, l10n, () => entries.deleteEntry(id)),
     );
   }
 

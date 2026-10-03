@@ -14,6 +14,7 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Products tab. Tap a product to edit it, tap its "+" button to add it to
@@ -35,22 +36,42 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
     final messenger = ScaffoldMessenger.of(context);
     final dao = ref.read(databaseProvider).productsDao;
 
-    final deleted = await dao.deleteProduct(product.id);
-    if (deleted == null) return;
+    final deleted = await runUserAction(
+      messenger,
+      l10n,
+      () => dao.deleteProduct(product.id),
+    );
+    if (deleted == null) {
+      // Failed, or already gone: either way the list shows the truth again,
+      // once a frame has removed the swiped tile, which cannot come back
+      // within the same frame.
+      await WidgetsBinding.instance.endOfFrame;
+      if (mounted) setState(() => _hidden.remove(product.id));
+      return;
+    }
     showUndoSnackBar(
       messenger,
       l10n: l10n,
       label: l10n.productDeleted,
       onUndo: () async {
-        try {
-          await dao.restoreProduct(deleted);
-        } on DuplicateProductNameException {
-          // A product with the same name was created meanwhile.
-        }
+        await runUserAction(messenger, l10n, () async {
+          try {
+            await dao.restoreProduct(deleted);
+          } on DuplicateProductNameException {
+            // A product with the same name was created meanwhile.
+          }
+        });
         if (mounted) setState(() => _hidden.remove(product.id));
       },
     );
   }
+
+  /// Runs a change of the products, telling the user if it fails.
+  Future<void> _run(Future<void> Function() action) => runUserAction(
+    ScaffoldMessenger.of(context),
+    AppLocalizations.of(context),
+    action,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -77,10 +98,12 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                     padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
                     child: _SortChips(
                       sort: sort,
-                      onChanged: (value) => ref
-                          .read(databaseProvider)
-                          .settingsDao
-                          .setProductSort(value),
+                      onChanged: (value) => _run(
+                        () => ref
+                            .read(databaseProvider)
+                            .settingsDao
+                            .setProductSort(value),
+                      ),
                     ),
                   ),
                   Expanded(
@@ -119,10 +142,12 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
           product: product,
           showUses: sort == ProductSort.mostUsed,
           onDelete: () => _delete(product),
-          onToggleFavorite: () => ref
-              .read(databaseProvider)
-              .productsDao
-              .setFavorite(product.id, favorite: !product.isFavorite),
+          onToggleFavorite: () => _run(
+            () => ref
+                .read(databaseProvider)
+                .productsDao
+                .setFavorite(product.id, favorite: !product.isFavorite),
+          ),
         );
       },
     );

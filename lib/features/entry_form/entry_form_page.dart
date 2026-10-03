@@ -12,6 +12,7 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_notifier.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -106,9 +107,12 @@ class _FormViewState extends ConsumerState<_FormView> {
   }
 
   Future<void> _submit() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     FocusScope.of(context).unfocus();
     setState(() => _saving = true);
-    final saved = await _notifier.submit();
+    final saved =
+        await runUserAction(messenger, l10n, _notifier.submit) ?? false;
     if (!mounted) return;
     if (saved) {
       context.pop();

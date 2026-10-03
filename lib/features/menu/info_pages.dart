@@ -10,6 +10,7 @@ import 'package:protein_calculator/core/crash_reporting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/features/menu/github_link.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -25,13 +26,14 @@ class DataPrivacyPage extends ConsumerStatefulWidget {
 class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
   bool _busy = false;
 
+  /// Runs an export or an import, one at a time, telling the user if it
+  /// fails.
   Future<void> _run(Future<void> Function() action) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
-    try {
-      await action();
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    await runUserAction(messenger, l10n, action);
+    if (mounted) setState(() => _busy = false);
   }
 
   Future<void> _export() => _run(() async {
@@ -63,7 +65,12 @@ class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
     final Backup backup;
     try {
       backup = parseBackup(utf8.decode(await file.readAsBytes()));
-    } on Object {
+    } on Exception catch (error) {
+      // Not text, or not a backup. Anything else, such as a file that cannot
+      // be read, is an unexpected error.
+      if (error is! FormatException && error is! InvalidBackupException) {
+        rethrow;
+      }
       messenger.showSnackBar(SnackBar(content: Text(l10n.importInvalid)));
       return;
     }
@@ -98,8 +105,15 @@ class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
   });
 
   Future<void> _setCrashReports(bool enabled) async {
-    await ref.read(databaseProvider).settingsDao.setCrashReports(enabled);
-    await setCrashReporting(enabled);
+    final saved = await runUserAction(
+      ScaffoldMessenger.of(context),
+      AppLocalizations.of(context),
+      () async {
+        await ref.read(databaseProvider).settingsDao.setCrashReports(enabled);
+        return true;
+      },
+    );
+    if (saved != null) await setCrashReporting(enabled);
   }
 
   @override

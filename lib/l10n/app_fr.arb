@@ -475,5 +475,9 @@
   "aboutContribute": "Protein Calculator est développé ouvertement : tu peux participer en signalant un problème, en proposant une idée ou en contribuant au code sur GitHub.",
   "@aboutContribute": {
     "description": "Invitation to contribute on GitHub."
+  },
+  "actionFailed": "Une erreur est survenue, réessaie.",
+  "@actionFailed": {
+    "description": "Snack bar when saving, deleting or another action fails unexpectedly."
   }
 }

@@ -9,6 +9,7 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/goal_field.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// First launch screen: asks for the daily protein goal.
@@ -39,13 +40,22 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       setState(() => _showError = true);
       return;
     }
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     setState(() => _saving = true);
     final settings = ref.read(databaseProvider).settingsDao;
-    await settings.setDailyGoal(goal);
-    if (crashReportingAvailable) {
-      await settings.setCrashReports(_crashReports);
-      await setCrashReporting(_crashReports);
+    final saved = await runUserAction(messenger, l10n, () async {
+      await settings.setDailyGoal(goal);
+      if (crashReportingAvailable) {
+        await settings.setCrashReports(_crashReports);
+      }
+      return true;
+    });
+    if (saved == null) {
+      if (mounted) setState(() => _saving = false);
+      return;
     }
+    if (crashReportingAvailable) await setCrashReporting(_crashReports);
     if (mounted) context.go(AppRoutes.today);
   }
 

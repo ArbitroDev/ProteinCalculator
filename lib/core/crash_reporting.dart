@@ -13,17 +13,33 @@ const crashReportingAvailable = _dsn != '';
 ///
 /// Reports hold the error, its stack trace, the app version and the phone
 /// model and system: no personal data, no screenshot, no entry or product.
+///
+/// Never throws: if Sentry fails to start or stop, the error is only
+/// reported locally and the app goes on.
 Future<void> setCrashReporting(bool enabled) async {
   if (!crashReportingAvailable || enabled == Sentry.isEnabled) return;
-  if (!enabled) return Sentry.close();
-  await SentryFlutter.init((options) {
-    options
-      ..dsn = _dsn
-      ..environment = kReleaseMode ? 'production' : 'debug'
-      ..sendDefaultPii = false
-      ..attachScreenshot = false
-      ..enableAutoSessionTracking = false
-      ..enableAutoPerformanceTracing = false
-      ..tracesSampleRate = null;
-  });
+  try {
+    if (!enabled) {
+      await Sentry.close();
+      return;
+    }
+    await SentryFlutter.init((options) {
+      options
+        ..dsn = _dsn
+        ..environment = kReleaseMode ? 'production' : 'debug'
+        ..sendDefaultPii = false
+        ..attachScreenshot = false
+        ..enableAutoSessionTracking = false
+        ..enableAutoPerformanceTracing = false
+        ..tracesSampleRate = null;
+    });
+  } on Object catch (error, stack) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'crash reporting',
+      ),
+    );
+  }
 }

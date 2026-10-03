@@ -12,6 +12,7 @@ import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
+import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Entries of one day on stacked cards, one per part of the day. Swiping an
@@ -35,14 +36,25 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
     final messenger = ScaffoldMessenger.of(context);
     final dao = ref.read(databaseProvider).entriesDao;
 
-    final deleted = await dao.deleteEntry(entry.id);
-    if (deleted == null) return;
+    final deleted = await runUserAction(
+      messenger,
+      l10n,
+      () => dao.deleteEntry(entry.id),
+    );
+    if (deleted == null) {
+      // Failed, or already gone: either way the list shows the truth again,
+      // once a frame has removed the swiped tile, which cannot come back
+      // within the same frame.
+      await WidgetsBinding.instance.endOfFrame;
+      if (mounted) setState(() => _hidden.remove(entry.id));
+      return;
+    }
     showUndoSnackBar(
       messenger,
       l10n: l10n,
       label: l10n.entryDeleted,
       onUndo: () async {
-        await dao.restoreEntry(deleted);
+        await runUserAction(messenger, l10n, () => dao.restoreEntry(deleted));
         if (mounted) setState(() => _hidden.remove(entry.id));
       },
     );
