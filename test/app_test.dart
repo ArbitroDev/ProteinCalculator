@@ -67,7 +67,7 @@ void main() {
       await db.settingsDao.setDailyGoal(140);
       await pumpApp(tester, db);
 
-      await tester.tap(find.text('Add'));
+      await tester.tap(find.byTooltip('Add'));
       await tester.pumpAndSettle();
 
       expect(find.text('New entry'), findsOneWidget);
@@ -83,7 +83,7 @@ void main() {
       await pumpApp(tester, db, locales: const [Locale('fr', 'FR')]);
 
       expect(find.text('Jeudi 1 octobre'), findsOneWidget);
-      expect(find.text('Historique'), findsOneWidget);
+      expect(find.byTooltip('Historique'), findsOneWidget);
       await disposeApp(tester, db);
     });
 

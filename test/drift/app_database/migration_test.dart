@@ -37,26 +37,77 @@ void main() {
     }
   });
 
-  // The following template shows how to write tests ensuring your migrations
-  // preserve existing data.
-  // Testing this can be useful for migrations that change existing columns
-  // (e.g. by alterating their type or constraints). Migrations that only add
-  // tables or columns typically don't need these advanced tests. For more
-  // information, see https://drift.simonbinder.eu/migrations/tests/#verifying-data-integrity
-  // TODO: This generated template shows how these tests could be written. Adopt
-  // it to your own needs when testing migrations with data integrity.
   test('migration from v1 to v2 does not corrupt data', () async {
-    // Add data to insert into the old database, and the expected rows after the
-    // migration.
-    // TODO: Fill these lists
-    final oldEntriesData = <v1.EntriesData>[];
-    final expectedNewEntriesData = <v2.EntriesData>[];
+    final oldEntriesData = [
+      const v1.EntriesData(
+        id: 1,
+        name: 'Skyr',
+        mode: 'perQuantity',
+        proteinGrams: 15,
+        consumedGrams: 150,
+        proteinPerReference: 10,
+        referenceGrams: 100,
+        createdAt: 1790000000,
+        dayKey: 20261001,
+      ),
+    ];
+    final expectedNewEntriesData = [
+      const v2.EntriesData(
+        id: 1,
+        name: 'Skyr',
+        mode: 'perQuantity',
+        proteinGrams: 15,
+        consumedGrams: 150,
+        proteinPerReference: 10,
+        referenceGrams: 100,
+        createdAt: 1790000000,
+        dayKey: 20261001,
+      ),
+    ];
 
-    final oldProductsData = <v1.ProductsData>[];
-    final expectedNewProductsData = <v2.ProductsData>[];
+    final oldProductsData = [
+      const v1.ProductsData(
+        id: 1,
+        name: 'Whey',
+        nameKey: 'whey',
+        mode: 'direct',
+        proteinGrams: 24,
+        useCount: 3,
+        lastUsedAt: 1790000000,
+        createdAt: 1780000000,
+      ),
+    ];
+    // Existing products are not favorite.
+    final expectedNewProductsData = [
+      const v2.ProductsData(
+        id: 1,
+        name: 'Whey',
+        nameKey: 'whey',
+        mode: 'direct',
+        proteinGrams: 24,
+        useCount: 3,
+        lastUsedAt: 1790000000,
+        createdAt: 1780000000,
+        isFavorite: 0,
+      ),
+    ];
 
-    final oldAppSettingsData = <v1.AppSettingsData>[];
-    final expectedNewAppSettingsData = <v2.AppSettingsData>[];
+    final oldAppSettingsData = [
+      const v1.AppSettingsData(
+        id: 1,
+        dailyGoalGrams: 140,
+        productSort: 'mostUsed',
+      ),
+    ];
+    // Crash reports stay off until the user agrees.
+    final expectedNewAppSettingsData = [
+      const v2.AppSettingsData(
+        id: 1,
+        dailyGoalGrams: 140,
+        productSort: 'mostUsed',
+        crashReports: 0,
+      ),
+    ];
 
     await verifier.testWithDataIntegrity(
       oldVersion: 1,
@@ -70,14 +121,14 @@ void main() {
         batch.insertAll(oldDb.appSettings, oldAppSettingsData);
       },
       validateItems: (newDb) async {
-        expect(expectedNewEntriesData, await newDb.select(newDb.entries).get());
+        expect(await newDb.select(newDb.entries).get(), expectedNewEntriesData);
         expect(
-          expectedNewProductsData,
           await newDb.select(newDb.products).get(),
+          expectedNewProductsData,
         );
         expect(
-          expectedNewAppSettingsData,
           await newDb.select(newDb.appSettings).get(),
+          expectedNewAppSettingsData,
         );
       },
     );
