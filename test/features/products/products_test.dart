@@ -2,8 +2,8 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
-import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 
 import '../../helpers.dart';
 
@@ -98,6 +98,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Amandes'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('says why a deleted product cannot come back', (tester) async {
+    await openProducts(tester);
+
+    await tester.drag(find.text('Amandes'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    await db.productsDao.insertProduct(
+      name: 'amandes',
+      amount: const DirectAmount(5),
+      createdAt: DateTime(2026, 10, 1),
+    );
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        "The product couldn't be restored: another product already has this "
+        'name.',
+      ),
+      findsOneWidget,
+    );
     await disposeApp(tester, db);
   });
 

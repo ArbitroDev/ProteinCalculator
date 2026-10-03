@@ -4,10 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/backup.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
-import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 
 import '../helpers.dart';
+
+/// Entries or products of a backup as JSON, to change them in tests.
+List<Map<String, dynamic>> rows(Map<String, dynamic> json, String key) =>
+    (json[key] as List).cast<Map<String, dynamic>>();
 
 void main() {
   late AppDatabase source;
@@ -95,8 +99,8 @@ void main() {
   test('accepts names of 40 characters, an emoji counting as one', () async {
     final json = jsonDecode(await export()) as Map<String, dynamic>;
     final name = '${'S' * 38}👍🏽💪';
-    (json['entries'] as List).first['name'] = name;
-    (json['products'] as List).first['name'] = name;
+    rows(json, 'entries').first['name'] = name;
+    rows(json, 'products').first['name'] = name;
 
     final backup = parseBackup(jsonEncode(json));
 
@@ -106,7 +110,7 @@ void main() {
 
   test('computes again the protein of entries made per quantity', () async {
     final json = jsonDecode(await export()) as Map<String, dynamic>;
-    (json['entries'] as List).first
+    rows(json, 'entries').first
       ..['proteinPerReference'] = 10.5
       ..['proteinGrams'] = 15.75;
 
@@ -117,7 +121,7 @@ void main() {
 
   test('keeps the part of the day of entries', () async {
     final json = jsonDecode(await export()) as Map<String, dynamic>;
-    (json['entries'] as List).first['slot'] = 'afternoon';
+    rows(json, 'entries').first['slot'] = 'afternoon';
 
     final backup = parseBackup(jsonEncode(json));
 
@@ -127,8 +131,8 @@ void main() {
   test('computes the part of the day for backups of version 1', () async {
     final json = jsonDecode(await export()) as Map<String, dynamic>;
     json['version'] = 1;
-    for (final entry in json['entries'] as List) {
-      (entry as Map).remove('slot');
+    for (final entry in rows(json, 'entries')) {
+      entry.remove('slot');
     }
 
     final backup = parseBackup(jsonEncode(json));
@@ -166,31 +170,31 @@ void main() {
 
     test('with a missing field', () async {
       final json = await exported();
-      (json['entries'] as List).first.remove('proteinGrams');
+      rows(json, 'entries').first.remove('proteinGrams');
       expectInvalid(jsonEncode(json));
     });
 
     test('with an unknown mode', () async {
       final json = await exported();
-      (json['entries'] as List).first['mode'] = 'magic';
+      rows(json, 'entries').first['mode'] = 'magic';
       expectInvalid(jsonEncode(json));
     });
 
     test('with duplicate product names', () async {
       final json = await exported();
-      final products = json['products'] as List;
+      final products = rows(json, 'products');
       products.add({...products.first, 'id': 99, 'name': 'SKYR  nature'});
       expectInvalid(jsonEncode(json));
     });
 
     test('with duplicate ids', () async {
       final json = await exported();
-      final entries = json['entries'] as List;
+      final entries = rows(json, 'entries');
       entries.add({...entries.first, 'name': 'Copy'});
       expectInvalid(jsonEncode(json));
 
       final other = await exported();
-      final products = other['products'] as List;
+      final products = rows(other, 'products');
       products.add({...products.first, 'name': 'Other'});
       expectInvalid(jsonEncode(other));
     });
@@ -198,7 +202,7 @@ void main() {
     test('with a daily goal out of range', () async {
       for (final goal in [0, -5, 1001, 1e9]) {
         final json = await exported();
-        (json['settings'] as Map)['dailyGoalGrams'] = goal;
+        (json['settings'] as Map<String, dynamic>)['dailyGoalGrams'] = goal;
         expectInvalid(jsonEncode(json));
       }
     });
@@ -206,26 +210,26 @@ void main() {
     test('with a quantity that is not positive or too large', () async {
       for (final grams in [0, -15, 10000, 1e12]) {
         final json = await exported();
-        (json['entries'] as List).last['proteinGrams'] = grams;
+        rows(json, 'entries').last['proteinGrams'] = grams;
         expectInvalid(jsonEncode(json));
       }
     });
 
     test('with a quantity missing in "per quantity" mode', () async {
       final json = await exported();
-      (json['products'] as List).first['referenceGrams'] = null;
+      rows(json, 'products').first['referenceGrams'] = null;
       expectInvalid(jsonEncode(json));
     });
 
     test('with a protein content above the reference quantity', () async {
       final json = await exported();
-      (json['entries'] as List).first['proteinPerReference'] = 150;
+      rows(json, 'entries').first['proteinPerReference'] = 150;
       expectInvalid(jsonEncode(json));
     });
 
     test('with a direct product without its protein amount', () async {
       final json = await exported();
-      final products = json['products'] as List;
+      final products = rows(json, 'products');
       products.first
         ..['mode'] = 'direct'
         ..['proteinGrams'] = null;
@@ -234,41 +238,41 @@ void main() {
 
     test('with a day that does not exist', () async {
       final json = await exported();
-      (json['entries'] as List).first['dayKey'] = 20260931;
+      rows(json, 'entries').first['dayKey'] = 20260931;
       expectInvalid(jsonEncode(json));
     });
 
     test('with an invalid name', () async {
       for (final name in ['', '   ', ' Skyr', 'S' * 41]) {
         final entries = await exported();
-        (entries['entries'] as List).first['name'] = name;
+        rows(entries, 'entries').first['name'] = name;
         expectInvalid(jsonEncode(entries));
 
         final products = await exported();
-        (products['products'] as List).first['name'] = name;
+        rows(products, 'products').first['name'] = name;
         expectInvalid(jsonEncode(products));
       }
     });
 
     test('with more decimals than the form allows', () async {
       final protein = await exported();
-      (protein['entries'] as List).last['proteinGrams'] = 25.55;
+      rows(protein, 'entries').last['proteinGrams'] = 25.55;
       expectInvalid(jsonEncode(protein));
 
       final food = await exported();
-      (food['products'] as List).first['consumedGrams'] = 150.5;
+      rows(food, 'products').first['consumedGrams'] = 150.5;
       expectInvalid(jsonEncode(food));
     });
 
     test('with values of the other mode', () async {
       final json = await exported();
-      (json['entries'] as List).last['consumedGrams'] = 100;
+      rows(json, 'entries').last['consumedGrams'] = 100;
       expectInvalid(jsonEncode(json));
     });
 
     test('with an unknown part of the day', () async {
       final json = await exported();
-      (json['entries'] as List).first['slot'] = 'night';
+      rows(json, 'entries').first['slot'] = 'night';
       expectInvalid(jsonEncode(json));
     });
 
@@ -278,7 +282,7 @@ void main() {
 
     test('with a negative use count', () async {
       final json = await exported();
-      (json['products'] as List).first['useCount'] = -1;
+      rows(json, 'products').first['useCount'] = -1;
       expectInvalid(jsonEncode(json));
     });
   });

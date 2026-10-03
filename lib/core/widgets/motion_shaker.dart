@@ -102,7 +102,7 @@ class _MotionShakerState extends State<MotionShaker>
   }
 
   void _stopListening() {
-    _sensor?.cancel();
+    unawaited(_sensor?.cancel());
     _sensor = null;
   }
 

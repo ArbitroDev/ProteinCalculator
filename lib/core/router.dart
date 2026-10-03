@@ -41,6 +41,8 @@ final initialLocationProvider = Provider<String>((ref) => AppRoutes.today);
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: ref.watch(initialLocationProvider),
+    // An unknown address, only possible on the web, opens the today tab.
+    onException: (context, state, router) => router.go(AppRoutes.today),
     routes: [
       GoRoute(
         path: AppRoutes.onboarding,
@@ -66,9 +68,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':dayKey',
-                    builder: (context, state) => DayDetailPage(
-                      dayKey: int.parse(state.pathParameters['dayKey']!),
-                    ),
+                    redirect: (context, state) =>
+                        _id(state, 'dayKey') == null ? AppRoutes.history : null,
+                    builder: (context, state) =>
+                        DayDetailPage(dayKey: _id(state, 'dayKey')!),
                   ),
                 ],
               ),
@@ -120,18 +123,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/products/:id',
-        builder: (context, state) => EntryFormPage(
-          args: EditProductArgs(int.parse(state.pathParameters['id']!)),
-        ),
+        redirect: (context, state) =>
+            _id(state, 'id') == null ? AppRoutes.products : null,
+        builder: (context, state) =>
+            EntryFormPage(args: EditProductArgs(_id(state, 'id')!)),
       ),
       GoRoute(
         path: '/entries/:id',
-        builder: (context, state) => EntryFormPage(
-          args: EditEntryArgs(int.parse(state.pathParameters['id']!)),
-        ),
+        redirect: (context, state) =>
+            _id(state, 'id') == null ? AppRoutes.today : null,
+        builder: (context, state) =>
+            EntryFormPage(args: EditEntryArgs(_id(state, 'id')!)),
       ),
     ],
   );
   ref.onDispose(router.dispose);
   return router;
 });
+
+/// Number in the path parameter [name], or null if it is not one: the
+/// routes redirect then, rather than fail.
+int? _id(GoRouterState state, String name) =>
+    int.tryParse(state.pathParameters[name] ?? '');

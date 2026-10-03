@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:protein_calculator/app.dart';
 
 import 'helpers.dart';
@@ -46,6 +47,21 @@ void main() {
   });
 
   group('navigation', () {
+    testWidgets('opens the today tab for an invalid address', (tester) async {
+      final db = openTestDatabase();
+      await db.settingsDao.setDailyGoal(140);
+      await pumpApp(tester, db);
+      await tester.tap(find.byTooltip('History'));
+      await tester.pumpAndSettle();
+
+      GoRouter.of(tester.element(find.byType(Scaffold).last)).go('/entries/x');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Thursday, October 1'), findsOneWidget);
+      expect(find.text('New entry'), findsNothing);
+      await disposeApp(tester, db);
+    });
+
     testWidgets('switches between the four tabs', (tester) async {
       final db = openTestDatabase();
       await db.settingsDao.setDailyGoal(140);

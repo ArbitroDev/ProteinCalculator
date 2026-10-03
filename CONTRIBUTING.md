@@ -123,6 +123,15 @@ its schema:
 3. Make sure these tests pass. A schema change without migration tests will
    not be merged.
 
+The web version, used for development, runs the database with two files
+committed in `web/`: `sqlite3.wasm` and `drift_worker.js`. They must match
+the versions of the `sqlite3` and `drift` packages in `pubspec.lock`. When
+upgrading these packages, replace them with the files of the same versions:
+`sqlite3.wasm` from the
+[sqlite3 releases](https://github.com/simolus3/sqlite3.dart/releases) and
+`drift_worker.js` from the
+[drift releases](https://github.com/simolus3/drift/releases).
+
 ## Translations
 
 The app is available in French and English. User-facing text lives in

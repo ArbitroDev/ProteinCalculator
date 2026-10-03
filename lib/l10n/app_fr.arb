@@ -496,6 +496,10 @@
   "@startupRestore": {
     "description": "Button setting the unreadable data aside and restoring a backup file."
   },
+  "productRestoreNameTaken": "Le produit n'a pas pu être restauré : un autre produit porte déjà ce nom.",
+  "@productRestoreNameTaken": {
+    "description": "Snack bar when undoing a deletion fails because another product took the name meanwhile."
+  },
   "startupStillFailing": "Tes données ne peuvent toujours pas être lues.",
   "@startupStillFailing": {
     "description": "Snack bar when trying again still cannot open the data."

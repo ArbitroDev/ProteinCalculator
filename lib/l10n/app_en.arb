@@ -101,5 +101,6 @@
   "startupErrorBody": "Protein Calculator can't open its data on this phone. Try again, or start over from a backup: the current data will be set aside on the phone, not erased.",
   "startupRetry": "Try again",
   "startupRestore": "Start over from a backup",
+  "productRestoreNameTaken": "The product couldn't be restored: another product already has this name.",
   "startupStillFailing": "Your data still can't be read."
 }

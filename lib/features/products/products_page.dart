@@ -6,15 +6,15 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
-import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
-import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -60,6 +60,9 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
             await dao.restoreProduct(deleted);
           } on DuplicateProductNameException {
             // A product with the same name was created meanwhile.
+            messenger.showSnackBar(
+              SnackBar(content: Text(l10n.productRestoreNameTaken)),
+            );
           }
         });
         if (mounted) setState(() => _hidden.remove(product.id));

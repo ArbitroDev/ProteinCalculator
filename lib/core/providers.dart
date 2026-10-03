@@ -37,7 +37,7 @@ final currentDayKeyProvider = StreamProvider<int>((ref) {
   ref.onDispose(() {
     timer?.cancel();
     lifecycle.dispose();
-    controller.close();
+    unawaited(controller.close());
   });
   return controller.stream.distinct();
 });
@@ -74,12 +74,12 @@ final historyProvider = StreamProvider<List<DaySummary>>(
   (ref) => ref.watch(databaseProvider).entriesDao.watchHistory(),
 );
 
-/// Sort order chosen in the products tab, remembered between launches.
 /// Whether the user agreed to send crash reports, see `setCrashReporting`.
 final crashReportsProvider = StreamProvider<bool>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchCrashReports(),
 );
 
+/// Sort order chosen in the products tab, remembered between launches.
 final productSortProvider = StreamProvider<ProductSort>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchProductSort(),
 );

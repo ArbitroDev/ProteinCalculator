@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
-import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
-import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_notifier.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
@@ -90,9 +90,15 @@ class _FormViewState extends ConsumerState<_FormView> {
     _nameFocus.addListener(() => setState(() {}));
   }
 
+  /// Whether the decimal separator of the user's language was applied.
+  bool _localized = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Once: running again would replace what the user is typing.
+    if (_localized) return;
+    _localized = true;
     final separator = NumberFormat.decimalPattern(
       Localizations.localeOf(context).toString(),
     ).symbols.DECIMAL_SEP;
@@ -503,10 +509,12 @@ class _SaveAsProduct extends StatelessWidget {
                 borderRadius: BorderRadius.circular(5),
               ),
             ),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodyLarge!
-                  .copyWith(color: enabled ? null : colors.textSecondary),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.bodyLarge!
+                    .copyWith(color: enabled ? null : colors.textSecondary),
+              ),
             ),
           ],
         ),

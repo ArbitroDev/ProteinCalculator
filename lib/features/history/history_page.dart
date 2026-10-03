@@ -8,8 +8,8 @@ import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
-import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// History tab: every day with entries, most recent first.
