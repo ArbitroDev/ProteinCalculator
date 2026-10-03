@@ -36,6 +36,22 @@ commit messages). A pull request can only be merged once all checks pass.
   signed app bundle, sends it to the closed testing track of Google Play
   and tags the version (`v1.2.3`). The version in `pubspec.yaml` must therefore be
   increased in `develop` before each release.
+- The publishing job uses the `release` environment of the repository: its
+  secrets (signing key, Google Play service account, Sentry address) are
+  stored there only, and each release waits for the maintainer's approval.
+
+### Actions used by the workflows
+
+Every action is pinned to a commit, its version kept in a comment: a tag can
+be moved to other code, a commit cannot. Dependabot proposes updates once a
+week, a week after their release, in a single pull request against
+`develop`. These pull requests are never merged automatically. Before
+merging one, the maintainer:
+
+- reads the release notes and the comparison between the two versions, and
+  looks for changes that do not match them, such as new network calls;
+- checks that each new commit is the one the version tag points to in the
+  official repository of the action, not a commit from a fork.
 
 ## Commit messages
 
