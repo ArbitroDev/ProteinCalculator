@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/theme.dart';
@@ -73,7 +74,7 @@ class Shaker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = layers.fold(0.0, (sum, layer) => sum + layer.grams);
+    final total = layers.map((layer) => layer.grams).sum;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
     return Semantics(
@@ -140,7 +141,7 @@ class _ShakerPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.scale(size.width / _width);
 
-    final total = layers.fold(0.0, (sum, layer) => sum + layer.grams);
+    final total = layers.map((layer) => layer.grams).sum;
     final range = max(goal, total);
     double y(double grams) => _bottom - grams / range * _fillHeight;
 

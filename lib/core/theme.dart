@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 
 const _titleFont = 'Saira Semi Condensed';
@@ -225,6 +226,22 @@ abstract final class AppTheme {
         selectionHandleColor: AppColors.accent,
       ),
       dividerTheme: DividerThemeData(color: colors.divider, thickness: 1),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.selected) &&
+                  !states.contains(WidgetState.disabled)
+              ? AppColors.accent
+              : null,
+        ),
+        checkColor: const WidgetStatePropertyAll(AppColors.onAccent),
+        side: BorderSide(color: colors.textSecondary, width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+      ),
+      // The arrow of the icon set of the app, on every page going back.
+      actionIconTheme: ActionIconThemeData(
+        backButtonIconBuilder: (context) => const Icon(LucideIcons.arrowLeft),
+      ),
       // Snack bars use the inverse surface: navy on the light theme, white
       // on the dark one.
       snackBarTheme: SnackBarThemeData(

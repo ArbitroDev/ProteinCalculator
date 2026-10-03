@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
-import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
-import 'package:protein_calculator/core/domain/protein_amount.dart';
-import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/empty_state.dart';
+import 'package:protein_calculator/core/widgets/product_description.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
-import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
+import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -27,46 +25,26 @@ class ProductsPage extends ConsumerStatefulWidget {
   ConsumerState<ProductsPage> createState() => _ProductsPageState();
 }
 
-class _ProductsPageState extends ConsumerState<ProductsPage> {
-  /// Products swiped away, hidden until the database confirms the deletion.
-  final _hidden = <int>{};
-
-  Future<void> _delete(Product product) async {
-    setState(() => _hidden.add(product.id));
+class _ProductsPageState extends ConsumerState<ProductsPage>
+    with UndoableDeletion {
+  Future<void> _delete(Product product) {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final dao = ref.read(databaseProvider).productsDao;
-
-    final deleted = await runUserAction(
-      messenger,
-      l10n,
-      () => dao.deleteProduct(product.id),
-    );
-    if (deleted == null) {
-      // Failed, or already gone: either way the list shows the truth again,
-      // once a frame has removed the swiped tile, which cannot come back
-      // within the same frame.
-      await WidgetsBinding.instance.endOfFrame;
-      if (mounted) setState(() => _hidden.remove(product.id));
-      return;
-    }
-    showUndoSnackBar(
-      messenger,
-      l10n: l10n,
-      label: l10n.productDeleted,
-      onUndo: () async {
-        await runUserAction(messenger, l10n, () async {
-          try {
-            await dao.restoreProduct(deleted);
-          } on DuplicateProductNameException {
-            // A product with the same name was created meanwhile.
-            messenger.showSnackBar(
-              SnackBar(content: Text(l10n.productRestoreNameTaken)),
-            );
-          }
-        });
-        if (mounted) setState(() => _hidden.remove(product.id));
+    return deleteWithUndo(
+      id: product.id,
+      delete: () => dao.deleteProduct(product.id),
+      restore: (deleted) async {
+        try {
+          await dao.restoreProduct(deleted);
+        } on DuplicateProductNameException {
+          // A product with the same name was created meanwhile.
+          messenger.showSnackBar(
+            SnackBar(content: Text(l10n.productRestoreNameTaken)),
+          );
+        }
       },
+      label: l10n.productDeleted,
     );
   }
 
@@ -113,7 +91,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                   Expanded(
                     child: _buildList([
                       for (final product in products)
-                        if (!_hidden.contains(product.id)) product,
+                        if (!isDeleted(product.id)) product,
                     ], sort),
                   ),
                 ],
@@ -124,17 +102,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
 
   Widget _buildList(List<Product> products, ProductSort sort) {
     if (products.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(
-            AppLocalizations.of(context).productsEmpty,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge!
-                .copyWith(color: AppColors.of(context).textSecondary),
-          ),
-        ),
-      );
+      return EmptyState(AppLocalizations.of(context).productsEmpty);
     }
     return ListView.builder(
       // Room for the floating button over the last product.
@@ -241,111 +209,82 @@ class _ProductTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
-    final locale = Localizations.localeOf(context).toString();
     final details = [
-      ...switch (product.amount) {
-        DirectAmount(:final proteinGrams) => [
-          l10n.grams(formatProtein(proteinGrams, locale)),
-        ],
-        PerQuantityAmount(
-          :final consumedGrams,
-          :final proteinPerReference,
-          :final referenceGrams,
-        ) =>
-          [
-            l10n.productPerReference(
-              formatProtein(proteinPerReference, locale),
-              formatGrams(referenceGrams, locale),
-            ),
-            l10n.productPortion(formatGrams(consumedGrams, locale)),
-          ],
-      },
+      describeProduct(l10n, product, withPortion: true),
       if (showUses) l10n.productUseCount(product.useCount),
     ].join(' · ');
 
-    return Semantics(
-      customSemanticsActions: {
-        CustomSemanticsAction(label: l10n.delete): onDelete,
-      },
-      child: Dismissible(
-        key: ValueKey(product.id),
-        direction: DismissDirection.endToStart,
-        onDismissed: (_) => onDelete(),
-        background: Container(
-          color: AppColors.danger,
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 22),
-          child: const Icon(LucideIcons.trash2, color: Colors.white),
-        ),
-        child: Material(
-          color: colors.background,
-          child: InkWell(
-            onTap: () => context.push(AppRoutes.editProduct(product.id)),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: colors.divider)),
-              ),
-              child: Row(
-                children: [
-                  SizedBox.square(
-                    dimension: 40,
-                    child: IconButton(
-                      onPressed: onToggleFavorite,
-                      tooltip: product.isFavorite
-                          ? l10n.removeFavorite
-                          : l10n.setFavorite,
-                      isSelected: product.isFavorite,
-                      padding: EdgeInsets.zero,
-                      icon: Icon(
-                        LucideIcons.star,
-                        size: 20,
-                        color: colors.textSecondary,
-                      ),
-                      // Lucide has no filled icons: the favorite uses the
-                      // Material star, filled with the accent.
-                      selectedIcon: const Icon(
-                        Icons.star_rounded,
-                        size: 26,
-                        color: AppColors.accent,
-                      ),
+    return SwipeToDelete(
+      key: ValueKey(product.id),
+      onDelete: onDelete,
+      child: Material(
+        color: colors.background,
+        child: InkWell(
+          onTap: () => context.push(AppRoutes.editProduct(product.id)),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: colors.divider)),
+            ),
+            child: Row(
+              children: [
+                SizedBox.square(
+                  dimension: 40,
+                  child: IconButton(
+                    onPressed: onToggleFavorite,
+                    tooltip: product.isFavorite
+                        ? l10n.removeFavorite
+                        : l10n.setFavorite,
+                    isSelected: product.isFavorite,
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      LucideIcons.star,
+                      size: 20,
+                      color: colors.textSecondary,
+                    ),
+                    // Lucide has no filled icons: the favorite uses the
+                    // Material star, filled with the accent.
+                    selectedIcon: const Icon(
+                      Icons.star_rounded,
+                      size: 26,
+                      color: AppColors.accent,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product.name,
-                          style: textTheme.bodyLarge!.copyWith(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: textTheme.bodyLarge!.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
-                        const SizedBox(height: 2),
-                        Text(details, style: textTheme.bodySmall),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Same look as the add button of the tab bar.
-                  SizedBox.square(
-                    dimension: 32,
-                    child: IconButton.filled(
-                      onPressed: () =>
-                          context.push(AppRoutes.newEntryFrom(product.id)),
-                      tooltip: l10n.addToToday,
-                      padding: EdgeInsets.zero,
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        foregroundColor: AppColors.onAccent,
                       ),
-                      icon: const Icon(LucideIcons.plus, size: 18),
-                    ),
+                      const SizedBox(height: 2),
+                      Text(details, style: textTheme.bodySmall),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                // Same look as the add button of the tab bar.
+                SizedBox.square(
+                  dimension: 32,
+                  child: IconButton.filled(
+                    onPressed: () =>
+                        context.push(AppRoutes.newEntryFrom(product.id)),
+                    tooltip: l10n.addToToday,
+                    padding: EdgeInsets.zero,
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: AppColors.onAccent,
+                    ),
+                    icon: const Icon(LucideIcons.plus, size: 18),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

@@ -71,6 +71,17 @@ void main() {
       await disposeApp(tester, db);
     });
 
+    testWidgets('goes back to the history', (tester) async {
+      await openDay(tester);
+
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Thu, Oct 1'), findsOneWidget);
+      expect(find.text('Thursday, October 1'), findsNothing);
+      await disposeApp(tester, db);
+    });
+
     testWidgets('opens an entry for editing', (tester) async {
       await openDay(tester);
 

@@ -3,6 +3,7 @@ import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
+import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Large field to type the daily goal in grams, underlined in orange.
@@ -29,7 +30,7 @@ class GoalField extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
     final colors = AppColors.of(context);
-    final locale = Localizations.localeOf(context).toString();
+    final locale = context.localeName;
     const underline = UnderlineInputBorder(
       borderSide: BorderSide(color: AppColors.accent, width: 2),
     );

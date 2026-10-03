@@ -5,12 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/motion_shaker.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
@@ -66,7 +68,7 @@ class _TodayPageState extends ConsumerState<TodayPage> {
     final goal = ref.watch(dailyGoalProvider).value;
     if (dayKey == null || goal == null) return const Scaffold();
     final entries = ref.watch(dayEntriesProvider(dayKey)).value ?? const [];
-    final locale = Localizations.localeOf(context).toString();
+    final locale = context.localeName;
     final favorite = ref.watch(favoriteProductProvider);
 
     if (MediaQuery.orientationOf(context) == Orientation.landscape) {
@@ -159,7 +161,7 @@ class _Summary extends StatelessWidget {
     final colors = AppColors.of(context);
     String grams(double value) => formatGrams(value, locale);
 
-    final total = entries.fold(0.0, (sum, entry) => sum + entry.proteinGrams);
+    final total = entries.proteinGrams;
     final reached = total >= goal;
     final status = textTheme.bodyLarge!.copyWith(
       fontSize: 14,
@@ -328,7 +330,7 @@ class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
     final entries = widget.entries;
     final goal = widget.goal;
     final locale = widget.locale;
-    final total = entries.fold(0.0, (sum, entry) => sum + entry.proteinGrams);
+    final total = entries.proteinGrams;
 
     return LayoutBuilder(
       builder: (context, constraints) {

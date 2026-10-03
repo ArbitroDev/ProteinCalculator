@@ -5,14 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
-import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
-import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
+import 'package:protein_calculator/core/widgets/locale_name.dart';
+import 'package:protein_calculator/core/widgets/product_description.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_notifier.dart';
@@ -99,9 +99,9 @@ class _FormViewState extends ConsumerState<_FormView> {
     // Once: running again would replace what the user is typing.
     if (_localized) return;
     _localized = true;
-    final separator = NumberFormat.decimalPattern(
-      Localizations.localeOf(context).toString(),
-    ).symbols.DECIMAL_SEP;
+    final separator = NumberFormat.decimalPattern(context.localeName)
+        .symbols
+        .DECIMAL_SEP;
     // Protein amounts are the only values typed with a decimal.
     for (final controller in [_protein, _per]) {
       controller.text = controller.text.replaceAll('.', separator);
@@ -137,7 +137,7 @@ class _FormViewState extends ConsumerState<_FormView> {
     final l10n = AppLocalizations.of(context);
     final form = ref.watch(entryFormProvider(widget.args)).value!;
     final args = widget.args;
-    final locale = Localizations.localeOf(context).toString();
+    final locale = context.localeName;
 
     String? error(EntryFormField field) => switch (form.errors[field]) {
       null => null,
@@ -418,19 +418,10 @@ class _Suggestions extends StatelessWidget {
                     Expanded(
                       child: Text(product.name, style: textTheme.bodyLarge),
                     ),
-                    Text(switch (product.amount) {
-                      DirectAmount(:final proteinGrams) => l10n.grams(
-                        formatProtein(proteinGrams, locale),
-                      ),
-                      PerQuantityAmount(
-                        :final proteinPerReference,
-                        :final referenceGrams,
-                      ) =>
-                        l10n.productPerReference(
-                          formatProtein(proteinPerReference, locale),
-                          formatGrams(referenceGrams, locale),
-                        ),
-                    }, style: textTheme.bodySmall),
+                    Text(
+                      describeProduct(l10n, product),
+                      style: textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -502,12 +493,6 @@ class _SaveAsProduct extends StatelessWidget {
               onChanged: enabled
                   ? (checked) => onChanged(checked ?? false)
                   : null,
-              activeColor: AppColors.accent,
-              checkColor: AppColors.onAccent,
-              side: BorderSide(color: colors.textSecondary, width: 1.5),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
-              ),
             ),
             Expanded(
               child: Text(

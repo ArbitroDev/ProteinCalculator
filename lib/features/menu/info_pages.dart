@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/backup.dart';
 import 'package:protein_calculator/core/crash_reporting.dart';
@@ -258,14 +257,7 @@ class _InfoScaffold extends StatelessWidget {
         .copyWith(fontSize: 14, height: 1.55);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft),
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          onPressed: () => context.pop(),
-        ),
-        title: Text(title),
-      ),
+      appBar: AppBar(title: Text(title)),
       body: ContentWidth(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),

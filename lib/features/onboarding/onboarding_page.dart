@@ -137,7 +137,6 @@ class _CrashReportsChoice extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
-    final colors = AppColors.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: () => onChanged(!value),
@@ -147,12 +146,6 @@ class _CrashReportsChoice extends StatelessWidget {
           Checkbox(
             value: value,
             onChanged: (checked) => onChanged(checked ?? false),
-            activeColor: AppColors.accent,
-            checkColor: AppColors.onAccent,
-            side: BorderSide(color: colors.textSecondary, width: 1.5),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5),
-            ),
           ),
           Expanded(
             child: Padding(

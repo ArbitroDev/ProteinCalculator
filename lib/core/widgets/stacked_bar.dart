@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/theme.dart';
@@ -21,7 +22,7 @@ class StackedBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final total = bySlot.values.fold(0.0, (sum, grams) => sum + grams);
+    final total = bySlot.values.sum;
     final filled = goal <= 0 ? 1.0 : min(total, goal) / goal;
 
     return ExcludeSemantics(

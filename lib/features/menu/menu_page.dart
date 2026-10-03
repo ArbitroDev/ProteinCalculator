@@ -9,6 +9,7 @@ import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/goal_field.dart';
+import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -21,7 +22,7 @@ class MenuPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
-    final locale = Localizations.localeOf(context).toString();
+    final locale = context.localeName;
     final goal = ref.watch(dailyGoalProvider).value;
     final version = ref.watch(appVersionProvider).value;
 

@@ -9,6 +9,8 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/empty_state.dart';
+import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -27,17 +29,7 @@ class HistoryPage extends ConsumerWidget {
       body: ContentWidth(
         child: switch (days) {
           null => const SizedBox.shrink(),
-          [] => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                l10n.historyEmpty,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge!
-                    .copyWith(color: AppColors.of(context).textSecondary),
-              ),
-            ),
-          ),
+          [] => EmptyState(l10n.historyEmpty),
           _ => ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 6),
             itemCount: days.length,
@@ -61,7 +53,7 @@ class _DayTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
-    final locale = Localizations.localeOf(context).toString();
+    final locale = context.localeName;
     final total = day.proteinGrams;
     final reached = goal > 0 && total >= goal;
 

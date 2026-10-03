@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
@@ -110,4 +111,9 @@ extension ProductAmount on Product {
       referenceGrams: Value(columns.referenceGrams),
     );
   }
+}
+
+extension EntriesProtein on Iterable<Entry> {
+  /// Protein grams of all these entries.
+  double get proteinGrams => map((entry) => entry.proteinGrams).sum;
 }
