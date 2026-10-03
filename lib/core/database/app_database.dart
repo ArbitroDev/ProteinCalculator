@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:protein_calculator/core/database/app_database.steps.dart';
+import 'package:protein_calculator/core/database/database_file.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
@@ -21,6 +22,9 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(
     driftDatabase(
       name: 'protein_calculator',
+      // The path drift_flutter uses by default, given explicitly so the file
+      // can be set aside when it cannot be opened.
+      native: const DriftNativeOptions(databasePath: databasePath),
       web: DriftWebOptions(
         sqlite3Wasm: Uri.parse('sqlite3.wasm'),
         driftWorker: Uri.parse('drift_worker.js'),

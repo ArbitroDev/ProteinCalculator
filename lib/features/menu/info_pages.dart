@@ -10,6 +10,7 @@ import 'package:protein_calculator/core/crash_reporting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/pick_backup.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/features/menu/github_link.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -56,25 +57,8 @@ class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
   Future<void> _import() => _run(() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final file = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: const ['json'],
-    );
-    if (file == null) return;
-
-    final Backup backup;
-    try {
-      backup = parseBackup(utf8.decode(await file.readAsBytes()));
-    } on Exception catch (error) {
-      // Not text, or not a backup. Anything else, such as a file that cannot
-      // be read, is an unexpected error.
-      if (error is! FormatException && error is! InvalidBackupException) {
-        rethrow;
-      }
-      messenger.showSnackBar(SnackBar(content: Text(l10n.importInvalid)));
-      return;
-    }
-    if (!mounted) return;
+    final backup = await pickBackup(messenger, l10n);
+    if (backup == null || !mounted) return;
 
     final confirmed = await showDialog<bool>(
       context: context,

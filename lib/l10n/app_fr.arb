@@ -479,5 +479,25 @@
   "actionFailed": "Une erreur est survenue, réessaie.",
   "@actionFailed": {
     "description": "Snack bar when saving, deleting or another action fails unexpectedly."
+  },
+  "startupErrorTitle": "Impossible de lire tes données",
+  "@startupErrorTitle": {
+    "description": "Title of the screen shown instead of the app when its data cannot be opened at launch."
+  },
+  "startupErrorBody": "Protein Calculator n'arrive pas à ouvrir ses données sur ce téléphone. Réessaie, ou repars d'une sauvegarde : les données actuelles seront mises de côté sur le téléphone, pas effacées.",
+  "@startupErrorBody": {
+    "description": "Explanation of the startup error screen."
+  },
+  "startupRetry": "Réessayer",
+  "@startupRetry": {
+    "description": "Button trying again to open the data at launch."
+  },
+  "startupRestore": "Repartir d'une sauvegarde",
+  "@startupRestore": {
+    "description": "Button setting the unreadable data aside and restoring a backup file."
+  },
+  "startupStillFailing": "Tes données ne peuvent toujours pas être lues.",
+  "@startupStillFailing": {
+    "description": "Snack bar when trying again still cannot open the data."
   }
 }
