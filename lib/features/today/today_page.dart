@@ -48,7 +48,7 @@ class _TodayPageState extends ConsumerState<TodayPage> {
     final id = await runUserAction(
       messenger,
       l10n,
-      () => quickAdd(ref, product),
+      () => entries.addPortion(product, createdAt: ref.read(clockProvider)()),
     );
     if (id == null) return;
     showUndoSnackBar(
@@ -348,10 +348,7 @@ class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
               child: MotionShaker(
                 layers: [
                   for (final entry in entries)
-                    ShakerLayer(
-                      grams: entry.proteinGrams,
-                      slot: DaySlot.of(entry.createdAt),
-                    ),
+                    ShakerLayer(grams: entry.proteinGrams, slot: entry.slot),
                 ],
                 goal: goal,
                 semanticLabel: l10n.shakerDescription(
@@ -438,7 +435,7 @@ class _EntryLabel extends StatelessWidget {
                 width: 9,
                 height: 9,
                 decoration: BoxDecoration(
-                  color: AppColors.slot(DaySlot.of(entry.createdAt)),
+                  color: AppColors.slot(entry.slot),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
@@ -19,6 +20,13 @@ class Entries extends Table {
 
   /// App day of [createdAt], see `dayKeyOf`.
   IntColumn get dayKey => integer()();
+
+  /// Part of the day of [createdAt], see `DaySlot.of`. Like [dayKey], it is
+  /// fixed when the entry is added, so a change of time zone never moves an
+  /// entry. The default only serves the migration adding the column, which
+  /// then computes the right value of every entry.
+  TextColumn get slot =>
+      textEnum<DaySlot>().withDefault(Constant(DaySlot.morning.name))();
 }
 
 /// Products saved by the user to fill in entries quickly.

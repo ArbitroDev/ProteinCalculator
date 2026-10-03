@@ -75,7 +75,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
 
     final bySlot = <DaySlot, List<Entry>>{};
     for (final entry in entries) {
-      bySlot.putIfAbsent(DaySlot.of(entry.createdAt), () => []).add(entry);
+      bySlot.putIfAbsent(entry.slot, () => []).add(entry);
     }
     double sum(Iterable<Entry> list) =>
         list.fold(0.0, (total, entry) => total + entry.proteinGrams);

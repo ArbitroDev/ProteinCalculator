@@ -57,33 +57,6 @@ void main() {
     });
   });
 
-  group('watchDayTotal', () {
-    test('is 0 for a day without entries', () async {
-      expect(await dao.watchDayTotal(20260930).first, 0);
-    });
-
-    test('sums the entries of the app day only', () async {
-      await addEntry(15, DateTime(2026, 9, 30, 8));
-      await addEntry(30.5, DateTime(2026, 10, 1, 2));
-      await addEntry(40, DateTime(2026, 10, 1, 9));
-
-      expect(await dao.watchDayTotal(20260930).first, 45.5);
-      expect(await dao.watchDayTotal(20261001).first, 40);
-    });
-
-    test('updates when an entry is added', () async {
-      final totals = dao.watchDayTotal(20260930);
-      final expectation = expectLater(totals, emitsInOrder([0, 15, 45]));
-
-      await pumpEventQueue();
-      await addEntry(15, DateTime(2026, 9, 30, 8));
-      await pumpEventQueue();
-      await addEntry(30, DateTime(2026, 9, 30, 12));
-
-      await expectation;
-    });
-  });
-
   test('watchHistory lists days with entries, most recent first', () async {
     await addEntry(20, DateTime(2026, 9, 28, 12));
     await addEntry(15, DateTime(2026, 9, 30, 8));
@@ -96,6 +69,49 @@ void main() {
       ),
       DaySummary(dayKey: 20260928, bySlot: {DaySlot.afternoon: 20}),
     ]);
+  });
+
+  test('watchHistory sums the entries of the same part of the day', () async {
+    await addEntry(15, DateTime(2026, 9, 30, 8));
+    await addEntry(12.5, DateTime(2026, 9, 30, 10));
+    await addEntry(30, DateTime(2026, 9, 30, 13));
+
+    expect(await dao.watchHistory().first, const [
+      DaySummary(
+        dayKey: 20260930,
+        bySlot: {DaySlot.morning: 27.5, DaySlot.afternoon: 30},
+      ),
+    ]);
+  });
+
+  test('stores the part of the day when the entry is added', () async {
+    final id = await addEntry(15, DateTime(2026, 10, 1, 1, 10));
+
+    expect((await dao.getEntry(id))!.slot, DaySlot.evening);
+  });
+
+  test('addPortion adds one portion of a product, under its name', () async {
+    final productId = await db.productsDao.insertProduct(
+      name: 'Skyr',
+      amount: const PerQuantityAmount(
+        consumedGrams: 150,
+        proteinPerReference: 10,
+        referenceGrams: 100,
+      ),
+      createdAt: DateTime(2026, 9, 1),
+    );
+    final product = (await db.productsDao.getProduct(productId))!;
+
+    final id = await dao.addPortion(
+      product,
+      createdAt: DateTime(2026, 9, 30, 8),
+    );
+
+    final entry = (await dao.getEntry(id))!;
+    expect(entry.name, 'Skyr');
+    expect(entry.proteinGrams, 15);
+    expect(entry.consumedGrams, 150);
+    expect((await db.productsDao.getProduct(productId))!.useCount, 1);
   });
 
   test('watchDayEntries lists the entries of a day in time order', () async {
@@ -119,6 +135,7 @@ void main() {
           proteinGrams: 20,
           createdAt: DateTime(2026, 10, 5),
           dayKey: 20261005,
+          slot: DaySlot.evening,
         ),
       );
 
@@ -126,6 +143,7 @@ void main() {
       expect(updated.proteinGrams, 20);
       expect(updated.createdAt, DateTime(2026, 9, 30, 8));
       expect(updated.dayKey, 20260930);
+      expect(updated.slot, DaySlot.morning);
     });
   });
 
@@ -135,11 +153,11 @@ void main() {
 
       final deleted = await dao.deleteEntry(id);
       expect(await dao.getEntry(id), isNull);
-      expect(await dao.watchDayTotal(20260930).first, 0);
+      expect(await dao.watchDayEntries(20260930).first, isEmpty);
 
       await dao.restoreEntry(deleted!);
       expect(await dao.getEntry(id), deleted);
-      expect(await dao.watchDayTotal(20260930).first, 15);
+      expect(await dao.watchDayEntries(20260930).first, [deleted]);
     });
 
     test('delete returns null for an unknown entry', () async {

@@ -2,24 +2,13 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui' show lerpDouble;
 
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/formatting.dart';
-import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
-
-/// The favorite product, added in one tap from the today screen.
-final favoriteProductProvider = Provider<Product?>(
-  (ref) => ref
-      .watch(productsProvider)
-      .value
-      ?.firstWhereOrNull((product) => product.isFavorite),
-);
 
 /// Button adding one portion of the favorite [product] at once.
 class QuickAddButton extends StatelessWidget {
@@ -172,17 +161,4 @@ Future<void> flyToShaker({
   );
   overlay.insert(entry);
   return landed.future;
-}
-
-/// Adds a portion of [product] now, without the form. Returns the id of the
-/// new entry.
-Future<int> quickAdd(WidgetRef ref, Product product) {
-  return ref
-      .read(databaseProvider)
-      .entriesDao
-      .insertEntry(
-        name: product.name,
-        amount: product.amount,
-        createdAt: ref.read(clockProvider)(),
-      );
 }

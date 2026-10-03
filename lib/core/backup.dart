@@ -5,6 +5,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
@@ -15,7 +16,9 @@ import 'package:protein_calculator/core/domain/protein_amount.dart';
 const backupFormat = 'protein-calculator';
 
 /// Version of the backup file layout, increased when it changes.
-const backupVersion = 1;
+///
+/// 2: entries hold their part of the day.
+const backupVersion = 2;
 
 /// Thrown when a file is not a valid Protein Calculator backup.
 class InvalidBackupException implements Exception {
@@ -74,6 +77,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'referenceGrams': e.referenceGrams,
           'createdAt': e.createdAt.toUtc().toIso8601String(),
           'dayKey': e.dayKey,
+          'slot': e.slot.name,
         },
     ],
     'products': [
@@ -107,14 +111,14 @@ Backup parseBackup(String text) {
       throw const InvalidBackupException('not a Protein Calculator backup');
     }
     final version = json['version'];
-    if (version is! int || version > backupVersion) {
+    if (version is! int || version < 1 || version > backupVersion) {
       throw const InvalidBackupException('unsupported version');
     }
 
     final settings = json['settings'] as Map<String, dynamic>;
     final entries = [
       for (final e in json['entries'] as List)
-        _entry(e as Map<String, dynamic>),
+        _entry(e as Map<String, dynamic>, version),
     ];
     final products = [
       for (final p in json['products'] as List)
@@ -176,7 +180,7 @@ Future<void> restoreBackup(AppDatabase db, Backup backup) {
   });
 }
 
-EntriesCompanion _entry(Map<String, dynamic> e) {
+EntriesCompanion _entry(Map<String, dynamic> e, int version) {
   final amount = _amount(e, storesProtein: true);
   final columns = amountColumns(amount);
   final dayKey = e['dayKey'] as int;
@@ -185,6 +189,7 @@ EntriesCompanion _entry(Map<String, dynamic> e) {
   if (name != null && !isValidName(name)) {
     throw const InvalidBackupException('invalid entry name');
   }
+  final createdAt = DateTime.parse(e['createdAt'] as String).toLocal();
   return EntriesCompanion.insert(
     id: Value(_id(e['id'])),
     name: Value(name),
@@ -193,8 +198,15 @@ EntriesCompanion _entry(Map<String, dynamic> e) {
     consumedGrams: Value(columns.consumedGrams),
     proteinPerReference: Value(columns.proteinPerReference),
     referenceGrams: Value(columns.referenceGrams),
-    createdAt: DateTime.parse(e['createdAt'] as String).toLocal(),
+    createdAt: createdAt,
     dayKey: dayKey,
+    // Backups made before the part of the day was stored: computed from the
+    // local time, as it was shown then.
+    slot: Value(
+      version < 2
+          ? DaySlot.of(createdAt)
+          : DaySlot.values.byName(e['slot'] as String),
+    ),
   );
 }
 

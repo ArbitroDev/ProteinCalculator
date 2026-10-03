@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/backup.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
@@ -112,6 +113,31 @@ void main() {
     final backup = parseBackup(jsonEncode(json));
 
     expect(backup.entries.first.proteinGrams.value, 15.8);
+  });
+
+  test('keeps the part of the day of entries', () async {
+    final json = jsonDecode(await export()) as Map<String, dynamic>;
+    (json['entries'] as List).first['slot'] = 'afternoon';
+
+    final backup = parseBackup(jsonEncode(json));
+
+    expect(backup.entries.first.slot.value, DaySlot.afternoon);
+  });
+
+  test('computes the part of the day for backups of version 1', () async {
+    final json = jsonDecode(await export()) as Map<String, dynamic>;
+    json['version'] = 1;
+    for (final entry in json['entries'] as List) {
+      (entry as Map).remove('slot');
+    }
+
+    final backup = parseBackup(jsonEncode(json));
+
+    // Added at 1:10 a.m., then at noon.
+    expect(backup.entries.map((e) => e.slot.value), [
+      DaySlot.evening,
+      DaySlot.afternoon,
+    ]);
   });
 
   test('names the file after the date', () {
@@ -238,6 +264,16 @@ void main() {
       final json = await exported();
       (json['entries'] as List).last['consumedGrams'] = 100;
       expectInvalid(jsonEncode(json));
+    });
+
+    test('with an unknown part of the day', () async {
+      final json = await exported();
+      (json['entries'] as List).first['slot'] = 'night';
+      expectInvalid(jsonEncode(json));
+    });
+
+    test('with a version below 1', () async {
+      expectInvalid(jsonEncode({...await exported(), 'version': 0}));
     });
 
     test('with a negative use count', () async {

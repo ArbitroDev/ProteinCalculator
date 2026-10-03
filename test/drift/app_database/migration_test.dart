@@ -9,6 +9,7 @@ import 'generated/schema.dart';
 
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
+import 'generated/schema_v3.dart' as v3;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -130,6 +131,53 @@ void main() {
           await newDb.select(newDb.appSettings).get(),
           expectedNewAppSettingsData,
         );
+      },
+    );
+  });
+
+  test('migration from v2 to v3 sets the part of the day of entries', () async {
+    // Times in seconds since the epoch, as stored; parts of the day follow
+    // the local time of the test machine.
+    int at(DateTime time) => time.millisecondsSinceEpoch ~/ 1000;
+    v2.EntriesData entry(int id, DateTime time) => v2.EntriesData(
+      id: id,
+      mode: 'direct',
+      proteinGrams: 20,
+      createdAt: at(time),
+      dayKey: 20261001,
+    );
+    final times = {
+      1: DateTime(2026, 10, 1, 8),
+      2: DateTime(2026, 10, 1, 13),
+      3: DateTime(2026, 10, 1, 20),
+      4: DateTime(2026, 10, 2, 1, 30),
+    };
+    const slots = {1: 'morning', 2: 'afternoon', 3: 'evening', 4: 'evening'};
+
+    await verifier.testWithDataIntegrity(
+      oldVersion: 2,
+      newVersion: 3,
+      createOld: v2.DatabaseAtV2.new,
+      createNew: v3.DatabaseAtV3.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insertAll(oldDb.entries, [
+          for (final MapEntry(key: id, value: time) in times.entries)
+            entry(id, time),
+        ]);
+      },
+      validateItems: (newDb) async {
+        expect(await newDb.select(newDb.entries).get(), [
+          for (final MapEntry(key: id, value: time) in times.entries)
+            v3.EntriesData(
+              id: id,
+              mode: 'direct',
+              proteinGrams: 20,
+              createdAt: at(time),
+              dayKey: 20261001,
+              slot: slots[id]!,
+            ),
+        ]);
       },
     );
   });

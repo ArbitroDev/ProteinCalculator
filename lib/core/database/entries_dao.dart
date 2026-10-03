@@ -43,28 +43,21 @@ class DaySummary {
 class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   EntriesDao(super.attachedDatabase);
 
-  Stream<double> watchDayTotal(int dayKey) {
+  /// Days having at least one entry, most recent first, with their protein
+  /// totals by part of the day, summed by the database.
+  Stream<List<DaySummary>> watchHistory() {
     final total = entries.proteinGrams.sum();
     final query = selectOnly(entries)
-      ..addColumns([total])
-      ..where(entries.dayKey.equals(dayKey));
-    return query.map((row) => row.read(total) ?? 0).watchSingle();
-  }
-
-  /// Days having at least one entry, most recent first.
-  ///
-  /// The split by part of the day is computed in Dart from the local time of
-  /// each entry: SQLite time zone support is unreliable on the web.
-  Stream<List<DaySummary>> watchHistory() {
-    final query = selectOnly(entries)
-      ..addColumns([entries.dayKey, entries.createdAt, entries.proteinGrams])
+      ..addColumns([entries.dayKey, entries.slot, total])
+      ..groupBy([entries.dayKey, entries.slot])
       ..orderBy([OrderingTerm.desc(entries.dayKey)]);
     return query.watch().map((rows) {
       final days = <int, Map<DaySlot, double>>{};
       for (final row in rows) {
-        final bySlot = days.putIfAbsent(row.read(entries.dayKey)!, () => {});
-        final slot = DaySlot.of(row.read(entries.createdAt)!);
-        bySlot[slot] = (bySlot[slot] ?? 0) + row.read(entries.proteinGrams)!;
+        days.putIfAbsent(row.read(entries.dayKey)!, () => {})[row
+            .readWithConverter(entries.slot)!] = row.read(
+          total,
+        )!;
       }
       return [
         for (final MapEntry(key: dayKey, value: bySlot) in days.entries)
@@ -105,6 +98,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
           referenceGrams: Value(columns.referenceGrams),
           createdAt: createdAt,
           dayKey: dayKeyOf(createdAt),
+          slot: Value(DaySlot.of(createdAt)),
         ),
       );
       await _countUse(name, 1, usedAt: createdAt);
@@ -112,14 +106,26 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     });
   }
 
-  /// Saves the edited values of an existing entry. Its time and app day are
-  /// kept, and use counts follow a name change.
+  /// Adds one portion of [product] at [createdAt], as the product says.
+  Future<int> addPortion(Product product, {required DateTime createdAt}) =>
+      insertEntry(
+        name: product.name,
+        amount: product.amount,
+        createdAt: createdAt,
+      );
+
+  /// Saves the edited values of an existing entry. Its time, app day and
+  /// part of the day are kept, and use counts follow a name change.
   Future<void> updateEntry(Entry entry) {
     return transaction(() async {
       final previous = await getEntry(entry.id);
       if (previous == null) return;
       await update(entries).replace(
-        entry.copyWith(createdAt: previous.createdAt, dayKey: previous.dayKey),
+        entry.copyWith(
+          createdAt: previous.createdAt,
+          dayKey: previous.dayKey,
+          slot: previous.slot,
+        ),
       );
       if (_nameKey(previous.name) != _nameKey(entry.name)) {
         await _countUse(previous.name, -1);

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -58,6 +59,14 @@ final productsProvider = StreamProvider<List<Product>>(
       .watch(databaseProvider)
       .productsDao
       .watchAll(ProductSort.alphabetical),
+);
+
+/// The favorite product, added in one tap from the today screen.
+final favoriteProductProvider = Provider<Product?>(
+  (ref) => ref
+      .watch(productsProvider)
+      .value
+      ?.firstWhereOrNull((product) => product.isFavorite),
 );
 
 /// Days having at least one entry, most recent first.
