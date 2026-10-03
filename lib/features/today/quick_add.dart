@@ -7,8 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
-import 'package:protein_calculator/core/domain/entry_mode.dart';
-import 'package:protein_calculator/core/domain/protein_calc.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
@@ -21,15 +20,6 @@ final favoriteProductProvider = Provider<Product?>(
       .value
       ?.firstWhereOrNull((product) => product.isFavorite),
 );
-
-/// Protein amount of one portion of [product].
-double productProtein(Product product) => product.mode == EntryMode.direct
-    ? product.proteinGrams ?? 0
-    : computeProtein(
-        consumedGrams: product.consumedGrams ?? 0,
-        proteinPerReference: product.proteinPerReference ?? 0,
-        referenceGrams: product.referenceGrams ?? 100,
-      );
 
 /// Button adding one portion of the favorite [product] at once.
 class QuickAddButton extends StatelessWidget {
@@ -50,7 +40,9 @@ class QuickAddButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
-    final grams = l10n.grams(formatGrams(productProtein(product), locale));
+    final grams = l10n.grams(
+      formatProtein(product.amount.proteinGrams, locale),
+    );
 
     return ConstrainedBox(
       // Long names are cut rather than squeezing the summary.
@@ -185,15 +177,12 @@ Future<void> flyToShaker({
 /// Adds a portion of [product] now, without the form. Returns the id of the
 /// new entry.
 Future<int> quickAdd(WidgetRef ref, Product product) {
-  final entries = ref.read(databaseProvider).entriesDao;
-  final direct = product.mode == EntryMode.direct;
-  return entries.insertEntry(
-    name: product.name,
-    mode: product.mode,
-    proteinGrams: productProtein(product),
-    consumedGrams: direct ? null : product.consumedGrams,
-    proteinPerReference: direct ? null : product.proteinPerReference,
-    referenceGrams: direct ? null : product.referenceGrams,
-    createdAt: ref.read(clockProvider)(),
-  );
+  return ref
+      .read(databaseProvider)
+      .entriesDao
+      .insertEntry(
+        name: product.name,
+        amount: product.amount,
+        createdAt: ref.read(clockProvider)(),
+      );
 }

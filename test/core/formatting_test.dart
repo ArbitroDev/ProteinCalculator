@@ -14,6 +14,13 @@ void main() {
     expect(formatGrams(1234.4, 'en'), '1,234');
   });
 
+  test('formatProtein shows one decimal at most', () {
+    expect(formatProtein(12.5, 'fr'), '12,5');
+    expect(formatProtein(15.8, 'en'), '15.8');
+    expect(formatProtein(23, 'en'), '23');
+    expect(formatProtein(1234.5, 'en'), '1,234.5');
+  });
+
   test('formatLongDate starts with a capital letter', () {
     final date = DateTime(2026, 10, 1);
 

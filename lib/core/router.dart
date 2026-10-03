@@ -106,7 +106,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.newEntry,
         builder: (context, state) => EntryFormPage(
-          args: EntryFormArgs.newEntry(
+          args: NewEntryArgs(
             productId: int.tryParse(
               state.uri.queryParameters['productId'] ?? '',
             ),
@@ -116,20 +116,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.newProduct,
         builder: (context, state) =>
-            const EntryFormPage(args: EntryFormArgs.newProduct()),
+            const EntryFormPage(args: NewProductArgs()),
       ),
       GoRoute(
         path: '/products/:id',
         builder: (context, state) => EntryFormPage(
-          args: EntryFormArgs.editProduct(
-            int.parse(state.pathParameters['id']!),
-          ),
+          args: EditProductArgs(int.parse(state.pathParameters['id']!)),
         ),
       ),
       GoRoute(
         path: '/entries/:id',
         builder: (context, state) => EntryFormPage(
-          args: EntryFormArgs.editEntry(int.parse(state.pathParameters['id']!)),
+          args: EditEntryArgs(int.parse(state.pathParameters['id']!)),
         ),
       ),
     ],

@@ -1,45 +1,66 @@
 import 'package:flutter/foundation.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
-import 'package:protein_calculator/core/domain/protein_calc.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 
-/// What the form creates or edits.
-enum EntryFormKind { newEntry, editEntry, newProduct, editProduct }
-
-/// Context in which the form is opened.
+/// What the form creates or edits, with the ids it needs.
 @immutable
-class EntryFormArgs {
-  const EntryFormArgs._(this.kind, this.id);
+sealed class EntryFormArgs {
+  const EntryFormArgs();
 
-  /// New entry, prefilled from the product [productId] if given.
-  const EntryFormArgs.newEntry({int? productId})
-    : this._(EntryFormKind.newEntry, productId);
+  bool get isProduct => this is NewProductArgs || this is EditProductArgs;
 
-  const EntryFormArgs.editEntry(int entryId)
-    : this._(EntryFormKind.editEntry, entryId);
+  bool get isNew => this is NewEntryArgs || this is NewProductArgs;
+}
 
-  const EntryFormArgs.newProduct() : this._(EntryFormKind.newProduct, null);
+/// New entry, prefilled from the product [productId] if given.
+final class NewEntryArgs extends EntryFormArgs {
+  const NewEntryArgs({this.productId});
 
-  const EntryFormArgs.editProduct(int productId)
-    : this._(EntryFormKind.editProduct, productId);
-
-  final EntryFormKind kind;
-
-  /// Entry or product id; for a new entry, the product it starts from.
-  final int? id;
-
-  bool get isProduct =>
-      kind == EntryFormKind.newProduct || kind == EntryFormKind.editProduct;
-
-  bool get isNew =>
-      kind == EntryFormKind.newEntry || kind == EntryFormKind.newProduct;
+  final int? productId;
 
   @override
   bool operator ==(Object other) =>
-      other is EntryFormArgs && other.kind == kind && other.id == id;
+      other is NewEntryArgs && other.productId == productId;
 
   @override
-  int get hashCode => Object.hash(kind, id);
+  int get hashCode => Object.hash(NewEntryArgs, productId);
+}
+
+final class EditEntryArgs extends EntryFormArgs {
+  const EditEntryArgs(this.entryId);
+
+  final int entryId;
+
+  @override
+  bool operator ==(Object other) =>
+      other is EditEntryArgs && other.entryId == entryId;
+
+  @override
+  int get hashCode => Object.hash(EditEntryArgs, entryId);
+}
+
+final class NewProductArgs extends EntryFormArgs {
+  const NewProductArgs();
+
+  @override
+  bool operator ==(Object other) => other is NewProductArgs;
+
+  @override
+  int get hashCode => (NewProductArgs).hashCode;
+}
+
+final class EditProductArgs extends EntryFormArgs {
+  const EditProductArgs(this.productId);
+
+  final int productId;
+
+  @override
+  bool operator ==(Object other) =>
+      other is EditProductArgs && other.productId == productId;
+
+  @override
+  int get hashCode => Object.hash(EditProductArgs, productId);
 }
 
 enum EntryFormField { name, protein, consumed, proteinPerReference, reference }
@@ -61,8 +82,9 @@ enum EntryFormError {
   nameTaken,
 }
 
-/// Values typed in the entry form. Quantities are whole numbers of grams,
-/// kept as text while typing and parsed when needed.
+/// Values typed in the entry form, kept as text while typing and parsed
+/// when needed. Protein amounts take one decimal, quantities of food are
+/// whole numbers of grams.
 @immutable
 class EntryFormState {
   const EntryFormState({
@@ -101,10 +123,10 @@ class EntryFormState {
   final int revision;
 
   /// Protein amount of the entry, or null while the quantities are invalid.
-  double? get proteinGrams {
+  ProteinAmount? get amount {
     if (mode == EntryMode.direct) {
       final value = parseGrams(protein);
-      return value != null && value > 0 ? value : null;
+      return value != null && value > 0 ? DirectAmount(value) : null;
     }
     final consumedGrams = parseGrams(consumed);
     final per = parseGrams(proteinPerReference);
@@ -115,7 +137,7 @@ class EntryFormState {
         referenceGrams <= 0) {
       return null;
     }
-    return computeProtein(
+    return PerQuantityAmount(
       consumedGrams: consumedGrams,
       proteinPerReference: per,
       referenceGrams: referenceGrams,

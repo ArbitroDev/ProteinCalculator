@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
-import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 
 import '../../helpers.dart';
 
@@ -12,11 +12,8 @@ void main() {
     await db.settingsDao.setDailyGoal(140);
   });
 
-  Future<void> addEntry(double grams, DateTime at) => db.entriesDao.insertEntry(
-    mode: EntryMode.direct,
-    proteinGrams: grams,
-    createdAt: at,
-  );
+  Future<void> addEntry(double grams, DateTime at) =>
+      db.entriesDao.insertEntry(amount: DirectAmount(grams), createdAt: at);
 
   testWidgets('shows an empty day', (tester) async {
     await pumpApp(tester, db);
@@ -36,6 +33,24 @@ void main() {
     // 59.6 g shows truncated, and what is left follows the shown total.
     expect(find.text('59 g'), findsOneWidget);
     expect(find.text('2 entries · 81 g left to shake'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('truncates the total but not the entries', (tester) async {
+    await db.entriesDao.insertEntry(
+      amount: const DirectAmount(12.5),
+      createdAt: DateTime(2026, 10, 1, 8),
+    );
+    await db.entriesDao.insertEntry(
+      amount: const DirectAmount(30.8),
+      createdAt: DateTime(2026, 10, 1, 9),
+    );
+    await pumpApp(tester, db);
+
+    expect(find.text('43 g'), findsOneWidget);
+    expect(find.text('12.5 g'), findsOneWidget);
+    expect(find.text('30.8 g'), findsOneWidget);
+    expect(find.text('2 entries · 97 g left to shake'), findsOneWidget);
     await disposeApp(tester, db);
   });
 

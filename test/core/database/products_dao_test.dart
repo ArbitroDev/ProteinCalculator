@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
 import 'test_database.dart';
@@ -18,10 +19,11 @@ void main() {
 
   Future<int> addProduct(String name) => dao.insertProduct(
     name: name,
-    mode: EntryMode.perQuantity,
-    consumedGrams: 150,
-    proteinPerReference: 10,
-    referenceGrams: 100,
+    amount: const PerQuantityAmount(
+      consumedGrams: 150,
+      proteinPerReference: 10,
+      referenceGrams: 100,
+    ),
     createdAt: DateTime(2026, 9, 1),
   );
 
@@ -115,8 +117,7 @@ void main() {
       final id = await addProduct('Skyr');
       await db.entriesDao.insertEntry(
         name: 'Skyr',
-        mode: EntryMode.direct,
-        proteinGrams: 15,
+        amount: const DirectAmount(15),
         createdAt: DateTime(2026, 9, 30, 8),
       );
 
@@ -129,13 +130,8 @@ void main() {
   });
 
   group('watchAll', () {
-    Future<void> useProduct(String name, DateTime at) =>
-        db.entriesDao.insertEntry(
-          name: name,
-          mode: EntryMode.direct,
-          proteinGrams: 10,
-          createdAt: at,
-        );
+    Future<void> useProduct(String name, DateTime at) => db.entriesDao
+        .insertEntry(name: name, amount: const DirectAmount(10), createdAt: at);
 
     setUp(() async {
       for (final name in ['Poulet', 'Œufs', 'Épinards', 'amandes', 'Skyr']) {

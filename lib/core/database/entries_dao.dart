@@ -4,11 +4,12 @@ import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/tables.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
-import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 
 part 'entries_dao.g.dart';
 
@@ -89,22 +90,19 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   /// Adds an entry and counts a use of the product having the same name.
   Future<int> insertEntry({
     String? name,
-    required EntryMode mode,
-    required double proteinGrams,
-    double? consumedGrams,
-    double? proteinPerReference,
-    double? referenceGrams,
+    required ProteinAmount amount,
     required DateTime createdAt,
   }) {
+    final columns = amountColumns(amount);
     return transaction(() async {
       final id = await into(entries).insert(
         EntriesCompanion.insert(
           name: Value(name),
-          mode: mode,
-          proteinGrams: proteinGrams,
-          consumedGrams: Value(consumedGrams),
-          proteinPerReference: Value(proteinPerReference),
-          referenceGrams: Value(referenceGrams),
+          mode: columns.mode,
+          proteinGrams: amount.proteinGrams,
+          consumedGrams: Value(columns.consumedGrams),
+          proteinPerReference: Value(columns.proteinPerReference),
+          referenceGrams: Value(columns.referenceGrams),
           createdAt: createdAt,
           dayKey: dayKeyOf(createdAt),
         ),

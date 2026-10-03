@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/backup.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
-import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
 import '../helpers.dart';
@@ -18,24 +18,24 @@ void main() {
     await source.settingsDao.setProductSort(ProductSort.mostUsed);
     await source.productsDao.insertProduct(
       name: 'Skyr nature',
-      mode: EntryMode.perQuantity,
-      consumedGrams: 150,
-      proteinPerReference: 10,
-      referenceGrams: 100,
+      amount: const PerQuantityAmount(
+        consumedGrams: 150,
+        proteinPerReference: 10,
+        referenceGrams: 100,
+      ),
       createdAt: DateTime(2026, 9, 1),
     );
     await source.entriesDao.insertEntry(
       name: 'Skyr nature',
-      mode: EntryMode.perQuantity,
-      proteinGrams: 15,
-      consumedGrams: 150,
-      proteinPerReference: 10,
-      referenceGrams: 100,
+      amount: const PerQuantityAmount(
+        consumedGrams: 150,
+        proteinPerReference: 10,
+        referenceGrams: 100,
+      ),
       createdAt: DateTime(2026, 10, 1, 1, 10),
     );
     await source.entriesDao.insertEntry(
-      mode: EntryMode.direct,
-      proteinGrams: 25,
+      amount: const DirectAmount(25),
       createdAt: DateTime(2026, 10, 1, 12),
     );
   });
@@ -68,14 +68,12 @@ void main() {
     addTearDown(target.close);
     await target.entriesDao.insertEntry(
       name: 'Old',
-      mode: EntryMode.direct,
-      proteinGrams: 99,
+      amount: const DirectAmount(99),
       createdAt: DateTime(2026, 1, 1, 12),
     );
     await target.productsDao.insertProduct(
       name: 'Old product',
-      mode: EntryMode.direct,
-      proteinGrams: 5,
+      amount: const DirectAmount(5),
       createdAt: DateTime(2026, 1, 1),
     );
 
@@ -103,6 +101,17 @@ void main() {
 
     expect(backup.entries.first.name.value, name);
     expect(backup.products.first.name.value, name);
+  });
+
+  test('computes again the protein of entries made per quantity', () async {
+    final json = jsonDecode(await export()) as Map<String, dynamic>;
+    (json['entries'] as List).first
+      ..['proteinPerReference'] = 10.5
+      ..['proteinGrams'] = 15.75;
+
+    final backup = parseBackup(jsonEncode(json));
+
+    expect(backup.entries.first.proteinGrams.value, 15.8);
   });
 
   test('names the file after the date', () {
@@ -213,6 +222,22 @@ void main() {
         (products['products'] as List).first['name'] = name;
         expectInvalid(jsonEncode(products));
       }
+    });
+
+    test('with more decimals than the form allows', () async {
+      final protein = await exported();
+      (protein['entries'] as List).last['proteinGrams'] = 25.55;
+      expectInvalid(jsonEncode(protein));
+
+      final food = await exported();
+      (food['products'] as List).first['consumedGrams'] = 150.5;
+      expectInvalid(jsonEncode(food));
+    });
+
+    test('with values of the other mode', () async {
+      final json = await exported();
+      (json['entries'] as List).last['consumedGrams'] = 100;
+      expectInvalid(jsonEncode(json));
     });
 
     test('with a negative use count', () async {

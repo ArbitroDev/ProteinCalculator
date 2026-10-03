@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
@@ -27,11 +29,11 @@ class EntryFormPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final form = ref.watch(entryFormProvider(args)).value;
-    final title = switch (args.kind) {
-      EntryFormKind.newEntry => l10n.newEntryTitle,
-      EntryFormKind.editEntry => l10n.editEntryTitle,
-      EntryFormKind.newProduct => l10n.newProductTitle,
-      EntryFormKind.editProduct => l10n.editProductTitle,
+    final title = switch (args) {
+      NewEntryArgs() => l10n.newEntryTitle,
+      EditEntryArgs() => l10n.editEntryTitle,
+      NewProductArgs() => l10n.newProductTitle,
+      EditProductArgs() => l10n.editProductTitle,
     };
 
     return Scaffold(
@@ -94,7 +96,10 @@ class _FormViewState extends ConsumerState<_FormView> {
     final separator = NumberFormat.decimalPattern(
       Localizations.localeOf(context).toString(),
     ).symbols.DECIMAL_SEP;
-    _per.text = _per.text.replaceAll('.', separator);
+    // Protein amounts are the only values typed with a decimal.
+    for (final controller in [_protein, _per]) {
+      controller.text = controller.text.replaceAll('.', separator);
+    }
   }
 
   @override
@@ -183,6 +188,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                   _Label(l10n.formProtein),
                   _GramsField(
                     controller: _protein,
+                    decimal: true,
                     onChanged: _notifier.setProtein,
                     errorText: error(EntryFormField.protein),
                   ),
@@ -225,7 +231,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _Result(grams: form.proteinGrams, locale: locale),
+                  _Result(grams: form.amount?.proteinGrams, locale: locale),
                 ],
               ],
             ),
@@ -235,7 +241,7 @@ class _FormViewState extends ConsumerState<_FormView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (args.kind == EntryFormKind.newEntry)
+                if (args is NewEntryArgs)
                   _SaveAsProduct(
                     value: form.saveAsProduct,
                     label: form.updatesProduct
@@ -250,11 +256,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
                   ),
-                  child: Text(
-                    args.kind == EntryFormKind.newEntry
-                        ? l10n.addEntry
-                        : l10n.save,
-                  ),
+                  child: Text(args is NewEntryArgs ? l10n.addEntry : l10n.save),
                 ),
               ],
             ),
@@ -291,7 +293,7 @@ class _GramsField extends StatelessWidget {
 
   final TextEditingController controller;
 
-  /// Allows one decimal: only the protein content of a product needs it.
+  /// Allows one decimal: protein amounts take one, quantities of food none.
   final bool decimal;
   final ValueChanged<String> onChanged;
   final String? errorText;
@@ -387,7 +389,6 @@ class _Suggestions extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
-    String grams(double? value) => formatGrams(value ?? 0, locale);
 
     return Container(
       margin: const EdgeInsets.only(top: 4),
@@ -411,18 +412,19 @@ class _Suggestions extends StatelessWidget {
                     Expanded(
                       child: Text(product.name, style: textTheme.bodyLarge),
                     ),
-                    Text(
-                      product.mode == EntryMode.direct
-                          ? l10n.grams(grams(product.proteinGrams))
-                          : l10n.productPerReference(
-                              formatProteinContent(
-                                product.proteinPerReference ?? 0,
-                                locale,
-                              ),
-                              grams(product.referenceGrams),
-                            ),
-                      style: textTheme.bodySmall,
-                    ),
+                    Text(switch (product.amount) {
+                      DirectAmount(:final proteinGrams) => l10n.grams(
+                        formatProtein(proteinGrams, locale),
+                      ),
+                      PerQuantityAmount(
+                        :final proteinPerReference,
+                        :final referenceGrams,
+                      ) =>
+                        l10n.productPerReference(
+                          formatProtein(proteinPerReference, locale),
+                          formatGrams(referenceGrams, locale),
+                        ),
+                    }, style: textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -451,7 +453,7 @@ class _Result extends StatelessWidget {
       textBaseline: TextBaseline.alphabetic,
       children: [
         Text(
-          value == null ? '–' : l10n.grams(formatGrams(value, locale)),
+          value == null ? '–' : l10n.grams(formatProtein(value, locale)),
           style: textTheme.displaySmall!.copyWith(color: colors.accentText),
         ),
         const SizedBox(width: 8),

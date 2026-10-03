@@ -166,7 +166,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage> {
               _DismissibleEntry(
                 entry: entry,
                 color: AppColors.slot(slot),
-                grams: grams(entry.proteinGrams),
+                grams: l10n.grams(formatProtein(entry.proteinGrams, locale)),
                 time: formatTime(entry.createdAt, locale),
                 onDelete: () => _delete(entry),
               ),

@@ -24,14 +24,22 @@ void main() {
     );
   });
 
-  test('keeps decimals', () {
+  test('rounds to one decimal', () {
     expect(
       computeProtein(
         consumedGrams: 125,
         proteinPerReference: 12.5,
         referenceGrams: 100,
       ),
-      closeTo(15.625, 1e-9),
+      15.6,
+    );
+    expect(
+      computeProtein(
+        consumedGrams: 150,
+        proteinPerReference: 10.5,
+        referenceGrams: 100,
+      ),
+      15.8,
     );
   });
 }

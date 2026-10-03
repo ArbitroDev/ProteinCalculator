@@ -2,7 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
-import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
 import '../../helpers.dart';
@@ -16,18 +16,18 @@ void main() {
     for (final name in ['Skyr', 'Amandes', 'Œufs']) {
       await db.productsDao.insertProduct(
         name: name,
-        mode: EntryMode.perQuantity,
-        consumedGrams: 100,
-        proteinPerReference: 10,
-        referenceGrams: 100,
+        amount: const PerQuantityAmount(
+          consumedGrams: 100,
+          proteinPerReference: 10,
+          referenceGrams: 100,
+        ),
         createdAt: DateTime(2026, 9, 1),
       );
     }
     for (final hour in [8, 9]) {
       await db.entriesDao.insertEntry(
         name: 'Skyr',
-        mode: EntryMode.direct,
-        proteinGrams: 10,
+        amount: const DirectAmount(10),
         createdAt: DateTime(2026, 9, 30, hour),
       );
     }

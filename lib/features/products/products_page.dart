@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
-import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
@@ -238,19 +239,24 @@ class _ProductTile extends StatelessWidget {
     final colors = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     final locale = Localizations.localeOf(context).toString();
-    String grams(double? value) => formatGrams(value ?? 0, locale);
-
     final details = [
-      if (product.mode == EntryMode.direct)
-        l10n.grams(grams(product.proteinGrams))
-      else ...[
-        l10n.productPerReference(
-          formatProteinContent(product.proteinPerReference ?? 0, locale),
-          grams(product.referenceGrams),
-        ),
-        if (product.consumedGrams != null)
-          l10n.productPortion(grams(product.consumedGrams)),
-      ],
+      ...switch (product.amount) {
+        DirectAmount(:final proteinGrams) => [
+          l10n.grams(formatProtein(proteinGrams, locale)),
+        ],
+        PerQuantityAmount(
+          :final consumedGrams,
+          :final proteinPerReference,
+          :final referenceGrams,
+        ) =>
+          [
+            l10n.productPerReference(
+              formatProtein(proteinPerReference, locale),
+              formatGrams(referenceGrams, locale),
+            ),
+            l10n.productPortion(formatGrams(consumedGrams, locale)),
+          ],
+      },
       if (showUses) l10n.productUseCount(product.useCount),
     ].join(' · ');
 

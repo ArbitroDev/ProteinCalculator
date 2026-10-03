@@ -469,7 +469,7 @@ class _EntryLabel extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                l10n.grams(formatGrams(entry.proteinGrams, locale)),
+                l10n.grams(formatProtein(entry.proteinGrams, locale)),
                 style: textTheme.titleMedium,
               ),
             ],

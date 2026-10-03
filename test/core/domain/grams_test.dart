@@ -17,12 +17,22 @@ void main() {
     expect(parseGrams('Infinity'), isNull);
   });
 
-  test('accepts quantities above zero, up to four digits', () {
-    expect(isValidQuantity(0.1), isTrue);
-    expect(isValidQuantity(maxGrams), isTrue);
-    expect(isValidQuantity(0), isFalse);
-    expect(isValidQuantity(-1), isFalse);
-    expect(isValidQuantity(maxGrams + 1), isFalse);
+  test('accepts whole quantities of food, up to four digits', () {
+    expect(isValidFoodGrams(1), isTrue);
+    expect(isValidFoodGrams(maxFoodGrams), isTrue);
+    expect(isValidFoodGrams(12.5), isFalse);
+    expect(isValidFoodGrams(0), isFalse);
+    expect(isValidFoodGrams(maxFoodGrams + 1), isFalse);
+  });
+
+  test('accepts protein amounts with one decimal at most', () {
+    expect(isValidProteinGrams(0.1), isTrue);
+    expect(isValidProteinGrams(15.8), isTrue);
+    expect(isValidProteinGrams(maxProteinGrams), isTrue);
+    expect(isValidProteinGrams(15.75), isFalse);
+    expect(isValidProteinGrams(0), isFalse);
+    expect(isValidProteinGrams(-1), isFalse);
+    expect(isValidProteinGrams(10000), isFalse);
   });
 
   test('accepts daily goals between the bounds', () {

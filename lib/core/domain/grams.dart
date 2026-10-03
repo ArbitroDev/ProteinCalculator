@@ -9,12 +9,23 @@ double? parseGrams(String input) {
   return value != null && value.isFinite ? value : null;
 }
 
-/// Largest quantity accepted, in grams: the four digits the forms let type.
-const maxGrams = 9999.0;
+/// Largest quantity of food, in grams: the four digits the forms let type.
+const maxFoodGrams = 9999.0;
 
-/// Whether [grams] is a quantity the forms accept: above zero and at most
-/// [maxGrams].
-bool isValidQuantity(double grams) => grams > 0 && grams <= maxGrams;
+/// Largest protein amount typed, in grams: four digits and one decimal.
+const maxProteinGrams = 9999.9;
+
+/// Whether [grams] is a quantity of food the forms accept: a whole number
+/// above zero, at most [maxFoodGrams].
+bool isValidFoodGrams(double grams) =>
+    grams > 0 && grams <= maxFoodGrams && grams == grams.roundToDouble();
+
+/// Whether [grams] is a protein amount the forms accept: above zero, at
+/// most [maxProteinGrams], with one decimal at most.
+bool isValidProteinGrams(double grams) =>
+    grams > 0 &&
+    grams <= maxProteinGrams &&
+    (grams * 10 - (grams * 10).roundToDouble()).abs() < 1e-6;
 
 /// Smallest and largest daily goal accepted, in grams.
 const minDailyGoal = 1.0;

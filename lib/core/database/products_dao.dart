@@ -1,9 +1,10 @@
 import 'package:drift/drift.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/tables.dart';
-import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 
 part 'products_dao.g.dart';
 
@@ -41,24 +42,21 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
   /// Throws [DuplicateProductNameException] if the name is already used.
   Future<int> insertProduct({
     required String name,
-    required EntryMode mode,
-    double? proteinGrams,
-    double? consumedGrams,
-    double? proteinPerReference,
-    double? referenceGrams,
+    required ProteinAmount amount,
     required DateTime createdAt,
   }) {
+    final columns = amountColumns(amount);
     return transaction(() async {
       if (await isNameTaken(name)) throw DuplicateProductNameException(name);
       return into(products).insert(
         ProductsCompanion.insert(
           name: name.trim(),
           nameKey: productNameKey(name),
-          mode: mode,
-          proteinGrams: Value(proteinGrams),
-          consumedGrams: Value(consumedGrams),
-          proteinPerReference: Value(proteinPerReference),
-          referenceGrams: Value(referenceGrams),
+          mode: columns.mode,
+          proteinGrams: Value(columns.directGrams),
+          consumedGrams: Value(columns.consumedGrams),
+          proteinPerReference: Value(columns.proteinPerReference),
+          referenceGrams: Value(columns.referenceGrams),
           createdAt: createdAt,
         ),
       );

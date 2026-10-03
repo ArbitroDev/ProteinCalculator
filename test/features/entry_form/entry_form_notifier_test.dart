@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_notifier.dart';
@@ -46,15 +47,16 @@ void main() {
 
   Future<int> addProduct(String name) => db.productsDao.insertProduct(
     name: name,
-    mode: EntryMode.perQuantity,
-    consumedGrams: 150,
-    proteinPerReference: 10,
-    referenceGrams: 100,
+    amount: const PerQuantityAmount(
+      consumedGrams: 150,
+      proteinPerReference: 10,
+      referenceGrams: 100,
+    ),
     createdAt: DateTime(2026, 9, 1),
   );
 
   group('new entry', () {
-    const args = EntryFormArgs.newEntry();
+    const args = NewEntryArgs();
 
     test('saves a direct protein amount at the current time', () async {
       final form = await open(args);
@@ -72,6 +74,28 @@ void main() {
       expect(entry.createdAt, now);
     });
 
+    test('saves a protein amount typed with a decimal', () async {
+      final form = await open(args);
+      form.setProtein('12,5');
+
+      expect(await form.submit(), isTrue);
+
+      expect((await todayEntries()).single.proteinGrams, 12.5);
+    });
+
+    test('rounds the computed protein to one decimal', () async {
+      final form = await open(args);
+      form
+        ..setMode(EntryMode.perQuantity)
+        ..setConsumed('150')
+        ..setProteinPerReference('10,5');
+
+      expect(stateOf(args).amount?.proteinGrams, 15.8);
+      expect(await form.submit(), isTrue);
+
+      expect((await todayEntries()).single.proteinGrams, 15.8);
+    });
+
     test('computes the protein of a quantity eaten', () async {
       final form = await open(args);
       form
@@ -79,7 +103,7 @@ void main() {
         ..setConsumed('150')
         ..setProteinPerReference('10');
 
-      expect(stateOf(args).proteinGrams, 15);
+      expect(stateOf(args).amount?.proteinGrams, 15);
       expect(await form.submit(), isTrue);
 
       final entry = (await todayEntries()).single;
@@ -158,14 +182,14 @@ void main() {
 
     test('starts from a product', () async {
       final productId = await addProduct('Skyr');
-      final productArgs = EntryFormArgs.newEntry(productId: productId);
+      final productArgs = NewEntryArgs(productId: productId);
       await open(productArgs);
 
       final state = stateOf(productArgs);
       expect(state.name, 'Skyr');
       expect(state.mode, EntryMode.perQuantity);
       expect(state.consumed, '150');
-      expect(state.proteinGrams, 15);
+      expect(state.amount?.proteinGrams, 15);
     });
 
     test('fills the form with a picked product', () async {
@@ -182,11 +206,10 @@ void main() {
   test('editing an entry updates it instead of adding one', () async {
     final id = await db.entriesDao.insertEntry(
       name: 'Skyr',
-      mode: EntryMode.direct,
-      proteinGrams: 15,
+      amount: const DirectAmount(15),
       createdAt: DateTime(2026, 10, 1, 8),
     );
-    final args = EntryFormArgs.editEntry(id);
+    final args = EditEntryArgs(id);
     final form = await open(args);
     expect(stateOf(args).protein, '15');
 
@@ -201,7 +224,7 @@ void main() {
 
   group('product', () {
     test('creates a product only', () async {
-      const args = EntryFormArgs.newProduct();
+      const args = NewProductArgs();
       final form = await open(args);
       form
         ..setName('Poulet')
@@ -222,14 +245,14 @@ void main() {
       final id = await addProduct('Skyr');
       await db.entriesDao.insertEntry(
         name: 'Skyr',
-        mode: EntryMode.perQuantity,
-        proteinGrams: 15,
-        consumedGrams: 150,
-        proteinPerReference: 10,
-        referenceGrams: 100,
+        amount: const PerQuantityAmount(
+          consumedGrams: 150,
+          proteinPerReference: 10,
+          referenceGrams: 100,
+        ),
         createdAt: DateTime(2026, 10, 1, 8),
       );
-      final args = EntryFormArgs.editProduct(id);
+      final args = EditProductArgs(id);
       final form = await open(args);
 
       form.setProteinPerReference('9');
@@ -240,7 +263,7 @@ void main() {
     });
 
     test('needs a name', () async {
-      const args = EntryFormArgs.newProduct();
+      const args = NewProductArgs();
       final form = await open(args);
       form.setProtein('25');
 

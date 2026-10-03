@@ -2,12 +2,14 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 
 /// Identifies Protein Calculator backup files.
 const backupFormat = 'protein-calculator';
@@ -175,8 +177,8 @@ Future<void> restoreBackup(AppDatabase db, Backup backup) {
 }
 
 EntriesCompanion _entry(Map<String, dynamic> e) {
-  final mode = EntryMode.values.byName(e['mode'] as String);
-  final quantities = _perQuantity(e, mode);
+  final amount = _amount(e, storesProtein: true);
+  final columns = amountColumns(amount);
   final dayKey = e['dayKey'] as int;
   if (!isValidDayKey(dayKey)) throw const InvalidBackupException('invalid day');
   final name = e['name'] as String?;
@@ -186,11 +188,11 @@ EntriesCompanion _entry(Map<String, dynamic> e) {
   return EntriesCompanion.insert(
     id: Value(_id(e['id'])),
     name: Value(name),
-    mode: mode,
-    proteinGrams: _quantity(e['proteinGrams']),
-    consumedGrams: Value(quantities.consumed),
-    proteinPerReference: Value(quantities.perReference),
-    referenceGrams: Value(quantities.reference),
+    mode: columns.mode,
+    proteinGrams: amount.proteinGrams,
+    consumedGrams: Value(columns.consumedGrams),
+    proteinPerReference: Value(columns.proteinPerReference),
+    referenceGrams: Value(columns.referenceGrams),
     createdAt: DateTime.parse(e['createdAt'] as String).toLocal(),
     dayKey: dayKey,
   );
@@ -201,12 +203,7 @@ ProductsCompanion _product(Map<String, dynamic> p) {
   if (!isValidName(name)) {
     throw const InvalidBackupException('invalid product name');
   }
-  final mode = EntryMode.values.byName(p['mode'] as String);
-  final quantities = _perQuantity(p, mode);
-  final proteinGrams = _optionalQuantity(p['proteinGrams']);
-  if (mode == EntryMode.direct && proteinGrams == null) {
-    throw const InvalidBackupException('missing protein amount');
-  }
+  final columns = amountColumns(_amount(p, storesProtein: false));
   final useCount = p['useCount'] as int;
   if (useCount < 0) throw const InvalidBackupException('negative use count');
   final lastUsedAt = p['lastUsedAt'] as String?;
@@ -214,11 +211,11 @@ ProductsCompanion _product(Map<String, dynamic> p) {
     id: Value(_id(p['id'])),
     name: name,
     nameKey: productNameKey(name),
-    mode: mode,
-    proteinGrams: Value(proteinGrams),
-    consumedGrams: Value(quantities.consumed),
-    proteinPerReference: Value(quantities.perReference),
-    referenceGrams: Value(quantities.reference),
+    mode: columns.mode,
+    proteinGrams: Value(columns.directGrams),
+    consumedGrams: Value(columns.consumedGrams),
+    proteinPerReference: Value(columns.proteinPerReference),
+    referenceGrams: Value(columns.referenceGrams),
     useCount: Value(useCount),
     lastUsedAt: Value(
       lastUsedAt == null ? null : DateTime.parse(lastUsedAt).toLocal(),
@@ -229,43 +226,54 @@ ProductsCompanion _product(Map<String, dynamic> p) {
   );
 }
 
-/// Quantities of the "per quantity" mode of an entry or a product. In that
-/// mode, like in the form, all three are needed and the protein content
-/// cannot exceed the reference quantity.
-({double? consumed, double? perReference, double? reference}) _perQuantity(
-  Map<String, dynamic> json,
-  EntryMode mode,
-) {
-  final consumed = _optionalQuantity(json['consumedGrams']);
-  final perReference = _optionalQuantity(json['proteinPerReference']);
-  final reference = _optionalQuantity(json['referenceGrams']);
-  if (mode == EntryMode.perQuantity &&
-      (consumed == null ||
-          perReference == null ||
-          reference == null ||
-          perReference > reference)) {
-    throw const InvalidBackupException('invalid quantities');
+/// Protein amount of an entry or a product, following the rules of the
+/// form: protein amounts with one decimal at most, whole grams of food, a
+/// protein content not above the reference quantity, and nothing from the
+/// other mode.
+///
+/// In "per quantity" mode, an entry also stores the protein it amounts to
+/// ([storesProtein]); it is computed again rather than read.
+ProteinAmount _amount(
+  Map<String, dynamic> json, {
+  required bool storesProtein,
+}) {
+  final mode = EntryMode.values.byName(json['mode'] as String);
+  final protein = _optionalDouble(json['proteinGrams']);
+  final consumed = _optionalDouble(json['consumedGrams']);
+  final perReference = _optionalDouble(json['proteinPerReference']);
+  final reference = _optionalDouble(json['referenceGrams']);
+  switch (mode) {
+    case EntryMode.direct:
+      if (protein != null &&
+          isValidProteinGrams(protein) &&
+          consumed == null &&
+          perReference == null &&
+          reference == null) {
+        return DirectAmount(protein);
+      }
+    case EntryMode.perQuantity:
+      if ((protein != null) == storesProtein &&
+          consumed != null &&
+          isValidFoodGrams(consumed) &&
+          perReference != null &&
+          isValidProteinGrams(perReference) &&
+          reference != null &&
+          isValidFoodGrams(reference) &&
+          perReference <= reference) {
+        return PerQuantityAmount(
+          consumedGrams: consumed,
+          proteinPerReference: perReference,
+          referenceGrams: reference,
+        );
+      }
   }
-  return (consumed: consumed, perReference: perReference, reference: reference);
+  throw const InvalidBackupException('invalid protein amount');
 }
 
 int _id(Object? value) {
   final id = value as int;
   if (id <= 0) throw const InvalidBackupException('invalid id');
   return id;
-}
-
-double _quantity(Object? value) =>
-    _optionalQuantity(value) ??
-    (throw const InvalidBackupException('missing quantity'));
-
-/// A quantity in grams, or null if absent; see [isValidQuantity].
-double? _optionalQuantity(Object? value) {
-  final grams = _optionalDouble(value);
-  if (grams != null && !isValidQuantity(grams)) {
-    throw const InvalidBackupException('quantity out of range');
-  }
-  return grams;
 }
 
 double? _optionalDouble(Object? value) => (value as num?)?.toDouble();

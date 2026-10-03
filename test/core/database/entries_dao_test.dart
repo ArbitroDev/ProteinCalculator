@@ -4,6 +4,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 
 import 'test_database.dart';
 
@@ -19,16 +20,14 @@ void main() {
   Future<int> addEntry(double grams, DateTime createdAt, {String? name}) =>
       dao.insertEntry(
         name: name,
-        mode: EntryMode.direct,
-        proteinGrams: grams,
+        amount: DirectAmount(grams),
         createdAt: createdAt,
       );
 
   Future<Product> addProduct(String name) async {
     final id = await db.productsDao.insertProduct(
       name: name,
-      mode: EntryMode.direct,
-      proteinGrams: 20,
+      amount: const DirectAmount(20),
       createdAt: DateTime(2026, 9, 1),
     );
     return (await db.productsDao.getProduct(id))!;
@@ -38,11 +37,11 @@ void main() {
     test('stores every value and computes the app day', () async {
       final id = await dao.insertEntry(
         name: 'Skyr',
-        mode: EntryMode.perQuantity,
-        proteinGrams: 15,
-        consumedGrams: 150,
-        proteinPerReference: 10,
-        referenceGrams: 100,
+        amount: const PerQuantityAmount(
+          consumedGrams: 150,
+          proteinPerReference: 10,
+          referenceGrams: 100,
+        ),
         createdAt: DateTime(2026, 10, 1, 1, 10),
       );
 

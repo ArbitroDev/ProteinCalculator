@@ -1,7 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
-import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
 
 import '../../helpers.dart';
 
@@ -13,13 +13,9 @@ void main() {
     await db.settingsDao.setDailyGoal(140);
   });
 
-  Future<void> addEntry(String? name, double grams, DateTime at) =>
-      db.entriesDao.insertEntry(
-        name: name,
-        mode: EntryMode.direct,
-        proteinGrams: grams,
-        createdAt: at,
-      );
+  Future<void> addEntry(String? name, double grams, DateTime at) => db
+      .entriesDao
+      .insertEntry(name: name, amount: DirectAmount(grams), createdAt: at);
 
   Future<void> openHistory(WidgetTester tester) async {
     await pumpApp(tester, db);

@@ -2,9 +2,12 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
+import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/protein_calc.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
 
@@ -46,29 +49,24 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
   @override
   Future<EntryFormState> build() async {
     final db = ref.read(databaseProvider);
-    switch (args.kind) {
-      case EntryFormKind.newEntry:
-        final productId = args.id;
+    switch (args) {
+      case NewEntryArgs(:final productId):
         if (productId == null) return const EntryFormState();
         final product = await db.productsDao.getProduct(productId);
         if (product == null) return const EntryFormState();
         _source = product;
         return _withSourceStatus(_fromProduct(const EntryFormState(), product));
-      case EntryFormKind.newProduct:
+      case NewProductArgs():
         return const EntryFormState();
-      case EntryFormKind.editEntry:
-        final entry = await db.entriesDao.getEntry(args.id!);
+      case EditEntryArgs(:final entryId):
+        final entry = await db.entriesDao.getEntry(entryId);
         if (entry == null) return const EntryFormState();
-        return EntryFormState(
-          name: entry.name ?? '',
-          mode: entry.mode,
-          protein: _text(entry.proteinGrams),
-          consumed: _text(entry.consumedGrams),
-          proteinPerReference: _decimalText(entry.proteinPerReference),
-          reference: _text(entry.referenceGrams, fallback: '100'),
+        return _withAmount(
+          EntryFormState(name: entry.name ?? ''),
+          entry.amount,
         );
-      case EntryFormKind.editProduct:
-        final product = await db.productsDao.getProduct(args.id!);
+      case EditProductArgs(:final productId):
+        final product = await db.productsDao.getProduct(productId);
         return product == null
             ? const EntryFormState()
             : _fromProduct(const EntryFormState(), product);
@@ -76,26 +74,42 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
   }
 
   EntryFormState _fromProduct(EntryFormState base, Product product) =>
-      base.copyWith(
-        name: product.name,
-        mode: product.mode,
-        protein: _text(product.proteinGrams),
-        consumed: _text(product.consumedGrams),
-        proteinPerReference: _decimalText(product.proteinPerReference),
-        reference: _text(product.referenceGrams, fallback: '100'),
-        errors: const {},
-        revision: base.revision + 1,
+      _withAmount(
+        base.copyWith(
+          name: product.name,
+          errors: const {},
+          revision: base.revision + 1,
+        ),
+        product.amount,
       );
 
-  /// Text of a stored quantity, rounded to a whole number of grams like
-  /// everything typed in the form.
-  static String _text(double? value, {String fallback = ''}) =>
-      value == null ? fallback : value.round().toString();
+  /// [form] showing [amount].
+  static EntryFormState _withAmount(
+    EntryFormState form,
+    ProteinAmount amount,
+  ) => switch (amount) {
+    DirectAmount(:final proteinGrams) => form.copyWith(
+      mode: amount.mode,
+      protein: _proteinText(proteinGrams),
+      consumed: '',
+      proteinPerReference: '',
+      reference: _gramsText(defaultReferenceGrams),
+    ),
+    PerQuantityAmount() => form.copyWith(
+      mode: amount.mode,
+      // Ready if the user switches to typing the amount directly.
+      protein: _proteinText(amount.proteinGrams),
+      consumed: _gramsText(amount.consumedGrams),
+      proteinPerReference: _proteinText(amount.proteinPerReference),
+      reference: _gramsText(amount.referenceGrams),
+    ),
+  };
 
-  /// Text of the protein content of a product, the only quantity typed with
-  /// a decimal: "10.5", "23".
-  static String _decimalText(double? value) {
-    if (value == null) return '';
+  /// Text of a quantity of food, a whole number of grams.
+  static String _gramsText(double value) => value.round().toString();
+
+  /// Text of a protein amount, typed with one decimal at most: "10.5", "23".
+  static String _proteinText(double value) {
     final tenths = (value * 10).round();
     return tenths % 10 == 0 ? '${tenths ~/ 10}' : (tenths / 10).toString();
   }
@@ -109,7 +123,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
   /// product the entry starts from.
   EntryFormState _withSourceStatus(EntryFormState form) {
     final source = _source;
-    if (args.kind != EntryFormKind.newEntry || source == null) return form;
+    if (args is! NewEntryArgs || source == null) return form;
     final changed = !_matches(form, source);
     return form.copyWith(
       canSaveAsProduct: changed,
@@ -176,9 +190,9 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
     if (needsName && !errors.containsKey(EntryFormField.name)) {
       final taken = await _db.productsDao.isNameTaken(
         current.name,
-        exceptId: switch (args.kind) {
-          EntryFormKind.editProduct => args.id,
-          EntryFormKind.newEntry when current.updatesProduct => _source?.id,
+        exceptId: switch (args) {
+          EditProductArgs(:final productId) => productId,
+          NewEntryArgs() when current.updatesProduct => _source?.id,
           _ => null,
         },
       );
@@ -208,35 +222,21 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
     final db = _db;
     final now = ref.read(clockProvider)();
     final name = form.name.trim();
-    final direct = form.mode == EntryMode.direct;
-    final proteinGrams = form.proteinGrams!;
-    final consumed = direct ? null : parseGrams(form.consumed);
-    final per = direct ? null : parseGrams(form.proteinPerReference);
-    final reference = direct ? null : parseGrams(form.reference);
+    // Valid once the form is validated.
+    final amount = form.amount!;
 
     Future<int> insertProduct() => db.productsDao.insertProduct(
       name: name,
-      mode: form.mode,
-      proteinGrams: direct ? proteinGrams : null,
-      consumedGrams: consumed,
-      proteinPerReference: per,
-      referenceGrams: reference,
+      amount: amount,
       createdAt: now,
     );
 
     Future<void> updateProduct(Product product) => db.productsDao.updateProduct(
-      product.copyWith(
-        name: name,
-        mode: form.mode,
-        proteinGrams: Value(direct ? proteinGrams : null),
-        consumedGrams: Value(consumed),
-        proteinPerReference: Value(per),
-        referenceGrams: Value(reference),
-      ),
+      product.withAmount(amount).copyWith(name: name),
     );
 
-    switch (args.kind) {
-      case EntryFormKind.newEntry:
+    switch (args) {
+      case NewEntryArgs():
         await db.transaction(() async {
           // The product goes first so this entry counts as its first use.
           if (form.saveAsProduct) {
@@ -251,31 +251,22 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
           }
           await db.entriesDao.insertEntry(
             name: name.isEmpty ? null : name,
-            mode: form.mode,
-            proteinGrams: proteinGrams,
-            consumedGrams: consumed,
-            proteinPerReference: per,
-            referenceGrams: reference,
+            amount: amount,
             createdAt: now,
           );
         });
-      case EntryFormKind.editEntry:
-        final entry = await db.entriesDao.getEntry(args.id!);
+      case EditEntryArgs(:final entryId):
+        final entry = await db.entriesDao.getEntry(entryId);
         if (entry == null) return;
         await db.entriesDao.updateEntry(
-          entry.copyWith(
-            name: Value(name.isEmpty ? null : name),
-            mode: form.mode,
-            proteinGrams: proteinGrams,
-            consumedGrams: Value(consumed),
-            proteinPerReference: Value(per),
-            referenceGrams: Value(reference),
-          ),
+          entry
+              .withAmount(amount)
+              .copyWith(name: Value(name.isEmpty ? null : name)),
         );
-      case EntryFormKind.newProduct:
+      case NewProductArgs():
         await insertProduct();
-      case EntryFormKind.editProduct:
-        final product = await db.productsDao.getProduct(args.id!);
+      case EditProductArgs(:final productId):
+        final product = await db.productsDao.getProduct(productId);
         if (product != null) await updateProduct(product);
     }
   }
