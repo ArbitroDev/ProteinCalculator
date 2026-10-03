@@ -93,6 +93,18 @@ void main() {
     expect(backup.entries.first.dayKey.value, 20260930);
   });
 
+  test('accepts names of 40 characters, an emoji counting as one', () async {
+    final json = jsonDecode(await export()) as Map<String, dynamic>;
+    final name = '${'S' * 38}👍🏽💪';
+    (json['entries'] as List).first['name'] = name;
+    (json['products'] as List).first['name'] = name;
+
+    final backup = parseBackup(jsonEncode(json));
+
+    expect(backup.entries.first.name.value, name);
+    expect(backup.products.first.name.value, name);
+  });
+
   test('names the file after the date', () {
     expect(
       backupFileName(DateTime(2026, 10, 1, 13)),
@@ -189,6 +201,18 @@ void main() {
       final json = await exported();
       (json['entries'] as List).first['dayKey'] = 20260931;
       expectInvalid(jsonEncode(json));
+    });
+
+    test('with an invalid name', () async {
+      for (final name in ['', '   ', ' Skyr', 'S' * 41]) {
+        final entries = await exported();
+        (entries['entries'] as List).first['name'] = name;
+        expectInvalid(jsonEncode(entries));
+
+        final products = await exported();
+        (products['products'] as List).first['name'] = name;
+        expectInvalid(jsonEncode(products));
+      }
     });
 
     test('with a negative use count', () async {

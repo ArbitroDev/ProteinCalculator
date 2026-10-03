@@ -25,4 +25,14 @@ void main() {
       expect(names, ['amandes', 'Épinards', 'Œufs', 'Poulet', 'Skyr']);
     });
   });
+
+  test('accepts trimmed names of up to 40 characters', () {
+    expect(isValidName('Skyr'), isTrue);
+    expect(isValidName('S' * 40), isTrue);
+    expect(isValidName('${'S' * 39}👍🏽'), isTrue);
+    expect(isValidName(''), isFalse);
+    expect(isValidName(' '), isFalse);
+    expect(isValidName('Skyr '), isFalse);
+    expect(isValidName('S' * 41), isFalse);
+  });
 }

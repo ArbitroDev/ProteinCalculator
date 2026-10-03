@@ -179,9 +179,13 @@ EntriesCompanion _entry(Map<String, dynamic> e) {
   final quantities = _perQuantity(e, mode);
   final dayKey = e['dayKey'] as int;
   if (!isValidDayKey(dayKey)) throw const InvalidBackupException('invalid day');
+  final name = e['name'] as String?;
+  if (name != null && !isValidName(name)) {
+    throw const InvalidBackupException('invalid entry name');
+  }
   return EntriesCompanion.insert(
     id: Value(_id(e['id'])),
-    name: Value(e['name'] as String?),
+    name: Value(name),
     mode: mode,
     proteinGrams: _quantity(e['proteinGrams']),
     consumedGrams: Value(quantities.consumed),
@@ -193,8 +197,10 @@ EntriesCompanion _entry(Map<String, dynamic> e) {
 }
 
 ProductsCompanion _product(Map<String, dynamic> p) {
-  final name = (p['name'] as String).trim();
-  if (name.isEmpty) throw const InvalidBackupException('empty product name');
+  final name = p['name'] as String;
+  if (!isValidName(name)) {
+    throw const InvalidBackupException('invalid product name');
+  }
   final mode = EntryMode.values.byName(p['mode'] as String);
   final quantities = _perQuantity(p, mode);
   final proteinGrams = _optionalQuantity(p['proteinGrams']);

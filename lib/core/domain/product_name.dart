@@ -1,5 +1,15 @@
-/// Longest name of an entry or a product.
+import 'package:characters/characters.dart';
+
+/// Longest name of an entry or a product, in characters as the user sees
+/// them: an emoji counts as one.
 const maxNameLength = 40;
+
+/// Whether [name] can name an entry or a product: not blank, without spaces
+/// around it, and at most [maxNameLength] characters, like the form allows.
+bool isValidName(String name) =>
+    name.isNotEmpty &&
+    name.trim() == name &&
+    name.characters.length <= maxNameLength;
 
 const _foldedLetters = {
   'à': 'a',
