@@ -233,4 +233,60 @@ void main() {
       },
     );
   });
+
+  test('migration from v2 to v4, the version of the first testers', () async {
+    final morning = DateTime(2026, 10, 1, 8).millisecondsSinceEpoch ~/ 1000;
+    final evening = DateTime(2026, 10, 1, 20).millisecondsSinceEpoch ~/ 1000;
+
+    await verifier.testWithDataIntegrity(
+      oldVersion: 2,
+      newVersion: 4,
+      createOld: v2.DatabaseAtV2.new,
+      createNew: v4.DatabaseAtV4.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch
+          ..insertAll(oldDb.entries, [
+            v2.EntriesData(
+              id: 1,
+              name: 'Œufs',
+              mode: 'direct',
+              proteinGrams: 12,
+              createdAt: morning,
+              dayKey: 20261001,
+            ),
+            v2.EntriesData(
+              id: 2,
+              mode: 'direct',
+              proteinGrams: 30,
+              createdAt: evening,
+              dayKey: 20261001,
+            ),
+          ])
+          ..insert(
+            oldDb.products,
+            const v2.ProductsData(
+              id: 1,
+              name: 'Oeufs',
+              nameKey: 'oeufs',
+              mode: 'direct',
+              proteinGrams: 12,
+              useCount: 0,
+              createdAt: 1780000000,
+              isFavorite: 0,
+            ),
+          );
+      },
+      validateItems: (newDb) async {
+        final entries = await newDb.select(newDb.entries).get();
+        expect(entries.map((e) => (e.slot, e.nameKey)), [
+          ('morning', 'oeufs'),
+          ('evening', null),
+        ]);
+        final product = await newDb.select(newDb.products).getSingle();
+        expect(product.useCount, 1);
+        expect(product.lastUsedAt, morning);
+      },
+    );
+  });
 }
