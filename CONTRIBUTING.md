@@ -31,9 +31,10 @@ commit messages). A pull request can only be merged once all checks pass.
 - `develop` gathers the accepted pull requests. It is the default branch.
 - `main` holds released versions only. It accepts pull requests from
   `develop` alone, opened by the maintainer when a version is ready.
-- Every merge into `main` runs the release workflow: it builds the signed
-  app bundle, sends it to the closed testing track of Google Play and tags
-  the version (`v1.2.3`). The version in `pubspec.yaml` must therefore be
+- Every merge into `main` runs the release workflow: it runs the automated
+  checks again on the merged commit and, only if they pass, builds the
+  signed app bundle, sends it to the closed testing track of Google Play
+  and tags the version (`v1.2.3`). The version in `pubspec.yaml` must therefore be
   increased in `develop` before each release.
 
 ## Commit messages
