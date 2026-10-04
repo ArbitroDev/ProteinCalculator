@@ -59,6 +59,11 @@ merging one, the maintainer:
 - checks that each new commit is the one the version tag points to in the
   official repository of the action, not a commit from a fork.
 
+Dependabot does the same for the Dart and Flutter packages of
+`pubspec.yaml`, in a separate weekly pull request: the maintainer reads the
+changelog of each package before merging, and the automated checks run on
+the updated packages.
+
 ## Commit messages
 
 Commit titles and pull request titles follow

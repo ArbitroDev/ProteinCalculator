@@ -17,3 +17,17 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: ci
+
+  # Dart and Flutter packages of pubspec.yaml, under the same rules.
+  - package-ecosystem: pub
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      packages:
+        patterns: ["*"]
+    commit-message:
+      prefix: build
