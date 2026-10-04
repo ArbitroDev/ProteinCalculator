@@ -52,3 +52,7 @@ lib/l10n/app_localizations*.dart
 
 # Local Sentry DSN, given at build time
 sentry.json
+
+# Raw screenshots rendered by tool/store_screenshots
+/tool/store_screenshots/en/
+/tool/store_screenshots/fr/
