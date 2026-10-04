@@ -4,10 +4,12 @@ Run from the root of the repository, after
     flutter test tool/store_screenshots --update-goldens
 with:
     python tool/store_screenshots/compose.py
-Needs Pillow (pip install pillow). Writes store/<language>/screenshots/*.png
-(1080 x 1920) and store/<language>/feature-graphic.png (1024 x 500).
+Needs Pillow (pip install pillow). Writes, for the version of pubspec.yaml,
+store/<language>/screenshots/<n>_<language>_<version>.png (1080 x 1920) and
+store/<language>/feature-graphic_<language>_<version>.png (1024 x 500).
 """
 import os
+import re
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -86,10 +88,16 @@ def feature_graphic(language, path):
     graphic.save(path, optimize=True)
 
 
+with open('pubspec.yaml', encoding='utf-8') as pubspec:
+    VERSION = re.search(r'^version: *([^+\s]+)', pubspec.read(), re.M).group(1)
+
 for language, screens in SCREENS.items():
     folder = f'store/{language}/screenshots'
     os.makedirs(folder, exist_ok=True)
     for index, (shot, theme, line1, line2) in enumerate(screens, 1):
-        screenshot(language, shot, theme, line1, line2, f'{folder}/{index}.png')
-    feature_graphic(language, f'store/{language}/feature-graphic.png')
-    print(f'{language}: {len(screens)} screenshots and the feature graphic')
+        path = f'{folder}/{index}_{language}_{VERSION}.png'
+        screenshot(language, shot, theme, line1, line2, path)
+    feature_graphic(
+        language, f'store/{language}/feature-graphic_{language}_{VERSION}.png'
+    )
+    print(f'{language} {VERSION}: {len(screens)} screenshots and the feature graphic')
