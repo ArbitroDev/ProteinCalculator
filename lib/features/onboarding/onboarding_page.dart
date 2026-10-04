@@ -140,16 +140,29 @@ class _CrashReportsChoice extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: () => onChanged(!value),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Checkbox(
-            value: value,
-            onChanged: (checked) => onChanged(checked ?? false),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // The box itself sits on the left edge, like the other fields:
+            // its larger tap area overflows, the whole row being tappable.
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: SizedBox.square(
+                dimension: 18,
+                child: OverflowBox(
+                  maxWidth: 40,
+                  maxHeight: 40,
+                  child: Checkbox(
+                    value: value,
+                    onChanged: (checked) => onChanged(checked ?? false),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -162,8 +175,8 @@ class _CrashReportsChoice extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
