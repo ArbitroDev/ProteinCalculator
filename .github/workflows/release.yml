@@ -89,15 +89,20 @@ jobs:
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: alpha
           status: completed
+          # whatsnew-fr-FR and whatsnew-en-US, written before the release.
+          whatsNewDirectory: store/whatsnew
+          # Lets Google Play read the stack traces of the Android code,
+          # shrunk by R8 in release builds.
+          mappingFile: build/app/outputs/mapping/release/mapping.txt
 
-      - name: Tag the version
+      - name: Tag the version with its changelog
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.full }}
         run: |
+          bash .github/scripts/release_notes.sh "${TAG#v}" > release-notes.md
           gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" \
-            --notes "Version $VERSION, sent to the closed testing track of Google Play."
+            --notes-file release-notes.md
 
       - name: Remove the signing files
         if: always()

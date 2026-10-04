@@ -39,6 +39,12 @@ commit messages). A pull request can only be merged once all checks pass.
 - The publishing job uses the `release` environment of the repository: its
   secrets (signing key, Google Play service account, Sentry address) are
   stored there only, and each release waits for the maintainer's approval.
+- Each release needs its **What's new** texts for Google Play, written for
+  users in `store/whatsnew/whatsnew-fr-FR` and `whatsnew-en-US` (500
+  characters at most). The release pull request checks them and previews
+  the changelog.
+- The full changelog of the GitHub release is generated from the commit
+  titles since the previous version: keep them meaningful.
 
 ### Actions used by the workflows
 
