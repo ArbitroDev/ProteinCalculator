@@ -1,0 +1,33 @@
+# Proposes updates of the actions used by the workflows, pinned to commits.
+# Never merged automatically: every update is reviewed, see CONTRIBUTING.md.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    # A compromised release is usually found and removed within days: new
+    # versions are only proposed after a week.
+    cooldown:
+      default-days: 7
+    # One pull request for all the actions.
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+
+  # Dart and Flutter packages of pubspec.yaml, under the same rules.
+  - package-ecosystem: pub
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      packages:
+        patterns: ["*"]
+    commit-message:
+      prefix: build
