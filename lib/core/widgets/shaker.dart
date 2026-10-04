@@ -51,7 +51,7 @@ class ShakerMotion extends ChangeNotifier {
 /// The fill level animates when entries are added or removed, unless the
 /// device asks to reduce animations. An optional [motion] tilts and mixes
 /// the liquid.
-class Shaker extends StatelessWidget {
+class Shaker extends StatefulWidget {
   const Shaker({
     super.key,
     required this.layers,
@@ -86,15 +86,26 @@ class Shaker extends StatelessWidget {
   static const topInset = 10.6 / 290;
 
   @override
+  State<Shaker> createState() => _ShakerState();
+}
+
+class _ShakerState extends State<Shaker> {
+  /// Part of the day of the last top layer: once every layer is gone, the
+  /// liquid still drains in its color.
+  DaySlot _lastSlot = DaySlot.afternoon;
+
+  @override
   Widget build(BuildContext context) {
+    final layers = widget.layers;
+    if (layers.isNotEmpty) _lastSlot = layers.last.slot;
     final total = layers.map((layer) => layer.grams).sum;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
     return Semantics(
-      label: semanticLabel,
+      label: widget.semanticLabel,
       image: true,
       child: AspectRatio(
-        aspectRatio: aspectRatio,
+        aspectRatio: Shaker.aspectRatio,
         child: TweenAnimationBuilder<double>(
           tween: Tween(end: total),
           duration: reduceMotion
@@ -104,13 +115,15 @@ class Shaker extends StatelessWidget {
           builder: (context, level, _) => RepaintBoundary(
             child: CustomPaint(
               painter: _ShakerPainter(
-                layers: layers,
-                goal: goal,
+                layers: layers.isEmpty
+                    ? [ShakerLayer(grams: 0, slot: _lastSlot)]
+                    : layers,
+                goal: widget.goal,
                 level: level,
                 colors: AppColors.of(context),
-                motion: motion,
-                maxGrams: maxGrams,
-                showGoalLine: showGoalLine,
+                motion: widget.motion,
+                maxGrams: widget.maxGrams,
+                showGoalLine: widget.showGoalLine,
               ),
             ),
           ),
@@ -207,7 +220,9 @@ class _ShakerPainter extends CustomPainter {
     for (var i = 0; i < layers.length && start < level; i++) {
       final layer = layers[i];
       final fullEnd = start + layer.grams;
-      final end = min(fullEnd, level);
+      // While the level goes down, the top layer follows it instead of
+      // stopping at once at its new size.
+      final end = i == layers.length - 1 ? level : min(fullEnd, level);
       final isTop = end >= level;
 
       final upper = line(end, i + 1, surface: isTop);
