@@ -168,6 +168,10 @@
   "@formResult": {
     "description": "After the computed protein amount, as in '15 g of protein'."
   },
+  "suggestionsTitle": "Produits enregistrés",
+  "@suggestionsTitle": {
+    "description": "Title of the product suggestions under the name field."
+  },
   "saveAsProduct": "Enregistrer comme produit",
   "@saveAsProduct": {
     "description": "Checkbox also saving the entry as a product."

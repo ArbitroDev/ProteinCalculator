@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,6 +77,46 @@ class _FormViewState extends ConsumerState<_FormView> {
   final _nameFocus = FocusNode();
   bool _saving = false;
 
+  /// Suggestions show while the name field has the focus, until a product
+  /// is picked or they are closed.
+  late bool _hideSuggestions = widget.form.name.isNotEmpty;
+
+  /// Whether the name field counts as focused for the suggestions. When it
+  /// loses the focus during a tap, the suggestions only go away once the
+  /// finger is lifted, so nothing moves under the tap.
+  bool _nameActive = false;
+  int _pointersDown = 0;
+  bool _deactivatePending = false;
+
+  void _onNameFocus() {
+    if (_nameFocus.hasFocus) {
+      _deactivatePending = false;
+      if (!_nameActive) setState(() => _nameActive = true);
+    } else if (_pointersDown > 0) {
+      _deactivatePending = true;
+    } else {
+      setState(() => _nameActive = false);
+    }
+  }
+
+  void _onPointerEnd(PointerEvent _) {
+    _pointersDown = max(0, _pointersDown - 1);
+    if (_pointersDown == 0 && _deactivatePending) {
+      _deactivatePending = false;
+      setState(() => _nameActive = false);
+    }
+  }
+
+  void _dismissSuggestions() {
+    if (!_hideSuggestions) setState(() => _hideSuggestions = true);
+  }
+
+  /// [change], hiding the suggestions first.
+  ValueChanged<T> _dismissing<T>(ValueChanged<T> change) => (value) {
+    _dismissSuggestions();
+    change(value);
+  };
+
   EntryFormNotifier get _notifier =>
       ref.read(entryFormProvider(widget.args).notifier);
 
@@ -87,7 +129,7 @@ class _FormViewState extends ConsumerState<_FormView> {
     _consumed = TextEditingController(text: form.consumed);
     _per = TextEditingController(text: form.proteinPerReference);
     _reference = TextEditingController(text: form.reference);
-    _nameFocus.addListener(() => setState(() {}));
+    _nameFocus.addListener(_onNameFocus);
   }
 
   /// Whether the decimal separator of the user's language was applied.
@@ -148,126 +190,155 @@ class _FormViewState extends ConsumerState<_FormView> {
       EntryFormError.nameTaken => l10n.errorNameTaken,
     };
 
-    final suggestions = args.isProduct || !_nameFocus.hasFocus
+    final suggestions = args.isProduct || _hideSuggestions || !_nameActive
         ? const <Product>[]
         : ref.watch(productSuggestionsProvider(form.name));
 
-    return SafeArea(
-      top: false,
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 4, 18, 16),
-              children: [
-                _Label(
-                  args.isProduct || form.saveAsProduct
-                      ? l10n.formName
-                      : l10n.formNameOptional,
-                ),
-                TextField(
-                  controller: _name,
-                  focusNode: _nameFocus,
-                  textCapitalization: TextCapitalization.sentences,
-                  inputFormatters: [
-                    LengthLimitingTextInputFormatter(maxNameLength),
-                  ],
-                  textInputAction: TextInputAction.next,
-                  onChanged: _notifier.setName,
-                  decoration: InputDecoration(
-                    hintText: l10n.formNameHint,
-                    errorText: error(EntryFormField.name),
+    return Listener(
+      onPointerDown: (_) => _pointersDown++,
+      onPointerUp: _onPointerEnd,
+      onPointerCancel: _onPointerEnd,
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(18, 4, 18, 16),
+                children: [
+                  _Label(
+                    args.isProduct || form.saveAsProduct
+                        ? l10n.formName
+                        : l10n.formNameOptional,
                   ),
-                ),
-                if (suggestions.isNotEmpty)
-                  _Suggestions(
-                    products: suggestions,
-                    locale: locale,
-                    onSelected: (product) {
-                      FocusScope.of(context).unfocus();
-                      _notifier.applyProduct(product);
-                    },
-                  ),
-                const SizedBox(height: 14),
-                _ModeSelector(mode: form.mode, onChanged: _notifier.setMode),
-                if (form.mode == EntryMode.direct) ...[
-                  _Label(l10n.formProtein),
-                  _GramsField(
-                    controller: _protein,
-                    decimal: true,
-                    onChanged: _notifier.setProtein,
-                    errorText: error(EntryFormField.protein),
-                  ),
-                ] else ...[
-                  _Label(args.isProduct ? l10n.formPortion : l10n.formConsumed),
-                  _GramsField(
-                    controller: _consumed,
-                    onChanged: _notifier.setConsumed,
-                    errorText: error(EntryFormField.consumed),
-                  ),
-                  _Label(l10n.formProductProtein),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _GramsField(
-                          controller: _per,
-                          decimal: true,
-                          onChanged: _notifier.setProteinPerReference,
-                          errorText: error(EntryFormField.proteinPerReference),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 14, 10, 0),
-                        child: Text(
-                          l10n.formPer,
-                          style: Theme.of(context).textTheme.bodyLarge!
-                              .copyWith(
-                                color: AppColors.of(context).textSecondary,
-                              ),
-                        ),
-                      ),
-                      Expanded(
-                        child: _GramsField(
-                          controller: _reference,
-                          onChanged: _notifier.setReference,
-                          errorText: error(EntryFormField.reference),
-                        ),
-                      ),
+                  TextField(
+                    controller: _name,
+                    focusNode: _nameFocus,
+                    textCapitalization: TextCapitalization.sentences,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(maxNameLength),
                     ],
+                    textInputAction: TextInputAction.next,
+                    onChanged: (value) {
+                      if (_hideSuggestions) {
+                        setState(() => _hideSuggestions = false);
+                      }
+                      _notifier.setName(value);
+                    },
+                    decoration: InputDecoration(
+                      hintText: l10n.formNameHint,
+                      errorText: error(EntryFormField.name),
+                    ),
                   ),
+                  // Always one slot, even when empty: the fields after it keep
+                  // their place in the list, so the field being tapped is not
+                  // rebuilt (it would lose the focus, which would go back to
+                  // the name).
+                  if (suggestions.isEmpty)
+                    const SizedBox.shrink()
+                  else
+                    _Suggestions(
+                      products: suggestions,
+                      locale: locale,
+                      onSelected: (product) {
+                        FocusScope.of(context).unfocus();
+                        _dismissSuggestions();
+                        _notifier.applyProduct(product);
+                      },
+                      onClose: _dismissSuggestions,
+                    ),
                   const SizedBox(height: 14),
-                  _Result(grams: form.amount?.proteinGrams, locale: locale),
+                  _ModeSelector(
+                    mode: form.mode,
+                    onChanged: _dismissing(_notifier.setMode),
+                  ),
+                  if (form.mode == EntryMode.direct) ...[
+                    _Label(l10n.formProtein),
+                    _GramsField(
+                      controller: _protein,
+                      decimal: true,
+                      onChanged: _dismissing(_notifier.setProtein),
+                      errorText: error(EntryFormField.protein),
+                    ),
+                  ] else ...[
+                    _Label(
+                      args.isProduct ? l10n.formPortion : l10n.formConsumed,
+                    ),
+                    _GramsField(
+                      controller: _consumed,
+                      onChanged: _dismissing(_notifier.setConsumed),
+                      errorText: error(EntryFormField.consumed),
+                    ),
+                    _Label(l10n.formProductProtein),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _GramsField(
+                            controller: _per,
+                            decimal: true,
+                            onChanged: _dismissing(
+                              _notifier.setProteinPerReference,
+                            ),
+                            errorText: error(
+                              EntryFormField.proteinPerReference,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 14, 10, 0),
+                          child: Text(
+                            l10n.formPer,
+                            style: Theme.of(context).textTheme.bodyLarge!
+                                .copyWith(
+                                  color: AppColors.of(context).textSecondary,
+                                ),
+                          ),
+                        ),
+                        Expanded(
+                          child: _GramsField(
+                            controller: _reference,
+                            onChanged: _dismissing(_notifier.setReference),
+                            errorText: error(EntryFormField.reference),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _Result(grams: form.amount?.proteinGrams, locale: locale),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (args is NewEntryArgs)
-                  _SaveAsProduct(
-                    value: form.saveAsProduct,
-                    label: form.updatesProduct
-                        ? l10n.updateProduct
-                        : l10n.saveAsProduct,
-                    onChanged: form.canSaveAsProduct
-                        ? _notifier.setSaveAsProduct
-                        : null,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (args is NewEntryArgs)
+                    _SaveAsProduct(
+                      value: form.saveAsProduct,
+                      label: form.updatesProduct
+                          ? l10n.updateProduct
+                          : l10n.saveAsProduct,
+                      onChanged: form.canSaveAsProduct
+                          ? _notifier.setSaveAsProduct
+                          : null,
+                    ),
+                  FilledButton(
+                    onPressed: _saving ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                    ),
+                    child: Text(
+                      args is NewEntryArgs ? l10n.addEntry : l10n.save,
+                    ),
                   ),
-                FilledButton(
-                  onPressed: _saving ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                  ),
-                  child: Text(args is NewEntryArgs ? l10n.addEntry : l10n.save),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -384,11 +455,13 @@ class _Suggestions extends StatelessWidget {
     required this.products,
     required this.locale,
     required this.onSelected,
+    required this.onClose,
   });
 
   final List<Product> products;
   final String locale;
   final ValueChanged<Product> onSelected;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -405,6 +478,29 @@ class _Suggestions extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.suggestionsTitle,
+                    style: textTheme.bodySmall,
+                  ),
+                ),
+                IconButton(
+                  onPressed: onClose,
+                  tooltip: l10n.close,
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                    LucideIcons.x,
+                    size: 18,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
           for (final product in products)
             InkWell(
               onTap: () => onSelected(product),
