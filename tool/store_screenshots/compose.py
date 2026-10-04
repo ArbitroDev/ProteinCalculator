@@ -46,6 +46,16 @@ TAGLINES = {
 }
 
 
+def stamp(image, version):
+    """Shifts one corner pixel by an invisible amount, depending on the
+    version: each version gets files of its own, which Google Play does not
+    deduplicate with images uploaded for earlier versions."""
+    red, green, blue = image.getpixel((0, 0))[:3]
+    shift = 1 + sum(map(ord, version)) % 3
+    image.putpixel((0, 0), (red, green, (blue + shift) % 256))
+    return image
+
+
 def rounded(image, radius):
     mask = Image.new('L', image.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, *image.size), radius, fill=255)
@@ -70,7 +80,7 @@ def screenshot(language, shot, theme, line1, line2, path):
     canvas.paste(frame, ((1080 - width - 24) // 2, 370), frame)
     raw = rounded(raw, 52)
     canvas.paste(raw, ((1080 - width) // 2, 382), raw)
-    canvas.save(path, optimize=True)
+    stamp(canvas, VERSION).save(path, optimize=True)
 
 
 def feature_graphic(language, path):
@@ -85,7 +95,7 @@ def feature_graphic(language, path):
     draw.text((420, 150), 'Protein', font=name, fill=WHITE)
     draw.text((420, 225), 'Calculator', font=name, fill=WHITE)
     draw.text((424, 325), TAGLINES[language], font=tagline, fill=ORANGE)
-    graphic.save(path, optimize=True)
+    stamp(graphic, VERSION).save(path, optimize=True)
 
 
 with open('pubspec.yaml', encoding='utf-8') as pubspec:
