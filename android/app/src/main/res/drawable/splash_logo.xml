@@ -6,8 +6,11 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-  <group android:translateX="6.5" android:translateY="6.5"
-      android:scaleX="0.95" android:scaleY="0.95">
+  <!-- Scaled so the tilted shaker, handle included, fits in the circle
+       Android 12+ keeps (radius 36), centered on the middle of the drawing
+       rather than on the pivot of its rotation. -->
+  <group android:translateX="9.5" android:translateY="11.3"
+      android:scaleX="0.89" android:scaleY="0.89">
     <group android:rotation="-16" android:pivotX="50" android:pivotY="52">
       <clip-path android:pathData="M37 40 L39.5 79 Q40 84 45 84 H55 Q60 84 60.5 79 L63 40 Z" />
       <group android:rotation="16" android:pivotX="50" android:pivotY="52">
