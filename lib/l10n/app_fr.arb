@@ -1,0 +1,511 @@
+{
+  "@@locale": "fr",
+  "appTitle": "Protein Calculator",
+  "@appTitle": {
+    "description": "Application name."
+  },
+  "tabToday": "Aujourd'hui",
+  "@tabToday": {
+    "description": "Bottom navigation label of the today tab."
+  },
+  "tabHistory": "Historique",
+  "@tabHistory": {
+    "description": "Bottom navigation label of the history tab."
+  },
+  "tabProducts": "Produits",
+  "@tabProducts": {
+    "description": "Bottom navigation label of the products tab."
+  },
+  "tabMenu": "Menu",
+  "@tabMenu": {
+    "description": "Bottom navigation label of the menu tab."
+  },
+  "gramsUnit": "g",
+  "@gramsUnit": {
+    "description": "Unit symbol for grams."
+  },
+  "grams": "{grams} g",
+  "@grams": {
+    "description": "A quantity in grams, already formatted.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "todayGoal": "Objectif {goal} g",
+  "@todayGoal": {
+    "description": "Daily goal shown above the total on the today screen.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "todayEntryCount": "{count, plural, =0{Aucune entrée} =1{1 entrée} other{{count} entrées}}",
+  "@todayEntryCount": {
+    "description": "Number of entries added today.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayRemaining": "encore {grams} g à secouer",
+  "@todayRemaining": {
+    "description": "Protein left to reach the daily goal, with a pun on the shaker.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "todayGoalReached": "objectif atteint",
+  "@todayGoalReached": {
+    "description": "Shown once the daily goal is reached."
+  },
+  "shakerDescription": "{total} g de protéines sur un objectif de {goal} g",
+  "@shakerDescription": {
+    "description": "Screen reader description of the shaker gauge.",
+    "placeholders": {
+      "total": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "addEntry": "Ajouter",
+  "@addEntry": {
+    "description": "Button opening the new entry form."
+  },
+  "newEntryTitle": "Nouvelle entrée",
+  "@newEntryTitle": {
+    "description": "Title of the new entry form."
+  },
+  "close": "Fermer",
+  "@close": {
+    "description": "Tooltip of the button closing a form."
+  },
+  "onboardingTitle": "Ton objectif quotidien",
+  "@onboardingTitle": {
+    "description": "Title of the first launch screen."
+  },
+  "onboardingBody": "Combien de grammes de protéines vises-tu par jour ? Tu pourras le modifier dans le menu.",
+  "@onboardingBody": {
+    "description": "Explanation on the first launch screen."
+  },
+  "onboardingStart": "Commencer",
+  "@onboardingStart": {
+    "description": "Button saving the daily goal on the first launch screen."
+  },
+  "goalInvalid": "Entre un nombre entre {min} et {max}.",
+  "@goalInvalid": {
+    "description": "Error shown when the daily goal is not a valid number.",
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "editEntryTitle": "Modifier l'entrée",
+  "@editEntryTitle": {
+    "description": "Title of the form editing an entry."
+  },
+  "newProductTitle": "Nouveau produit",
+  "@newProductTitle": {
+    "description": "Title of the form creating a product."
+  },
+  "editProductTitle": "Modifier le produit",
+  "@editProductTitle": {
+    "description": "Title of the form editing a product."
+  },
+  "formNameOptional": "Nom (facultatif)",
+  "@formNameOptional": {
+    "description": "Label of the optional name field of an entry."
+  },
+  "formName": "Nom",
+  "@formName": {
+    "description": "Label of the name field of a product."
+  },
+  "formNameHint": "Skyr nature",
+  "@formNameHint": {
+    "description": "Example name shown in the empty name field."
+  },
+  "modeDirect": "Protéines directes",
+  "@modeDirect": {
+    "description": "Mode where the protein amount is typed directly."
+  },
+  "modePerQuantity": "Selon le produit",
+  "@modePerQuantity": {
+    "description": "Mode where the protein amount is computed from the product content."
+  },
+  "formProtein": "Protéines",
+  "@formProtein": {
+    "description": "Label of the protein amount field."
+  },
+  "formConsumed": "Quantité consommée",
+  "@formConsumed": {
+    "description": "Label of the quantity eaten."
+  },
+  "formPortion": "Portion habituelle",
+  "@formPortion": {
+    "description": "Label of the usual portion of a product."
+  },
+  "formProductProtein": "Protéines du produit",
+  "@formProductProtein": {
+    "description": "Label of the protein content of the product."
+  },
+  "formPer": "pour",
+  "@formPer": {
+    "description": "Between the protein content and the reference quantity, as in '10 g for 100 g'."
+  },
+  "formResult": "de protéines",
+  "@formResult": {
+    "description": "After the computed protein amount, as in '15 g of protein'."
+  },
+  "suggestionsTitle": "Produits enregistrés",
+  "@suggestionsTitle": {
+    "description": "Title of the product suggestions under the name field."
+  },
+  "saveAsProduct": "Enregistrer comme produit",
+  "@saveAsProduct": {
+    "description": "Checkbox also saving the entry as a product."
+  },
+  "updateProduct": "Mettre à jour le produit",
+  "@updateProduct": {
+    "description": "Checkbox also saving the changed values to the product the entry starts from."
+  },
+  "save": "Enregistrer",
+  "@save": {
+    "description": "Button saving an edited entry or a product."
+  },
+  "errorRequired": "Entre une quantité.",
+  "@errorRequired": {
+    "description": "Error when a quantity is missing or not a number."
+  },
+  "errorNotPositive": "Entre une quantité supérieure à 0.",
+  "@errorNotPositive": {
+    "description": "Error when a quantity is zero or negative."
+  },
+  "errorAboveReference": "Ne peut pas dépasser la quantité de référence.",
+  "@errorAboveReference": {
+    "description": "Error when the protein content is higher than the reference quantity."
+  },
+  "errorNameRequired": "Donne un nom au produit.",
+  "@errorNameRequired": {
+    "description": "Error when a product has no name."
+  },
+  "errorNameTaken": "Un produit porte déjà ce nom.",
+  "@errorNameTaken": {
+    "description": "Error when another product has the same name."
+  },
+  "productPerReference": "{protein} g / {reference} g",
+  "@productPerReference": {
+    "description": "Protein content of a product per reference quantity.",
+    "placeholders": {
+      "protein": {
+        "type": "String"
+      },
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
+  "slotMorning": "Matinée",
+  "@slotMorning": {
+    "description": "Part of the day from 3 a.m. to noon."
+  },
+  "slotAfternoon": "Journée",
+  "@slotAfternoon": {
+    "description": "Part of the day from noon to 6 p.m."
+  },
+  "slotEvening": "Soirée",
+  "@slotEvening": {
+    "description": "Part of the day from 6 p.m. to 3 a.m."
+  },
+  "unnamedEntry": "Sans nom",
+  "@unnamedEntry": {
+    "description": "Shown for an entry without a name."
+  },
+  "entryDeleted": "Entrée supprimée",
+  "@entryDeleted": {
+    "description": "Snack bar shown after deleting an entry."
+  },
+  "undo": "Annuler",
+  "@undo": {
+    "description": "Snack bar action restoring a deleted item."
+  },
+  "delete": "Supprimer",
+  "@delete": {
+    "description": "Accessibility action deleting an item."
+  },
+  "dayGoalOf": "sur {goal} g",
+  "@dayGoalOf": {
+    "description": "Daily goal next to the total of a day, as in '86 g of 140 g'.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "historyEmpty": "Ton historique apparaîtra ici dès ta première entrée.",
+  "@historyEmpty": {
+    "description": "Shown in the history tab before the first entry."
+  },
+  "dayEmpty": "Aucune entrée ce jour-là.",
+  "@dayEmpty": {
+    "description": "Shown in the detail of a day once all its entries are deleted."
+  },
+  "sortAlphabetical": "A–Z",
+  "@sortAlphabetical": {
+    "description": "Sort products alphabetically."
+  },
+  "sortMostUsed": "Plus utilisés",
+  "@sortMostUsed": {
+    "description": "Sort products by number of uses."
+  },
+  "sortRecentlyUsed": "Récents",
+  "@sortRecentlyUsed": {
+    "description": "Sort products by last use."
+  },
+  "productPortion": "portion {grams} g",
+  "@productPortion": {
+    "description": "Usual portion of a product.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "productUseCount": "{count, plural, =0{jamais utilisé} =1{utilisé 1 fois} other{utilisé {count} fois}}",
+  "@productUseCount": {
+    "description": "Number of times a product was used.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "productDeleted": "Produit supprimé",
+  "@productDeleted": {
+    "description": "Snack bar shown after deleting a product."
+  },
+  "productsEmpty": "Enregistre tes produits habituels pour les ajouter en un geste.",
+  "@productsEmpty": {
+    "description": "Shown in the products tab before the first product."
+  },
+  "edit": "Modifier",
+  "@edit": {
+    "description": "Accessibility action editing an item."
+  },
+  "quickAdd": "Ajouter {name}",
+  "@quickAdd": {
+    "description": "Today screen: button adding the favorite product at once.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "quickAdded": "Ajouté : {name}",
+  "@quickAdded": {
+    "description": "Undo banner after the favorite product was added at once.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "setFavorite": "Mettre en favori",
+  "@setFavorite": {
+    "description": "Star of a product: makes it the favorite, listed first."
+  },
+  "removeFavorite": "Retirer le favori",
+  "@removeFavorite": {
+    "description": "Star of the favorite product: removes it from favorite."
+  },
+  "addToToday": "Ajouter à la journée",
+  "@addToToday": {
+    "description": "Accessibility hint: tapping a product adds it to the day."
+  },
+  "menuGoal": "Objectif quotidien",
+  "@menuGoal": {
+    "description": "Title of the daily goal card in the menu."
+  },
+  "menuPrivacy": "Données et confidentialité",
+  "@menuPrivacy": {
+    "description": "Menu item opening the data and privacy page."
+  },
+  "menuLicenses": "Licences",
+  "@menuLicenses": {
+    "description": "Menu item opening the licenses of the app and of its components."
+  },
+  "menuAbout": "À propos",
+  "@menuAbout": {
+    "description": "Menu item opening the about page."
+  },
+  "appVersion": "Version {version}",
+  "@appVersion": {
+    "description": "App version.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "goalSheetBody": "Combien de grammes de protéines vises-tu par jour ?",
+  "@goalSheetBody": {
+    "description": "Explanation when editing the daily goal."
+  },
+  "privacyLocal": "Tes données restent sur ton téléphone. Protein Calculator ne demande pas de compte, et tes entrées et tes produits ne quittent jamais ton appareil.",
+  "@privacyLocal": {
+    "description": "Privacy page: data stays on the device."
+  },
+  "crashReportsTitle": "Rapports d'erreur",
+  "@crashReportsTitle": {
+    "description": "Privacy page: title of the crash reports section."
+  },
+  "crashReportsBody": "Quand l'app rencontre une erreur, un rapport technique est envoyé à Sentry pour aider à la corriger : l'erreur, la version de l'app, le modèle du téléphone et sa version d'Android. Il ne contient ni tes entrées, ni tes produits, ni ton objectif.",
+  "@crashReportsBody": {
+    "description": "Privacy page: what a crash report holds."
+  },
+  "crashReportsToggle": "Envoyer les rapports d'erreur",
+  "@crashReportsToggle": {
+    "description": "Switch turning crash reports on or off."
+  },
+  "onboardingCrashReports": "Envoyer les rapports d'erreur pour aider à corriger les bugs",
+  "@onboardingCrashReports": {
+    "description": "First launch: checkbox for crash reports, unchecked by default."
+  },
+  "onboardingCrashReportsHint": "Tes entrées, tes produits et ton objectif ne quittent jamais ton téléphone. Modifiable à tout moment dans le menu.",
+  "@onboardingCrashReportsHint": {
+    "description": "First launch: note under the crash reports checkbox."
+  },
+  "privacyBackup": "Si la sauvegarde Google est activée sur ton appareil, Android peut inclure les données de l'app dans cette sauvegarde, chiffrée et accessible à toi seul. Tu peux la désactiver dans les réglages de ton téléphone.",
+  "@privacyBackup": {
+    "description": "Privacy page: Android backup."
+  },
+  "aboutDescription": "Suis chaque jour ton apport en protéines, simplement.",
+  "@aboutDescription": {
+    "description": "Short description of the app."
+  },
+  "aboutLicense": "Le code source est consultable publiquement. Tous droits réservés.",
+  "@aboutLicense": {
+    "description": "Licensing summary."
+  },
+  "aboutGitHub": "Voir le code source sur GitHub",
+  "@aboutGitHub": {
+    "description": "Link opening the public source code repository on GitHub."
+  },
+  "licensesExplanation": "Tu retrouveras ici la licence de Protein Calculator, ainsi que celles des composants open source qu'elle utilise.",
+  "@licensesExplanation": {
+    "description": "Explanation at the top of the licenses page."
+  },
+  "backupTitle": "Sauvegarde",
+  "@backupTitle": {
+    "description": "Section title for export and import."
+  },
+  "backupBody": "Exporte tes données dans un fichier pour les garder à l'abri ou les transférer sur un autre téléphone. Importer une sauvegarde remplace toutes les données actuelles.",
+  "@backupBody": {
+    "description": "Explanation of export and import."
+  },
+  "exportData": "Exporter mes données",
+  "@exportData": {
+    "description": "Button exporting all data to a file."
+  },
+  "importData": "Importer une sauvegarde",
+  "@importData": {
+    "description": "Button importing a backup file."
+  },
+  "exportDone": "Données exportées",
+  "@exportDone": {
+    "description": "Snack bar after a successful export."
+  },
+  "importDone": "Données importées",
+  "@importDone": {
+    "description": "Snack bar after a successful import."
+  },
+  "importInvalid": "Ce fichier n'est pas une sauvegarde Protein Calculator valide.",
+  "@importInvalid": {
+    "description": "Error when the imported file is not a valid backup."
+  },
+  "importConfirmTitle": "Remplacer tes données ?",
+  "@importConfirmTitle": {
+    "description": "Title of the dialog confirming an import."
+  },
+  "importConfirmBody": "Tes données actuelles seront remplacées par celles du fichier ({entries}, {products}). Cette action est définitive.",
+  "@importConfirmBody": {
+    "description": "Body of the dialog confirming an import.",
+    "placeholders": {
+      "entries": {
+        "type": "String"
+      },
+      "products": {
+        "type": "String"
+      }
+    }
+  },
+  "backupEntryCount": "{count, plural, =0{aucune entrée} =1{1 entrée} other{{count} entrées}}",
+  "@backupEntryCount": {
+    "description": "Number of entries in a backup.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProductCount": "{count, plural, =0{aucun produit} =1{1 produit} other{{count} produits}}",
+  "@backupProductCount": {
+    "description": "Number of products in a backup.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importConfirm": "Remplacer",
+  "@importConfirm": {
+    "description": "Button confirming an import."
+  },
+  "cancel": "Annuler",
+  "@cancel": {
+    "description": "Button closing a dialog without doing anything."
+  },
+  "aboutContribute": "Protein Calculator est développé ouvertement : tu peux participer en signalant un problème, en proposant une idée ou en contribuant au code sur GitHub.",
+  "@aboutContribute": {
+    "description": "Invitation to contribute on GitHub."
+  },
+  "actionFailed": "Une erreur est survenue, réessaie.",
+  "@actionFailed": {
+    "description": "Snack bar when saving, deleting or another action fails unexpectedly."
+  },
+  "startupErrorTitle": "Impossible de lire tes données",
+  "@startupErrorTitle": {
+    "description": "Title of the screen shown instead of the app when its data cannot be opened at launch."
+  },
+  "startupErrorBody": "Protein Calculator n'arrive pas à ouvrir ses données sur ce téléphone. Réessaie, ou repars d'une sauvegarde : les données actuelles seront mises de côté sur le téléphone, pas effacées.",
+  "@startupErrorBody": {
+    "description": "Explanation of the startup error screen."
+  },
+  "startupRetry": "Réessayer",
+  "@startupRetry": {
+    "description": "Button trying again to open the data at launch."
+  },
+  "startupRestore": "Repartir d'une sauvegarde",
+  "@startupRestore": {
+    "description": "Button setting the unreadable data aside and restoring a backup file."
+  },
+  "productRestoreNameTaken": "Le produit n'a pas pu être restauré : un autre produit porte déjà ce nom.",
+  "@productRestoreNameTaken": {
+    "description": "Snack bar when undoing a deletion fails because another product took the name meanwhile."
+  },
+  "startupStillFailing": "Tes données ne peuvent toujours pas être lues.",
+  "@startupStillFailing": {
+    "description": "Snack bar when trying again still cannot open the data."
+  }
+}

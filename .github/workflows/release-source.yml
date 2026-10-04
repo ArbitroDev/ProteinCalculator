@@ -1,0 +1,58 @@
+name: Release source
+
+# main only receives releases: pull requests from develop.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release-source:
+    name: Release source
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check that the pull request comes from develop
+        env:
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [ "$HEAD_REPO" != "$GITHUB_REPOSITORY" ] || [ "$HEAD_REF" != "develop" ]; then
+            echo "::error::main only accepts pull requests from develop (got ${HEAD_REPO}:${HEAD_REF})."
+            echo "Open your pull request against develop instead."
+            exit 1
+          fi
+          echo "Release pull request from develop."
+
+  release-notes:
+    name: Release notes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Check the version
+        run: bash .github/scripts/check_version.sh
+
+      - name: Check the What's new texts of Google Play
+        run: bash .github/scripts/check_whats_new.sh
+
+      - name: Preview the changelog
+        run: |
+          version=$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *//; s/\+.*//')
+          {
+            bash .github/scripts/release_notes.sh "$version"
+            echo
+            echo "### What's new on Google Play"
+            for file in store/whatsnew/whatsnew-*; do
+              echo
+              echo "**${file#*whatsnew-}**"
+              echo
+              cat "$file"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

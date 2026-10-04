@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Protein Calculator logo for the splash screen: the same shaker as the
+     launcher icon, larger, filling the circle Android 12+ shows. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <!-- Scaled so the tilted shaker, handle included, fits in the circle
+       Android 12+ keeps (radius 36), centered on the middle of the drawing
+       rather than on the pivot of its rotation. -->
+  <group android:translateX="9.5" android:translateY="11.3"
+      android:scaleX="0.89" android:scaleY="0.89">
+    <group android:rotation="-16" android:pivotX="50" android:pivotY="52">
+      <clip-path android:pathData="M37 40 L39.5 79 Q40 84 45 84 H55 Q60 84 60.5 79 L63 40 Z" />
+      <group android:rotation="16" android:pivotX="50" android:pivotY="52">
+        <path android:pathData="M20 57 Q35 51 50 57 T80 57 V100 H20 Z" android:fillColor="#FF8A3D" />
+      </group>
+    </group>
+    <group android:rotation="-16" android:pivotX="50" android:pivotY="52">
+        <path android:pathData="M37 40 L39.5 79 Q40 84 45 84 H55 Q60 84 60.5 79 L63 40 Z" android:strokeColor="#DCE3FF" android:strokeWidth="3.6" android:strokeLineJoin="round" />
+        <path android:pathData="M36.5 31 H63.5 Q66 31 66 33.5 V38.5 Q66 41 63.5 41 H36.5 Q34 41 34 38.5 V33.5 Q34 31 36.5 31 Z" android:fillColor="#DCE3FF" />
+        <path android:pathData="M36 31 Q36 23 43 23 H57 Q64 23 64 31 Z" android:fillColor="#DCE3FF" />
+        <path android:pathData="M41 17 H46 Q48 17 48 19 V22 Q48 24 46 24 H41 Q39 24 39 22 V19 Q39 17 41 17 Z" android:fillColor="#DCE3FF" />
+        <path android:pathData="M55 24 V18 Q55 13 59.5 13 Q64 13 64 18 V24" android:strokeColor="#DCE3FF" android:strokeWidth="2.8" />
+        <path android:pathData="M37 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M40 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M43 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M46 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M49 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M52 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M55 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M58 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M61 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+    </group>
+        <path android:pathData="M22 32 Q16 44 22 56" android:strokeColor="#FF8A3D" android:strokeWidth="3.6" android:strokeLineCap="round" />
+        <path android:pathData="M79 46 Q85 58 79 70" android:strokeColor="#FF8A3D" android:strokeWidth="3.6" android:strokeLineCap="round" />
+  </group>
+</vector>
