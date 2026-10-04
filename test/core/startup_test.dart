@@ -37,7 +37,7 @@ void main() {
     expect(await startApp(openDatabase: () => opened.last), isTrue);
     await tester.pumpAndSettle();
 
-    expect(find.text('Your daily goal'), findsOneWidget);
+    expect(find.text('Your daily\ngoal'), findsOneWidget);
     await stopApp(tester);
   });
 
@@ -58,7 +58,7 @@ void main() {
     await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Your daily goal'), findsOneWidget);
+    expect(find.text('Your daily\ngoal'), findsOneWidget);
     await stopApp(tester);
   });
 

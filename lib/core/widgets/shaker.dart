@@ -58,6 +58,8 @@ class Shaker extends StatelessWidget {
     required this.goal,
     required this.semanticLabel,
     this.motion,
+    this.maxGrams,
+    this.showGoalLine = true,
   });
 
   final List<ShakerLayer> layers;
@@ -65,12 +67,23 @@ class Shaker extends StatelessWidget {
   final String semanticLabel;
   final ShakerMotion? motion;
 
+  /// Grams at the top of the graduations; by default the larger of the
+  /// goal and the total. Content above it keeps the shaker full.
+  final double? maxGrams;
+
+  /// Whether the dashed goal line is drawn.
+  final bool showGoalLine;
+
   /// Width / height ratio of the drawing.
   static const aspectRatio = 110 / 290;
 
   /// Empty space under the bottom of the drawing, as a fraction of its
   /// height, to align other widgets with the visible bottom of the shaker.
   static const bottomInset = (290 - 283.5) / 290;
+
+  /// Empty space above the top of the handle, as a fraction of the height,
+  /// to align other widgets with the visible top of the shaker.
+  static const topInset = 10.6 / 290;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +109,8 @@ class Shaker extends StatelessWidget {
                 level: level,
                 colors: AppColors.of(context),
                 motion: motion,
+                maxGrams: maxGrams,
+                showGoalLine: showGoalLine,
               ),
             ),
           ),
@@ -112,6 +127,8 @@ class _ShakerPainter extends CustomPainter {
     required this.level,
     required this.colors,
     required this.motion,
+    required this.maxGrams,
+    required this.showGoalLine,
   }) : super(repaint: motion);
 
   final List<ShakerLayer> layers;
@@ -119,6 +136,8 @@ class _ShakerPainter extends CustomPainter {
   final double level;
   final AppColors colors;
   final ShakerMotion? motion;
+  final double? maxGrams;
+  final bool showGoalLine;
 
   // Drawing coordinates, in a 110 x 290 box.
   static const _width = 110.0;
@@ -142,8 +161,8 @@ class _ShakerPainter extends CustomPainter {
     canvas.scale(size.width / _width);
 
     final total = layers.map((layer) => layer.grams).sum;
-    final range = max(goal, total);
-    double y(double grams) => _bottom - grams / range * _fillHeight;
+    final range = maxGrams ?? max(goal, total);
+    double y(double grams) => _bottom - min(grams, range) / range * _fillHeight;
 
     _paintContent(canvas, y, total);
     _paintGraduations(canvas, range, y);
@@ -272,6 +291,7 @@ class _ShakerPainter extends CustomPainter {
       );
     }
 
+    if (!showGoalLine) return;
     final goalLine = Paint()
       ..color = colors.structure
       ..strokeWidth = 1.5;
@@ -330,6 +350,8 @@ class _ShakerPainter extends CustomPainter {
   bool shouldRepaint(_ShakerPainter old) =>
       old.level != level ||
       old.goal != goal ||
+      old.maxGrams != maxGrams ||
+      old.showGoalLine != showGoalLine ||
       old.colors != colors ||
       old.motion != motion ||
       !_sameLayers(old.layers, layers);

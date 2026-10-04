@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:protein_calculator/core/crash_reporting.dart';
+import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
@@ -59,6 +60,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     if (mounted) context.go(AppRoutes.today);
   }
 
+  /// Top of the shaker graduations on this screen.
+  static const _shakerMax = 200.0;
+  static const _shakerWidth = 96.0;
+
+  /// Goal being typed, as grams for the shaker (0 while invalid).
+  double get _typedGoal =>
+      (int.tryParse(_controller.text.trim()) ?? 0).toDouble();
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -72,20 +81,50 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: SizedBox(
-                    width: 78,
-                    child: Shaker(
-                      layers: const [],
-                      goal: parseDailyGoal(_controller.text) ?? 140,
-                      semanticLabel: '',
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      // On two lines, the last word below, to stand beside
+                      // the shaker, lined up with the top of its handle.
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top:
+                              _shakerWidth /
+                              Shaker.aspectRatio *
+                              Shaker.topInset,
+                        ),
+                        child: Text(
+                          l10n.onboardingTitle.replaceFirst(
+                            RegExp(r' (?=\S+$)'),
+                            '\n',
+                          ),
+                          style: textTheme.headlineSmall!.copyWith(
+                            fontSize: 30,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.onboardingTitle,
-                  style: textTheme.headlineSmall!.copyWith(fontSize: 26),
+                    const SizedBox(width: 16),
+                    // Fills up to the typed goal, on fixed graduations from
+                    // 0 to 200 g; above, it stays full.
+                    SizedBox(
+                      width: _shakerWidth,
+                      child: Shaker(
+                        layers: [
+                          if (_typedGoal > 0)
+                            ShakerLayer(
+                              grams: _typedGoal,
+                              slot: DaySlot.afternoon,
+                            ),
+                        ],
+                        goal: _typedGoal,
+                        maxGrams: _shakerMax,
+                        showGoalLine: false,
+                        semanticLabel: '',
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -137,6 +176,18 @@ class _CrashReportsChoice extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
+    final titleStyle = textTheme.bodyLarge!;
+    // Height of the first line of the title, so the box can be centered on
+    // it whatever the text size chosen on the phone.
+    final line = TextPainter(
+      text: TextSpan(text: l10n.onboardingCrashReports, style: titleStyle),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final lineHeight = line.height;
+    line.dispose();
+
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: () => onChanged(!value),
@@ -147,16 +198,19 @@ class _CrashReportsChoice extends StatelessWidget {
           children: [
             // The box itself sits on the left edge, like the other fields:
             // its larger tap area overflows, the whole row being tappable.
-            Padding(
-              padding: const EdgeInsets.only(top: 1),
-              child: SizedBox.square(
-                dimension: 18,
-                child: OverflowBox(
-                  maxWidth: 40,
-                  maxHeight: 40,
-                  child: Checkbox(
-                    value: value,
-                    onChanged: (checked) => onChanged(checked ?? false),
+            SizedBox(
+              width: 18,
+              height: lineHeight,
+              child: Center(
+                child: SizedBox.square(
+                  dimension: 18,
+                  child: OverflowBox(
+                    maxWidth: 40,
+                    maxHeight: 40,
+                    child: Checkbox(
+                      value: value,
+                      onChanged: (checked) => onChanged(checked ?? false),
+                    ),
                   ),
                 ),
               ),
@@ -166,7 +220,7 @@ class _CrashReportsChoice extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.onboardingCrashReports, style: textTheme.bodyLarge),
+                  Text(l10n.onboardingCrashReports, style: titleStyle),
                   const SizedBox(height: 2),
                   Text(
                     l10n.onboardingCrashReportsHint,

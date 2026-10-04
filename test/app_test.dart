@@ -11,7 +11,7 @@ void main() {
       final db = openTestDatabase();
       await pumpApp(tester, db);
 
-      expect(find.text('Your daily goal'), findsOneWidget);
+      expect(find.text('Your daily\ngoal'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), '150');
       await tester.tap(find.text('Get started'));
@@ -40,7 +40,7 @@ void main() {
       await db.settingsDao.setDailyGoal(140);
       await pumpApp(tester, db);
 
-      expect(find.text('Your daily goal'), findsNothing);
+      expect(find.text('Your daily\ngoal'), findsNothing);
       expect(find.text('Thursday, October 1'), findsOneWidget);
       await disposeApp(tester, db);
     });

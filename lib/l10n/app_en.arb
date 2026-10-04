@@ -77,7 +77,7 @@
   "crashReportsBody": "When the app runs into an error, a technical report is sent to Sentry to help fix it: the error, the app version, the phone model and its Android version. It holds none of your entries, products or goal.",
   "crashReportsToggle": "Send crash reports",
   "onboardingCrashReports": "Send crash reports to help fix bugs",
-  "onboardingCrashReportsHint": "Without your tracking data. You can change it anytime in the menu.",
+  "onboardingCrashReportsHint": "Your entries, products and goal never leave your phone. You can change it anytime in the menu.",
   "privacyBackup": "If Google backup is turned on for your device, Android may include the app's data in that backup, encrypted and only accessible to you. You can turn it off in your phone settings.",
   "aboutDescription": "Track your daily protein intake, simply.",
   "aboutLicense": "The source code is publicly available. All rights reserved.",

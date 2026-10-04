@@ -382,7 +382,7 @@
   "@onboardingCrashReports": {
     "description": "First launch: checkbox for crash reports, unchecked by default."
   },
-  "onboardingCrashReportsHint": "Sans tes données de suivi. Modifiable à tout moment dans le menu.",
+  "onboardingCrashReportsHint": "Tes entrées, tes produits et ton objectif ne quittent jamais ton téléphone. Modifiable à tout moment dans le menu.",
   "@onboardingCrashReportsHint": {
     "description": "First launch: note under the crash reports checkbox."
   },
