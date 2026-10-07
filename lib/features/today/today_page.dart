@@ -457,10 +457,11 @@ class _EntryLabel extends StatelessWidget {
       child: SwipeToDelete(
         key: ValueKey(entry.id),
         onDelete: onDelete,
+        // Square, like its highlight, which fills the corners when the
+        // label slides; the clip above rounds both while it rests.
         child: Material(
           color: colors.surface,
           child: InkWell(
-            borderRadius: BorderRadius.circular(10),
             onTap: () => context.push(AppRoutes.editEntry(entry.id)),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
