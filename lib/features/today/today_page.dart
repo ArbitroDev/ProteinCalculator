@@ -15,14 +15,15 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/motion_shaker.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
+import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/features/today/quick_add.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Main tab: the summary of the current app day, then the shaker with one
-/// label per entry next to it. In landscape, the shaker stands on the left
-/// and the summary tops the labels.
+/// label per entry next to it, swiped to the left to delete the entry. In
+/// landscape, the shaker stands on the left and the summary tops the labels.
 class TodayPage extends ConsumerStatefulWidget {
   const TodayPage({super.key});
 
@@ -30,7 +31,7 @@ class TodayPage extends ConsumerStatefulWidget {
   ConsumerState<TodayPage> createState() => _TodayPageState();
 }
 
-class _TodayPageState extends ConsumerState<TodayPage> {
+class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
   /// Where the quick added favorite falls.
   final _shakerKey = GlobalKey();
 
@@ -62,12 +63,26 @@ class _TodayPageState extends ConsumerState<TodayPage> {
     );
   }
 
+  Future<void> _delete(Entry entry) {
+    final dao = ref.read(databaseProvider).entriesDao;
+    return deleteWithUndo(
+      id: entry.id,
+      delete: () => dao.deleteEntry(entry.id),
+      restore: dao.restoreEntry,
+      label: AppLocalizations.of(context).entryDeleted,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dayKey = ref.watch(currentDayKeyProvider).value;
     final goal = ref.watch(dailyGoalProvider).value;
     if (dayKey == null || goal == null) return const Scaffold();
-    final entries = ref.watch(dayEntriesProvider(dayKey)).value ?? const [];
+    final entries = [
+      for (final entry
+          in ref.watch(dayEntriesProvider(dayKey)).value ?? const <Entry>[])
+        if (!isDeleted(entry.id)) entry,
+    ];
     final locale = context.localeName;
     final favorite = ref.watch(favoriteProductProvider);
 
@@ -81,6 +96,7 @@ class _TodayPageState extends ConsumerState<TodayPage> {
               entries: entries,
               goal: goal,
               locale: locale,
+              onDelete: _delete,
               // The add button of the tab bar is close at hand.
               header: _Summary(
                 dayKey: dayKey,
@@ -120,6 +136,7 @@ class _TodayPageState extends ConsumerState<TodayPage> {
                   entries: entries,
                   goal: goal,
                   locale: locale,
+                  onDelete: _delete,
                 ),
               ),
             ],
@@ -289,6 +306,7 @@ class _ShakerWithLabels extends StatefulWidget {
     required this.entries,
     required this.goal,
     required this.locale,
+    required this.onDelete,
     this.header,
   });
 
@@ -296,6 +314,7 @@ class _ShakerWithLabels extends StatefulWidget {
   final List<Entry> entries;
   final double goal;
   final String locale;
+  final void Function(Entry entry) onDelete;
 
   /// Shown above the labels, next to the shaker.
   final Widget? header;
@@ -391,10 +410,14 @@ class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
                             itemCount: entries.length,
                             separatorBuilder: (_, _) =>
                                 const SizedBox(height: 6),
-                            itemBuilder: (context, index) => _EntryLabel(
-                              entry: entries[entries.length - 1 - index],
-                              locale: locale,
-                            ),
+                            itemBuilder: (context, index) {
+                              final entry = entries[entries.length - 1 - index];
+                              return _EntryLabel(
+                                entry: entry,
+                                locale: locale,
+                                onDelete: () => widget.onDelete(entry),
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -411,10 +434,15 @@ class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
 }
 
 class _EntryLabel extends StatelessWidget {
-  const _EntryLabel({required this.entry, required this.locale});
+  const _EntryLabel({
+    required this.entry,
+    required this.locale,
+    required this.onDelete,
+  });
 
   final Entry entry;
   final String locale;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -423,55 +451,62 @@ class _EntryLabel extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final name = entry.name;
 
-    return Material(
-      color: colors.surface,
+    // Clipped, so the red background of the swipe keeps the rounded corners.
+    return ClipRRect(
       borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: () => context.push(AppRoutes.editEntry(entry.id)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-          child: Row(
-            children: [
-              Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
-                  color: AppColors.slot(entry.slot),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name ?? l10n.unnamedEntry,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: name == null
-                          ? textTheme.bodyMedium!.copyWith(
-                              color: colors.textSecondary,
-                              fontStyle: FontStyle.italic,
-                            )
-                          : textTheme.bodyMedium!.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
+      child: SwipeToDelete(
+        key: ValueKey(entry.id),
+        onDelete: onDelete,
+        child: Material(
+          color: colors.surface,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => context.push(AppRoutes.editEntry(entry.id)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              child: Row(
+                children: [
+                  Container(
+                    width: 9,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      color: AppColors.slot(entry.slot),
+                      borderRadius: BorderRadius.circular(3),
                     ),
-                    Text(
-                      formatTime(entry.createdAt, locale),
-                      style: textTheme.bodySmall!.copyWith(fontSize: 11),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name ?? l10n.unnamedEntry,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: name == null
+                              ? textTheme.bodyMedium!.copyWith(
+                                  color: colors.textSecondary,
+                                  fontStyle: FontStyle.italic,
+                                )
+                              : textTheme.bodyMedium!.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                        ),
+                        Text(
+                          formatTime(entry.createdAt, locale),
+                          style: textTheme.bodySmall!.copyWith(fontSize: 11),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    l10n.grams(formatProtein(entry.proteinGrams, locale)),
+                    style: textTheme.titleMedium,
+                  ),
+                ],
               ),
-              const SizedBox(width: 6),
-              Text(
-                l10n.grams(formatProtein(entry.proteinGrams, locale)),
-                style: textTheme.titleMedium,
-              ),
-            ],
+            ),
           ),
         ),
       ),
