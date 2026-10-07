@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
@@ -57,6 +58,20 @@ class Products extends Table {
 
   /// The favorite product, listed first whatever the sort; one at most.
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
+
+  /// What the product does every day at [routineMinutes]: remind the user,
+  /// or add itself.
+  TextColumn get routine =>
+      textEnum<DailyRoutine>().withDefault(Constant(DailyRoutine.none.name))();
+
+  /// Time of day of the [routine], in minutes since midnight; null without
+  /// a routine.
+  IntColumn get routineMinutes => integer().nullable()();
+
+  /// Up to when the automatic additions of the [routine] were made: the
+  /// next ones come after it. Set when the routine is chosen, so it never
+  /// adds entries for the days before.
+  DateTimeColumn get routineCheckedAt => dateTime().nullable()();
 }
 
 /// Single-row table holding the app settings.

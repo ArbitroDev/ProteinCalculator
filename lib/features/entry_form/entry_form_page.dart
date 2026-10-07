@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/formatting.dart';
@@ -159,6 +161,20 @@ class _FormViewState extends ConsumerState<_FormView> {
     super.dispose();
   }
 
+  /// Chooses the routine, asking to allow notifications for one.
+  Future<void> _setRoutine(DailyRoutine routine) async {
+    _notifier.setRoutine(routine);
+    if (routine == DailyRoutine.none) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final allowed = await ref
+        .read(routineNotificationsProvider)
+        .requestPermission();
+    if (!allowed) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.notificationsDenied)));
+    }
+  }
+
   Future<void> _submit() async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
@@ -248,8 +264,13 @@ class _FormViewState extends ConsumerState<_FormView> {
                       onClose: _dismissSuggestions,
                     ),
                   const SizedBox(height: 14),
-                  _ModeSelector(
-                    mode: form.mode,
+                  _OptionSelector(
+                    values: EntryMode.values,
+                    selected: form.mode,
+                    label: (value) => switch (value) {
+                      EntryMode.direct => l10n.modeDirect,
+                      EntryMode.perQuantity => l10n.modePerQuantity,
+                    },
                     onChanged: _dismissing(_notifier.setMode),
                   ),
                   if (form.mode == EntryMode.direct) ...[
@@ -307,6 +328,27 @@ class _FormViewState extends ConsumerState<_FormView> {
                     const SizedBox(height: 14),
                     _Result(grams: form.amount?.proteinGrams, locale: locale),
                   ],
+                  if (args is! EditEntryArgs) ...[
+                    const SizedBox(height: 8),
+                    _Label(l10n.routineTitle),
+                    _OptionSelector(
+                      values: DailyRoutine.values,
+                      selected: form.routine,
+                      label: (value) => switch (value) {
+                        DailyRoutine.none => l10n.routineNone,
+                        DailyRoutine.reminder => l10n.routineReminder,
+                        DailyRoutine.autoAdd => l10n.routineAutoAdd,
+                      },
+                      onChanged: _dismissing(_setRoutine),
+                    ),
+                    if (form.routine != DailyRoutine.none)
+                      _RoutineTime(
+                        routine: form.routine,
+                        minutes: form.routineMinutes,
+                        locale: locale,
+                        onChanged: _notifier.setRoutineMinutes,
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -321,7 +363,11 @@ class _FormViewState extends ConsumerState<_FormView> {
                       label: form.updatesProduct
                           ? l10n.updateProduct
                           : l10n.saveAsProduct,
-                      onChanged: form.canSaveAsProduct
+                      // Locked on while a routine is chosen: it belongs to
+                      // the product.
+                      onChanged:
+                          form.canSaveAsProduct &&
+                              form.routine == DailyRoutine.none
                           ? _notifier.setSaveAsProduct
                           : null,
                     ),
@@ -390,23 +436,30 @@ class _GramsField extends StatelessWidget {
   );
 }
 
-class _ModeSelector extends StatelessWidget {
-  const _ModeSelector({required this.mode, required this.onChanged});
+/// Options of equal width, the selected one on a sliding pill.
+class _OptionSelector<T> extends StatelessWidget {
+  const _OptionSelector({
+    required this.values,
+    required this.selected,
+    required this.label,
+    required this.onChanged,
+  });
 
-  final EntryMode mode;
-  final ValueChanged<EntryMode> onChanged;
+  final List<T> values;
+  final T selected;
+  final String Function(T value) label;
+  final ValueChanged<T> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
     final style = Theme.of(context).textTheme.bodyMedium!;
 
-    Widget option(EntryMode value, String label) {
-      final selected = value == mode;
+    Widget option(T value) {
+      final isSelected = value == selected;
       return Semantics(
         button: true,
-        selected: selected,
+        selected: isSelected,
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
@@ -415,11 +468,13 @@ class _ModeSelector extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Text(
-                label,
+                label(value),
                 textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: style.copyWith(
-                  color: selected ? AppColors.onAccent : colors.textSecondary,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected ? AppColors.onAccent : colors.textSecondary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ),
@@ -435,15 +490,65 @@ class _ModeSelector extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: SlidingSelector(
-        selectedIndex: EntryMode.values.indexOf(mode),
+        selectedIndex: values.indexOf(selected),
         gap: 6,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+        children: [for (final value in values) option(value)],
+      ),
+    );
+  }
+}
+
+/// What the chosen routine does, and its time, tapped to change it.
+class _RoutineTime extends StatelessWidget {
+  const _RoutineTime({
+    required this.routine,
+    required this.minutes,
+    required this.locale,
+    required this.onChanged,
+  });
+
+  final DailyRoutine routine;
+  final int minutes;
+  final String locale;
+  final ValueChanged<int> onChanged;
+
+  Future<void> _pick(BuildContext context) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
+    );
+    if (picked != null) onChanged(picked.hour * 60 + picked.minute);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
         children: [
-          for (final value in EntryMode.values)
-            option(value, switch (value) {
-              EntryMode.direct => l10n.modeDirect,
-              EntryMode.perQuantity => l10n.modePerQuantity,
-            }),
+          Expanded(
+            child: Text(
+              routine == DailyRoutine.reminder
+                  ? l10n.routineReminderHint
+                  : l10n.routineAutoAddHint,
+              style: textTheme.bodySmall!.copyWith(color: colors.textSecondary),
+            ),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: () => _pick(context),
+            icon: const Icon(LucideIcons.clock, size: 18),
+            label: Text(
+              l10n.routineAt(
+                formatTime(routineTimeOn(DateTime(2000), minutes), locale),
+              ),
+            ),
+          ),
         ],
       ),
     );

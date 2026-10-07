@@ -4,12 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/empty_state.dart';
+import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/product_description.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
@@ -17,7 +20,8 @@ import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Products tab. Tap a product to edit it, tap its "+" button to add it to
-/// the day, swipe it to delete it.
+/// the day, swipe it to delete it. Products with a daily routine come first,
+/// after the favorite.
 class ProductsPage extends ConsumerStatefulWidget {
   const ProductsPage({super.key});
 
@@ -61,7 +65,6 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
     final sort =
         ref.watch(productSortProvider).value ?? ProductSort.alphabetical;
     final products = ref.watch(sortedProductsProvider).value;
-
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tabProducts)),
       floatingActionButton: FilledButton.icon(
@@ -265,6 +268,11 @@ class _ProductTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(details, style: textTheme.bodySmall),
+                      if (product.activeRoutineMinutes case final minutes?)
+                        _RoutineLabel(
+                          routine: product.routine,
+                          minutes: minutes,
+                        ),
                     ],
                   ),
                 ),
@@ -288,6 +296,49 @@ class _ProductTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Daily routine of a product: a reminder or an automatic addition, and its
+/// time.
+class _RoutineLabel extends StatelessWidget {
+  const _RoutineLabel({required this.routine, required this.minutes});
+
+  final DailyRoutine routine;
+  final int minutes;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final color = AppColors.of(context).accentText;
+    final time = formatTime(
+      routineTimeOn(DateTime(2000), minutes),
+      context.localeName,
+    );
+    final reminder = routine == DailyRoutine.reminder;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        children: [
+          Icon(
+            reminder ? LucideIcons.bell : LucideIcons.repeat,
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              reminder
+                  ? l10n.productRoutineReminder(time)
+                  : l10n.productRoutineAutoAdd(time),
+              style: Theme.of(context).textTheme.bodySmall!
+                  .copyWith(color: color, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
       ),
     );
   }

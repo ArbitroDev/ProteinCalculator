@@ -507,5 +507,94 @@
   "startupStillFailing": "Tes données ne peuvent toujours pas être lues.",
   "@startupStillFailing": {
     "description": "Snack bar when trying again still cannot open the data."
+  },
+  "routineTitle": "Tous les jours",
+  "@routineTitle": {
+    "description": "Entry and product forms: title of the daily routine section."
+  },
+  "routineNone": "Non",
+  "@routineNone": {
+    "description": "Daily routine option: no routine."
+  },
+  "routineReminder": "Rappel",
+  "@routineReminder": {
+    "description": "Daily routine option: a notification reminds the user."
+  },
+  "routineAutoAdd": "Ajout auto",
+  "@routineAutoAdd": {
+    "description": "Daily routine option: the product is added on its own."
+  },
+  "routineReminderHint": "Une notification te le rappelle chaque jour, avec un bouton pour l'ajouter.",
+  "@routineReminderHint": {
+    "description": "Explains the reminder routine, under the selector."
+  },
+  "routineAutoAddHint": "Il s'ajoute tout seul chaque jour, et une notification te le dit, avec un bouton pour le retirer.",
+  "@routineAutoAddHint": {
+    "description": "Explains the automatic addition routine, under the selector."
+  },
+  "routineAt": "À {time}",
+  "@routineAt": {
+    "description": "Button showing the time of the daily routine; tapping it changes the time.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "productRoutineReminder": "Rappel à {time}",
+  "@productRoutineReminder": {
+    "description": "Products list: the product has a daily reminder.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "productRoutineAutoAdd": "Ajouté à {time}",
+  "@productRoutineAutoAdd": {
+    "description": "Products list: the product is added on its own every day.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationReminderBody": "C'est l'heure · {grams} g de protéines",
+  "@notificationReminderBody": {
+    "description": "Body of the daily reminder notification, under the product name.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationAutoAddBody": "Ajouté à ta journée · {grams} g de protéines",
+  "@notificationAutoAddBody": {
+    "description": "Body of the notification saying the product was added on its own.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationAdd": "Ajouter",
+  "@notificationAdd": {
+    "description": "Reminder notification button adding the product."
+  },
+  "notificationRemove": "Retirer",
+  "@notificationRemove": {
+    "description": "Automatic addition notification button removing the entry."
+  },
+  "notificationChannelReminders": "Rappels quotidiens",
+  "@notificationChannelReminders": {
+    "description": "Android notification channel of the daily reminders."
+  },
+  "notificationChannelAutoAdds": "Ajouts automatiques",
+  "@notificationChannelAutoAdds": {
+    "description": "Android notification channel of the automatic additions."
+  },
+  "notificationsDenied": "Les notifications de l'app sont désactivées : active-les dans les réglages d'Android pour les recevoir.",
+  "@notificationsDenied": {
+    "description": "Snack bar when a routine is chosen but notifications are not allowed."
   }
 }

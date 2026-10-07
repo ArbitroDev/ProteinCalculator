@@ -103,5 +103,21 @@
   "startupRetry": "Try again",
   "startupRestore": "Start over from a backup",
   "productRestoreNameTaken": "The product couldn't be restored: another product already has this name.",
-  "startupStillFailing": "Your data still can't be read."
+  "startupStillFailing": "Your data still can't be read.",
+  "routineTitle": "Every day",
+  "routineNone": "Off",
+  "routineReminder": "Reminder",
+  "routineAutoAdd": "Auto add",
+  "routineReminderHint": "A notification reminds you every day, with a button to add it.",
+  "routineAutoAddHint": "It is added on its own every day, and a notification tells you, with a button to remove it.",
+  "routineAt": "At {time}",
+  "productRoutineReminder": "Reminder at {time}",
+  "productRoutineAutoAdd": "Added at {time}",
+  "notificationReminderBody": "Time to take it · {grams} g of protein",
+  "notificationAutoAddBody": "Added to your day · {grams} g of protein",
+  "notificationAdd": "Add",
+  "notificationRemove": "Remove",
+  "notificationChannelReminders": "Daily reminders",
+  "notificationChannelAutoAdds": "Automatic additions",
+  "notificationsDenied": "Notifications are off for the app: turn them on in the Android settings to get them."
 }

@@ -5,6 +5,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/tables.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 
@@ -146,6 +147,57 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     return transaction(() async {
       await into(entries).insert(entry);
       await _refreshUses({entry.nameKey});
+    });
+  }
+
+  /// Adds the entries of the products added automatically every day, for
+  /// each of their times up to [now] not added yet, at that time: also those
+  /// of the days the app was not opened.
+  Future<void> addRoutineEntries(DateTime now) {
+    return transaction(() async {
+      final routines = await (select(
+        products,
+      )..where((p) => p.routine.equalsValue(DailyRoutine.autoAdd))).get();
+      for (final product in routines) {
+        final minutes = product.routineMinutes;
+        if (minutes == null) continue;
+        final times = routineTimesBetween(
+          minutes,
+          product.routineCheckedAt ?? now,
+          now,
+        );
+        if (times.isEmpty) continue;
+        for (final time in times) {
+          await addPortion(product, createdAt: time);
+        }
+        await (update(products)..where((p) => p.id.equals(product.id))).write(
+          ProductsCompanion(routineCheckedAt: Value(now)),
+        );
+      }
+    });
+  }
+
+  /// Removes the entry the product [productId] added on its own at its
+  /// latest time, after making the additions due up to [now] so it exists.
+  /// Does nothing if the user already removed it.
+  Future<void> removeRoutineEntry(int productId, DateTime now) {
+    return transaction(() async {
+      await addRoutineEntries(now);
+      final product = await (select(
+        products,
+      )..where((p) => p.id.equals(productId))).getSingleOrNull();
+      final minutes = product?.routineMinutes;
+      if (product == null || minutes == null) return;
+      final entry =
+          await (select(entries)
+                ..where(
+                  (e) =>
+                      e.nameKey.equals(product.nameKey) &
+                      e.createdAt.equals(latestRoutineTime(minutes, now)),
+                )
+                ..limit(1))
+              .getSingleOrNull();
+      if (entry != null) await deleteEntry(entry.id);
     });
   }
 

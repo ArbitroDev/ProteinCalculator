@@ -7,6 +7,7 @@ import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/database/tables.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
@@ -27,7 +28,12 @@ class AppDatabase extends _$AppDatabase {
       name: 'protein_calculator',
       // The path drift_flutter uses by default, given explicitly so the file
       // can be set aside when it cannot be opened.
-      native: const DriftNativeOptions(databasePath: databasePath),
+      native: DriftNativeOptions(
+        databasePath: databasePath,
+        // The buttons of the notifications write to the data apart from the
+        // app: one waits for the other rather than failing.
+        setup: (db) => db.execute('PRAGMA busy_timeout = 5000'),
+      ),
       web: DriftWebOptions(
         sqlite3Wasm: Uri.parse('sqlite3.wasm'),
         driftWorker: Uri.parse('drift_worker.js'),
@@ -36,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -55,6 +61,11 @@ class AppDatabase extends _$AppDatabase {
         await m.create(schema.entriesNameKey);
         await _fillNameKeys();
         await refreshUses();
+      },
+      from4To5: (m, schema) async {
+        await m.addColumn(schema.products, schema.products.routine);
+        await m.addColumn(schema.products, schema.products.routineMinutes);
+        await m.addColumn(schema.products, schema.products.routineCheckedAt);
       },
     ),
     beforeOpen: (details) async {

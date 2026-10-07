@@ -5,6 +5,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
@@ -18,7 +19,8 @@ const backupFormat = 'protein-calculator';
 /// Version of the backup file layout, increased when it changes.
 ///
 /// 2: entries hold their part of the day.
-const backupVersion = 2;
+/// 3: products hold their daily routine.
+const backupVersion = 3;
 
 /// Thrown when a file is not a valid Protein Calculator backup.
 class InvalidBackupException implements Exception {
@@ -94,6 +96,8 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'lastUsedAt': p.lastUsedAt?.toUtc().toIso8601String(),
           'createdAt': p.createdAt.toUtc().toIso8601String(),
           'isFavorite': p.isFavorite,
+          'routine': p.routine.name,
+          'routineMinutes': p.routineMinutes,
         },
     ],
   });
@@ -158,14 +162,24 @@ Backup parseBackup(String text) {
 
 /// Replaces all data with the content of [backup], in a single transaction:
 /// either everything is restored, or nothing changes.
-Future<void> restoreBackup(AppDatabase db, Backup backup) {
+///
+/// Daily routines start again from [now] (the current time by default):
+/// the products added automatically are not added for the days between the
+/// backup and its restoration.
+Future<void> restoreBackup(AppDatabase db, Backup backup, {DateTime? now}) {
+  final checkedAt = now ?? DateTime.now();
   return db.transaction(() async {
     await db.delete(db.entries).go();
     await db.delete(db.products).go();
     await db.batch((batch) {
       batch
         ..insertAll(db.entries, backup.entries)
-        ..insertAll(db.products, backup.products);
+        ..insertAll(db.products, [
+          for (final product in backup.products)
+            product.routine.value == DailyRoutine.none
+                ? product
+                : product.copyWith(routineCheckedAt: Value(checkedAt)),
+        ]);
     });
     // Uses follow the restored entries, whatever the file says.
     await db.refreshUses();
@@ -222,6 +236,15 @@ ProductsCompanion _product(Map<String, dynamic> p) {
   final useCount = p['useCount'] as int;
   if (useCount < 0) throw const InvalidBackupException('negative use count');
   final lastUsedAt = p['lastUsedAt'] as String?;
+  // Absent from backups made before routines existed.
+  final routine = DailyRoutine.values.byName(
+    p['routine'] as String? ?? DailyRoutine.none.name,
+  );
+  final routineMinutes = p['routineMinutes'] as int?;
+  if ((routine == DailyRoutine.none) != (routineMinutes == null) ||
+      (routineMinutes != null && !isValidRoutineMinutes(routineMinutes))) {
+    throw const InvalidBackupException('invalid daily routine');
+  }
   return ProductsCompanion.insert(
     id: Value(_id(p['id'])),
     name: name,
@@ -238,6 +261,8 @@ ProductsCompanion _product(Map<String, dynamic> p) {
     createdAt: DateTime.parse(p['createdAt'] as String).toLocal(),
     // Absent from backups made before favorites existed.
     isFavorite: Value(p['isFavorite'] as bool? ?? false),
+    routine: Value(routine),
+    routineMinutes: Value(routineMinutes),
   );
 }
 
