@@ -593,8 +593,24 @@
   "@notificationChannelAutoAdds": {
     "description": "Android notification channel of the automatic additions."
   },
-  "notificationsDenied": "Les notifications de l'app sont désactivées : active-les dans les réglages d'Android pour les recevoir.",
-  "@notificationsDenied": {
-    "description": "Snack bar when a routine is chosen but notifications are not allowed."
+  "reminderNeedsNotifications": "Le rappel passe par une notification : autorise-les pour le choisir.",
+  "@reminderNeedsNotifications": {
+    "description": "Snack bar when the reminder routine is tapped but notifications are refused."
+  },
+  "notificationsOffAutoAdd": "Notifications désactivées : il s'ajoutera quand même, mais sans te prévenir.",
+  "@notificationsOffAutoAdd": {
+    "description": "Warning when the automatic addition is chosen while its notifications are off."
+  },
+  "notificationsOffReminder": "Notifications désactivées : ce rappel ne s'affichera pas.",
+  "@notificationsOffReminder": {
+    "description": "Warning in the form when the product has a reminder but its notifications are off."
+  },
+  "notificationsOffBanner": "Notifications désactivées : tes routines ne peuvent pas te prévenir.",
+  "@notificationsOffBanner": {
+    "description": "Products tab banner when products have a routine but its notifications are off."
+  },
+  "openSettings": "Réglages",
+  "@openSettings": {
+    "description": "Button opening the notification settings of the app in Android."
   }
 }

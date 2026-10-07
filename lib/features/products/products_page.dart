@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
@@ -13,6 +14,7 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/empty_state.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
+import 'package:protein_calculator/core/widgets/notifications_off.dart';
 import 'package:protein_calculator/core/widgets/product_description.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
@@ -65,6 +67,16 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
     final sort =
         ref.watch(productSortProvider).value ?? ProductSort.alphabetical;
     final products = ref.watch(sortedProductsProvider).value;
+    final notifications = ref.watch(notificationStatusProvider).value;
+    // Some routines cannot notify: a banner says so.
+    final unnotified =
+        notifications != null &&
+        (products ?? const <Product>[]).any(
+          (product) =>
+              product.activeRoutineMinutes != null &&
+              !notifications.shows(product.routine),
+        );
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tabProducts)),
       floatingActionButton: FilledButton.icon(
@@ -91,6 +103,13 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
                       ),
                     ),
                   ),
+                  if (unnotified)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
+                      child: NotificationsOff(
+                        message: l10n.notificationsOffBanner,
+                      ),
+                    ),
                   Expanded(
                     child: _buildList([
                       for (final product in products)

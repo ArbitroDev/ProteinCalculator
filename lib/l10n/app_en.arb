@@ -119,5 +119,9 @@
   "notificationRemove": "Remove",
   "notificationChannelReminders": "Daily reminders",
   "notificationChannelAutoAdds": "Automatic additions",
-  "notificationsDenied": "Notifications are off for the app: turn them on in the Android settings to get them."
+  "reminderNeedsNotifications": "Reminders need notifications: allow them to choose it.",
+  "notificationsOffAutoAdd": "Notifications are off: it will still be added, but without telling you.",
+  "notificationsOffReminder": "Notifications are off: this reminder won't show.",
+  "notificationsOffBanner": "Notifications are off: your routines can't notify you.",
+  "openSettings": "Settings"
 }

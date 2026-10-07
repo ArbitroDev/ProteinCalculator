@@ -19,6 +19,42 @@ final routineNotificationsProvider = Provider<RoutineNotifications>(
   (ref) => const RoutineNotifications.none(),
 );
 
+/// Whether the notifications of the routines can show, read again when the
+/// app comes back to the foreground, as the user may have changed it in the
+/// settings of Android.
+final notificationStatusProvider =
+    AsyncNotifierProvider<NotificationStatusNotifier, NotificationStatus>(
+      NotificationStatusNotifier.new,
+    );
+
+class NotificationStatusNotifier extends AsyncNotifier<NotificationStatus> {
+  RoutineNotifications get _notifications =>
+      ref.read(routineNotificationsProvider);
+
+  @override
+  Future<NotificationStatus> build() {
+    final lifecycle = AppLifecycleListener(
+      onResume: () => unawaited(refresh()),
+    );
+    ref.onDispose(lifecycle.dispose);
+    return ref.watch(routineNotificationsProvider).status();
+  }
+
+  Future<void> refresh() async {
+    state = AsyncData(await _notifications.status());
+  }
+
+  /// Asks the user to allow notifications. Completes with whether those of
+  /// [routine] show.
+  Future<bool> request(DailyRoutine routine) async {
+    await _notifications.requestPermission();
+    await refresh();
+    return state.value?.shows(routine) ?? false;
+  }
+
+  Future<void> openSettings() => _notifications.openSettings();
+}
+
 /// Keeps the daily routines of the products running while the app runs:
 /// plans their notifications, and adds the products added automatically at
 /// their time, when the app comes back to the foreground, and after a

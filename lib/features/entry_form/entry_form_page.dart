@@ -16,6 +16,7 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
+import 'package:protein_calculator/core/widgets/notifications_off.dart';
 import 'package:protein_calculator/core/widgets/product_description.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
@@ -161,17 +162,33 @@ class _FormViewState extends ConsumerState<_FormView> {
     super.dispose();
   }
 
-  /// Chooses the routine, asking to allow notifications for one.
+  /// Chooses the routine, asking to allow notifications first. A reminder
+  /// is only a notification: it needs them. An automatic addition works
+  /// without them, which the form then says.
   Future<void> _setRoutine(DailyRoutine routine) async {
-    _notifier.setRoutine(routine);
-    if (routine == DailyRoutine.none) return;
+    final status = ref.read(notificationStatusProvider.notifier);
+    final shows =
+        ref.read(notificationStatusProvider).value?.shows(routine) ?? true;
+    final reminder = routine == DailyRoutine.reminder;
+    if (!reminder || shows) _notifier.setRoutine(routine);
+    if (routine == DailyRoutine.none || shows) return;
+
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    final allowed = await ref
-        .read(routineNotificationsProvider)
-        .requestPermission();
-    if (!allowed) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.notificationsDenied)));
+    final allowed = await status.request(routine);
+    if (!reminder) return;
+    if (allowed) {
+      _notifier.setRoutine(routine);
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.reminderNeedsNotifications),
+          action: SnackBarAction(
+            label: l10n.openSettings,
+            onPressed: status.openSettings,
+          ),
+        ),
+      );
     }
   }
 
@@ -205,6 +222,10 @@ class _FormViewState extends ConsumerState<_FormView> {
       EntryFormError.nameRequired => l10n.errorNameRequired,
       EntryFormError.nameTaken => l10n.errorNameTaken,
     };
+
+    final notifications = ref.watch(notificationStatusProvider).value;
+    bool notified(DailyRoutine routine) =>
+        notifications?.shows(routine) ?? true;
 
     final suggestions = args.isProduct || _hideSuggestions || !_nameActive
         ? const <Product>[]
@@ -340,14 +361,29 @@ class _FormViewState extends ConsumerState<_FormView> {
                         DailyRoutine.autoAdd => l10n.routineAutoAdd,
                       },
                       onChanged: _dismissing(_setRoutine),
+                      // Still tapped: it asks for the notifications.
+                      disabled: {
+                        if (!notified(DailyRoutine.reminder))
+                          DailyRoutine.reminder,
+                      },
                     ),
-                    if (form.routine != DailyRoutine.none)
+                    if (form.routine != DailyRoutine.none) ...[
                       _RoutineTime(
                         routine: form.routine,
                         minutes: form.routineMinutes,
                         locale: locale,
                         onChanged: _notifier.setRoutineMinutes,
                       ),
+                      if (!notified(form.routine))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: NotificationsOff(
+                            message: form.routine == DailyRoutine.reminder
+                                ? l10n.notificationsOffReminder
+                                : l10n.notificationsOffAutoAdd,
+                          ),
+                        ),
+                    ],
                   ],
                 ],
               ),
@@ -443,12 +479,16 @@ class _OptionSelector<T> extends StatelessWidget {
     required this.selected,
     required this.label,
     required this.onChanged,
+    this.disabled = const {},
   });
 
   final List<T> values;
   final T selected;
   final String Function(T value) label;
   final ValueChanged<T> onChanged;
+
+  /// Options shown as unavailable, which still call [onChanged] when tapped.
+  final Set<T> disabled;
 
   @override
   Widget build(BuildContext context) {
@@ -457,6 +497,10 @@ class _OptionSelector<T> extends StatelessWidget {
 
     Widget option(T value) {
       final isSelected = value == selected;
+      final isDisabled = disabled.contains(value);
+      final color = isSelected
+          ? AppColors.onAccent
+          : colors.textSecondary.withValues(alpha: isDisabled ? 0.5 : 1);
       return Semantics(
         button: true,
         selected: isSelected,
@@ -467,15 +511,28 @@ class _OptionSelector<T> extends StatelessWidget {
             onTap: () => onChanged(value),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Text(
-                label(value),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: style.copyWith(
-                  color: isSelected ? AppColors.onAccent : colors.textSecondary,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (isDisabled) ...[
+                    Icon(LucideIcons.bellOff, size: 14, color: color),
+                    const SizedBox(width: 5),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label(value),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: style.copyWith(
+                        color: color,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

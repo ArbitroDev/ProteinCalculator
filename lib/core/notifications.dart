@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
@@ -28,9 +29,44 @@ abstract interface class RoutineNotifications {
   /// language of [l10n], replacing those planned before.
   Future<void> schedule(List<Product> products, AppLocalizations l10n);
 
+  /// Whether the notifications of each routine can show.
+  Future<NotificationStatus> status();
+
   /// Asks the user to allow notifications, if not done yet. Completes with
-  /// whether they are allowed.
+  /// whether they are allowed. After two refusals, Android no longer asks:
+  /// only the settings can allow them, see [openSettings].
   Future<bool> requestPermission();
+
+  /// Opens the notification settings of the app in Android.
+  Future<void> openSettings();
+}
+
+/// Whether notifications can show: those of the app, and those of each
+/// routine, which the user can turn off one by one in Android.
+@immutable
+class NotificationStatus {
+  const NotificationStatus({required this.allowed, this.blocked = const {}});
+
+  /// Notifications that always show, where there are none to turn off.
+  static const all = NotificationStatus(allowed: true);
+
+  /// Whether the app may show notifications at all.
+  final bool allowed;
+
+  /// Routines whose notifications are turned off.
+  final Set<DailyRoutine> blocked;
+
+  /// Whether the notifications of [routine] show.
+  bool shows(DailyRoutine routine) => allowed && !blocked.contains(routine);
+
+  @override
+  bool operator ==(Object other) =>
+      other is NotificationStatus &&
+      other.allowed == allowed &&
+      setEquals(other.blocked, blocked);
+
+  @override
+  int get hashCode => Object.hash(allowed, Object.hashAllUnordered(blocked));
 }
 
 const _remindersChannel = 'routine_reminders';
@@ -102,9 +138,15 @@ class _NoNotifications implements RoutineNotifications {
   @override
   Future<void> schedule(List<Product> products, AppLocalizations l10n) async {}
 
+  @override
+  Future<NotificationStatus> status() async => NotificationStatus.all;
+
   /// Nothing to allow.
   @override
   Future<bool> requestPermission() async => true;
+
+  @override
+  Future<void> openSettings() async {}
 }
 
 class _AndroidNotifications implements RoutineNotifications {
@@ -117,9 +159,33 @@ class _AndroidNotifications implements RoutineNotifications {
         AndroidFlutterLocalNotificationsPlugin
       >();
 
+  static const _settings = MethodChannel('protein_calculator/settings');
+
+  @override
+  Future<NotificationStatus> status() async {
+    final android = _android;
+    if (android == null) return NotificationStatus.all;
+    // Channels exist once a notification of theirs was planned.
+    final channels = await android.getNotificationChannels() ?? const [];
+    bool off(String id) => channels.any(
+      (channel) => channel.id == id && channel.importance == Importance.none,
+    );
+    return NotificationStatus(
+      allowed: await android.areNotificationsEnabled() ?? false,
+      blocked: {
+        if (off(_remindersChannel)) DailyRoutine.reminder,
+        if (off(_autoAddsChannel)) DailyRoutine.autoAdd,
+      },
+    );
+  }
+
   @override
   Future<bool> requestPermission() async =>
       await _android?.requestNotificationsPermission() ?? false;
+
+  @override
+  Future<void> openSettings() =>
+      _settings.invokeMethod<void>('openNotificationSettings');
 
   @override
   Future<void> schedule(List<Product> products, AppLocalizations l10n) async {
