@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 
 void main() {
+  tearDown(() => appDayStartHour = defaultAppDayStartHour);
+
   group('dayKeyOf', () {
     test('belongs to the same calendar day from 3 a.m.', () {
       expect(dayKeyOf(DateTime(2026, 9, 30, 3)), 20260930);
@@ -55,6 +57,28 @@ void main() {
 
     test('handles the end of the year', () {
       expect(nextDayStart(DateTime(2026, 12, 31, 22)), DateTime(2027, 1, 1, 3));
+    });
+  });
+
+  group('with another start hour', () {
+    test('days start at the hour chosen', () {
+      appDayStartHour = 6;
+      expect(dayKeyOf(DateTime(2026, 10, 1, 5, 59)), 20260930);
+      expect(dayKeyOf(DateTime(2026, 10, 1, 6)), 20261001);
+      expect(nextDayStart(DateTime(2026, 10, 1, 7)), DateTime(2026, 10, 2, 6));
+    });
+
+    test('days start at midnight when chosen', () {
+      appDayStartHour = 0;
+      expect(dayKeyOf(DateTime(2026, 10, 1)), 20261001);
+      expect(dayKeyOf(DateTime(2026, 9, 30, 23, 59)), 20260930);
+    });
+
+    test('only hours from midnight to 7 a.m. are valid', () {
+      expect(isValidAppDayStartHour(0), isTrue);
+      expect(isValidAppDayStartHour(7), isTrue);
+      expect(isValidAppDayStartHour(8), isFalse);
+      expect(isValidAppDayStartHour(-1), isFalse);
     });
   });
 }

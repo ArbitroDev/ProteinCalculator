@@ -83,7 +83,11 @@ class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
     );
     if (confirmed != true) return;
 
-    await restoreBackup(ref.read(databaseProvider), backup);
+    await restoreBackup(
+      ref.read(databaseProvider),
+      backup,
+      now: ref.read(clockProvider)(),
+    );
     messenger.showSnackBar(SnackBar(content: Text(l10n.importDone)));
   });
 

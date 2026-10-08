@@ -2,22 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/empty_state.dart';
+import 'package:protein_calculator/core/widgets/locale_name.dart';
+import 'package:protein_calculator/core/widgets/notifications_off.dart';
+import 'package:protein_calculator/core/widgets/pill_tabs.dart';
 import 'package:protein_calculator/core/widgets/product_description.dart';
-import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Products tab. Tap a product to edit it, tap its "+" button to add it to
-/// the day, swipe it to delete it.
+/// the day, swipe it to delete it. Products with a daily routine come first,
+/// after the favorite.
 class ProductsPage extends ConsumerStatefulWidget {
   const ProductsPage({super.key});
 
@@ -61,6 +67,17 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
     final sort =
         ref.watch(productSortProvider).value ?? ProductSort.alphabetical;
     final products = ref.watch(sortedProductsProvider).value;
+    final notifications = ref.watch(notificationStatusProvider).value;
+    // Some routines cannot notify, or only late: a banner says so.
+    final routines = [
+      for (final product in products ?? const <Product>[])
+        if (product.activeRoutineMinutes != null) product.routine,
+    ];
+    final unnotified =
+        notifications != null &&
+        routines.any((routine) => !notifications.shows(routine));
+    final late =
+        !unnotified && routines.isNotEmpty && notifications?.exact == false;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tabProducts)),
@@ -88,6 +105,16 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
                       ),
                     ),
                   ),
+                  if (unnotified || late)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
+                      child: NotificationsOff(
+                        message: unnotified
+                            ? l10n.notificationsOffBanner
+                            : l10n.routinesMayBeLateBanner,
+                        late: late,
+                      ),
+                    ),
                   Expanded(
                     child: _buildList([
                       for (final product in products)
@@ -135,58 +162,14 @@ class _SortChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final colors = AppColors.of(context);
-    final style = Theme.of(context).textTheme.bodyMedium!;
-    final labels = {
-      ProductSort.alphabetical: l10n.sortAlphabetical,
-      ProductSort.mostUsed: l10n.sortMostUsed,
-      ProductSort.recentlyUsed: l10n.sortRecentlyUsed,
-    };
-
-    final options = labels.keys.toList();
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: ShapeDecoration(
-        color: colors.surface,
-        shape: StadiumBorder(side: BorderSide(color: colors.divider)),
-      ),
-      // Same look as the tab bar.
-      child: SlidingSelector(
-        selectedIndex: options.indexOf(sort),
-        gap: 4,
-        shape: const StadiumBorder(),
-        children: [
-          for (final value in options)
-            Semantics(
-              button: true,
-              selected: value == sort,
-              child: Material(
-                type: MaterialType.transparency,
-                child: InkWell(
-                  customBorder: const StadiumBorder(),
-                  onTap: () => onChanged(value),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 9),
-                    child: Text(
-                      labels[value]!,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: style.copyWith(
-                        color: value == sort
-                            ? AppColors.onAccent
-                            : colors.textSecondary,
-                        fontWeight: value == sort
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
+    return PillTabs(
+      labels: {
+        ProductSort.alphabetical: l10n.sortAlphabetical,
+        ProductSort.mostUsed: l10n.sortMostUsed,
+        ProductSort.recentlyUsed: l10n.sortRecentlyUsed,
+      },
+      selected: sort,
+      onChanged: onChanged,
     );
   }
 }
@@ -265,6 +248,11 @@ class _ProductTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(details, style: textTheme.bodySmall),
+                      if (product.activeRoutineMinutes case final minutes?)
+                        _RoutineLabel(
+                          routine: product.routine,
+                          minutes: minutes,
+                        ),
                     ],
                   ),
                 ),
@@ -288,6 +276,49 @@ class _ProductTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Daily routine of a product: a reminder or an automatic addition, and its
+/// time.
+class _RoutineLabel extends StatelessWidget {
+  const _RoutineLabel({required this.routine, required this.minutes});
+
+  final DailyRoutine routine;
+  final int minutes;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final color = AppColors.of(context).accentText;
+    final time = formatTime(
+      routineTimeOn(DateTime(2000), minutes),
+      context.localeName,
+    );
+    final reminder = routine == DailyRoutine.reminder;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        children: [
+          Icon(
+            reminder ? LucideIcons.bell : LucideIcons.repeat,
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              reminder
+                  ? l10n.productRoutineReminder(time)
+                  : l10n.productRoutineAutoAdd(time),
+              style: Theme.of(context).textTheme.bodySmall!
+                  .copyWith(color: color, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/tables.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
@@ -99,6 +100,24 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
+  /// Gives the product [id] the daily [routine] at [minutes], from [now]:
+  /// automatic additions start after it.
+  Future<void> setRoutine(
+    int id,
+    DailyRoutine routine, {
+    required int? minutes,
+    required DateTime now,
+  }) {
+    final none = routine == DailyRoutine.none || minutes == null;
+    return (update(products)..where((p) => p.id.equals(id))).write(
+      ProductsCompanion(
+        routine: Value(none ? DailyRoutine.none : routine),
+        routineMinutes: Value(none ? null : minutes),
+        routineCheckedAt: Value(none ? null : now),
+      ),
+    );
+  }
+
   /// Deletes a product and returns it, so the deletion can be undone with
   /// [restoreProduct]. Entries are not affected: they keep their own copy of
   /// the values.
@@ -131,8 +150,9 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
   }
 }
 
-/// Sorts [products] by [sort], the favorite first, using the
-/// accent-insensitive alphabetical order to break ties.
+/// Sorts [products] by [sort], the favorite first, then those with a daily
+/// routine, earliest first, using the accent-insensitive alphabetical order
+/// to break ties.
 List<Product> sortProducts(List<Product> products, ProductSort sort) {
   int alphabetical(Product a, Product b) => a.nameKey.compareTo(b.nameKey);
 
@@ -154,7 +174,19 @@ List<Product> sortProducts(List<Product> products, ProductSort sort) {
 
   return [...products]..sort((a, b) {
     if (a.isFavorite != b.isFavorite) return a.isFavorite ? -1 : 1;
+    final aMinutes = a.activeRoutineMinutes, bMinutes = b.activeRoutineMinutes;
+    if (aMinutes != bMinutes) {
+      if (aMinutes == null) return 1;
+      if (bMinutes == null) return -1;
+      return aMinutes.compareTo(bMinutes);
+    }
     final result = primary(a, b);
     return result != 0 ? result : alphabetical(a, b);
   });
+}
+
+extension ProductRoutine on Product {
+  /// Time of the daily routine of this product, or null without one.
+  int? get activeRoutineMinutes =>
+      routine == DailyRoutine.none ? null : routineMinutes;
 }

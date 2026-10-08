@@ -11,6 +11,7 @@ import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
+import 'generated/schema_v7.dart' as v7;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -286,6 +287,72 @@ void main() {
         final product = await newDb.select(newDb.products).getSingle();
         expect(product.useCount, 1);
         expect(product.lastUsedAt, morning);
+      },
+    );
+  });
+
+  test('migration from v4, the version of 1.0.0, to v7', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 4,
+      newVersion: 7,
+      createOld: v4.DatabaseAtV4.new,
+      createNew: v7.DatabaseAtV7.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        v4.EntriesData entry(int id, int dayKey) => v4.EntriesData(
+          id: id,
+          name: 'Skyr',
+          nameKey: 'skyr',
+          mode: 'direct',
+          proteinGrams: 20,
+          createdAt: 1790000000 + id,
+          dayKey: dayKey,
+          slot: 'morning',
+        );
+        batch
+          ..insertAll(oldDb.entries, [entry(1, 20260920), entry(2, 20260915)])
+          ..insert(
+            oldDb.products,
+            const v4.ProductsData(
+              id: 1,
+              name: 'Skyr',
+              nameKey: 'skyr',
+              mode: 'direct',
+              proteinGrams: 20,
+              useCount: 2,
+              createdAt: 1780000000,
+              isFavorite: 1,
+            ),
+          )
+          ..insert(
+            oldDb.appSettings,
+            const v4.AppSettingsData(
+              id: 1,
+              dailyGoalGrams: 140,
+              productSort: 'mostUsed',
+              crashReports: 1,
+            ),
+          );
+      },
+      validateItems: (newDb) async {
+        // The goal counts from the first day with entries.
+        final goal = await newDb.select(newDb.goalChanges).getSingle();
+        expect(goal.dayKey, 20260915);
+        expect(goal.grams, 140);
+
+        final product = await newDb.select(newDb.products).getSingle();
+        expect(product.routine, 'none');
+        expect(product.routineMinutes, null);
+        expect(product.isFavorite, 1);
+
+        final settings = await newDb.select(newDb.appSettings).getSingle();
+        expect(settings.dailyGoalGrams, 140);
+        expect(settings.productSort, 'mostUsed');
+        expect(settings.crashReports, 1);
+        expect(settings.historyView, 'list');
+        expect(settings.dayStartHour, 3);
+
+        expect(await newDb.select(newDb.entries).get(), hasLength(2));
       },
     );
   });

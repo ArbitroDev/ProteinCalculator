@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/app.dart';
 import 'package:protein_calculator/core/backup.dart';
 import 'package:protein_calculator/core/crash_reporting.dart';
+import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/database_file.dart';
+import 'package:protein_calculator/core/notifications.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/features/startup/startup_error_app.dart';
@@ -51,10 +53,21 @@ Future<bool> startApp({
   // choice: nothing is sent.
   if (goal != null) await setCrashReporting(crashReports);
 
+  // The products added automatically while the app was closed.
+  await _reportFailure(
+    'daily routines',
+    () => database.entriesDao.addRoutineEntries(DateTime.now()),
+  );
+  var notifications = const RoutineNotifications.none();
+  await _reportFailure('notifications', () async {
+    notifications = await openRoutineNotifications();
+  });
+
   runApp(
     ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(database),
+        routineNotificationsProvider.overrideWithValue(notifications),
         initialLocationProvider.overrideWithValue(
           goal == null ? AppRoutes.onboarding : AppRoutes.today,
         ),
@@ -79,6 +92,20 @@ Future<bool> _restoreAndStart(
     await database.close();
   }
   return startApp(openDatabase: openDatabase);
+}
+
+/// Runs [action], only reporting a failure: the app starts without it.
+Future<void> _reportFailure(
+  String library,
+  Future<void> Function() action,
+) async {
+  try {
+    await action();
+  } on Object catch (error, stack) {
+    FlutterError.reportError(
+      FlutterErrorDetails(exception: error, stack: stack, library: library),
+    );
+  }
 }
 
 Future<void> _closeQuietly(AppDatabase database) async {

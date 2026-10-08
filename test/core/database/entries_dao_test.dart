@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
@@ -275,5 +276,88 @@ void main() {
 
       expect((await db.productsDao.getProduct(product.id))!.useCount, 0);
     });
+  });
+
+  group('daily routines', () {
+    Future<Product> autoAdd(int minutes, DateTime from) async {
+      final product = await addProduct('Skyr');
+      await db.productsDao.setRoutine(
+        product.id,
+        DailyRoutine.autoAdd,
+        minutes: minutes,
+        now: from,
+      );
+      return (await db.productsDao.getProduct(product.id))!;
+    }
+
+    Future<List<Entry>> all() => db.select(db.entries).get();
+
+    test('adds the product at each time due, also on missed days', () async {
+      await autoAdd(8 * 60, DateTime(2026, 10, 5, 12));
+
+      await dao.addRoutineEntries(DateTime(2026, 10, 8, 9));
+
+      final entries = await all();
+      expect(entries.map((e) => e.createdAt), [
+        DateTime(2026, 10, 6, 8),
+        DateTime(2026, 10, 7, 8),
+        DateTime(2026, 10, 8, 8),
+      ]);
+      expect(entries.map((e) => e.name).toSet(), {'Skyr'});
+    });
+
+    test('never adds the same time twice', () async {
+      await autoAdd(8 * 60, DateTime(2026, 10, 7, 12));
+
+      await dao.addRoutineEntries(DateTime(2026, 10, 8, 9));
+      await dao.addRoutineEntries(DateTime(2026, 10, 8, 10));
+
+      expect(await all(), hasLength(1));
+    });
+
+    test('does not add the days before the routine was chosen', () async {
+      await autoAdd(8 * 60, DateTime(2026, 10, 8, 9));
+
+      await dao.addRoutineEntries(DateTime(2026, 10, 8, 10));
+
+      expect(await all(), isEmpty);
+    });
+
+    test('a reminder adds nothing on its own', () async {
+      final product = await addProduct('Skyr');
+      await db.productsDao.setRoutine(
+        product.id,
+        DailyRoutine.reminder,
+        minutes: 8 * 60,
+        now: DateTime(2026, 10, 5),
+      );
+
+      await dao.addRoutineEntries(DateTime(2026, 10, 8, 9));
+
+      expect(await all(), isEmpty);
+    });
+
+    test('removes the entry added at the latest time', () async {
+      final product = await autoAdd(8 * 60, DateTime(2026, 10, 6, 12));
+      await dao.addRoutineEntries(DateTime(2026, 10, 8, 9));
+
+      await dao.removeRoutineEntry(product.id, DateTime(2026, 10, 8, 9));
+
+      expect((await all()).map((e) => e.createdAt), [DateTime(2026, 10, 7, 8)]);
+    });
+
+    test(
+      'removing adds the due entries first, then removes the latest',
+      () async {
+        final product = await autoAdd(8 * 60, DateTime(2026, 10, 6, 12));
+
+        // The app was not opened: nothing was added yet.
+        await dao.removeRoutineEntry(product.id, DateTime(2026, 10, 8, 9));
+
+        expect((await all()).map((e) => e.createdAt), [
+          DateTime(2026, 10, 7, 8),
+        ]);
+      },
+    );
   });
 }
