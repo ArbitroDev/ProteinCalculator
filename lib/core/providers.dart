@@ -19,10 +19,17 @@ final databaseProvider = Provider<AppDatabase>(
 /// Current time; overridden in tests.
 final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
-/// Key of the current app day. Emits again at 3 a.m. and when the app comes
-/// back to the foreground, so the today screen switches day on its own.
+/// Hour the app day starts, chosen in the menu, see `appDayStartHour`.
+final dayStartHourProvider = StreamProvider<int>(
+  (ref) => ref.watch(databaseProvider).settingsDao.watchDayStartHour(),
+);
+
+/// Key of the current app day. Emits again when the next app day starts,
+/// when the app comes back to the foreground and when the start hour
+/// changes, so the today screen switches day on its own.
 final currentDayKeyProvider = StreamProvider<int>((ref) {
   final now = ref.watch(clockProvider);
+  ref.watch(dayStartHourProvider);
   final controller = StreamController<int>();
   Timer? timer;
 

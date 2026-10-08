@@ -135,5 +135,7 @@
   "calendarNone": "Nothing",
   "calendarLow": "Under 50%",
   "calendarHalf": "50% or more",
-  "calendarReached": "Goal reached"
+  "calendarReached": "Goal reached",
+  "menuDayStart": "Start of the day",
+  "dayStartSheetBody": "Your day and your morning start at this time: what you add before counts for the evening before. The change applies to your next entries."
 }

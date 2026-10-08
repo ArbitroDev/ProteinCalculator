@@ -51,6 +51,17 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
   Future<void> setProductSort(ProductSort sort) =>
       _write(AppSettingsCompanion(productSort: Value(sort)));
 
+  Future<int> getDayStartHour() async => (await _row.getSingle()).dayStartHour;
+
+  Stream<int> watchDayStartHour() =>
+      _row.watchSingle().map((settings) => settings.dayStartHour);
+
+  /// Makes the app days start at [hour] from now on, see `appDayStartHour`.
+  Future<void> setDayStartHour(int hour) async {
+    await _write(AppSettingsCompanion(dayStartHour: Value(hour)));
+    appDayStartHour = hour;
+  }
+
   Stream<HistoryView> watchHistoryView() =>
       _row.watchSingle().map((settings) => settings.historyView);
 

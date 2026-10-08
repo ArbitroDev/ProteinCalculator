@@ -44,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -74,12 +74,17 @@ class AppDatabase extends _$AppDatabase {
         await _fillGoalChanges();
         await m.addColumn(schema.appSettings, schema.appSettings.historyView);
       },
+      from6To7: (m, schema) async {
+        await m.addColumn(schema.appSettings, schema.appSettings.dayStartHour);
+      },
     ),
     beforeOpen: (details) async {
       await into(appSettings).insert(
         AppSettingsCompanion.insert(id: const Value(SettingsDao.rowId)),
         mode: InsertMode.insertOrIgnore,
       );
+      // Days and parts of the day follow the start hour chosen by the user.
+      appDayStartHour = await settingsDao.getDayStartHour();
     },
   );
 

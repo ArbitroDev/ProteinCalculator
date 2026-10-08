@@ -22,7 +22,8 @@ const backupFormat = 'protein-calculator';
 ///
 /// 2: entries hold their part of the day.
 /// 3: products hold their daily routine.
-/// 4: the goals set over time, and how the history shows the days.
+/// 4: the goals set over time, how the history shows the days and the
+/// start hour of the day.
 const backupVersion = 4;
 
 /// Thrown when a file is not a valid Protein Calculator backup.
@@ -43,6 +44,7 @@ class Backup {
     required this.dailyGoal,
     required this.productSort,
     this.historyView = HistoryView.list,
+    this.dayStartHour = defaultAppDayStartHour,
     this.goalChanges = const [],
   });
 
@@ -54,6 +56,7 @@ class Backup {
   final List<GoalChangesCompanion> goalChanges;
   final ProductSort productSort;
   final HistoryView historyView;
+  final int dayStartHour;
 }
 
 /// File name suggested for a backup made on [date].
@@ -77,6 +80,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
       'dailyGoalGrams': settings.dailyGoalGrams,
       'productSort': settings.productSort.name,
       'historyView': settings.historyView.name,
+      'dayStartHour': settings.dayStartHour,
     },
     'goalChanges': [
       for (final g in goalChanges) {'dayKey': g.dayKey, 'grams': g.grams},
@@ -159,6 +163,12 @@ Backup parseBackup(String text) {
     if (dailyGoal != null && !isValidDailyGoal(dailyGoal)) {
       throw const InvalidBackupException('daily goal out of range');
     }
+    // Absent from backups made before the start hour could be chosen.
+    final dayStartHour =
+        settings['dayStartHour'] as int? ?? defaultAppDayStartHour;
+    if (!isValidAppDayStartHour(dayStartHour)) {
+      throw const InvalidBackupException('invalid start hour');
+    }
     final goalChanges = [
       for (final g in json['goalChanges'] as List? ?? const [])
         _goalChange(g as Map<String, dynamic>),
@@ -176,6 +186,7 @@ Backup parseBackup(String text) {
       historyView: HistoryView.values.byName(
         settings['historyView'] as String? ?? HistoryView.list.name,
       ),
+      dayStartHour: dayStartHour,
       goalChanges: goalChanges,
     );
   } on InvalidBackupException {
@@ -241,9 +252,11 @@ Future<void> restoreBackup(
             : Value(backup.dailyGoal),
         productSort: Value(backup.productSort),
         historyView: Value(backup.historyView),
+        dayStartHour: Value(backup.dayStartHour),
       ),
     );
   });
+  appDayStartHour = backup.dayStartHour;
 }
 
 GoalChangesCompanion _goalChange(Map<String, dynamic> g) {

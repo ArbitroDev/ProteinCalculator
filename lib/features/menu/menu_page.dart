@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
@@ -24,6 +25,7 @@ class MenuPage extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final locale = context.localeName;
     final goal = ref.watch(dailyGoalProvider).value;
+    final startHour = ref.watch(dayStartHourProvider).value;
     final version = ref.watch(appVersionProvider).value;
 
     return Scaffold(
@@ -53,6 +55,50 @@ class MenuPage extends ConsumerWidget {
                                   : l10n.grams(formatGrams(goal, locale)),
                               style: textTheme.displaySmall!.copyWith(
                                 fontSize: 36,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        l10n.edit,
+                        style: textTheme.bodyLarge!.copyWith(
+                          color: colors.accentText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Material(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: startHour == null
+                    ? null
+                    : () => _editStartHour(context, startHour),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l10n.menuDayStart, style: textTheme.bodySmall),
+                            Text(
+                              startHour == null
+                                  ? ''
+                                  : formatTime(
+                                      DateTime(2000, 1, 1, startHour),
+                                      locale,
+                                    ),
+                              style: textTheme.displaySmall!.copyWith(
+                                fontSize: 24,
                               ),
                             ),
                           ],
@@ -109,6 +155,19 @@ class MenuPage extends ConsumerWidget {
         builder: (context) => _GoalSheet(goal: goal),
       );
 }
+
+Future<void> _editStartHour(BuildContext context, int hour) =>
+    showModalBottomSheet<void>(
+      context: context,
+      // Above the tab bar, which would hide the last hours.
+      useRootNavigator: true,
+      useSafeArea: true,
+      backgroundColor: AppColors.of(context).background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) => _StartHourSheet(hour: hour),
+    );
 
 class _MenuItem extends StatelessWidget {
   const _MenuItem({
@@ -227,6 +286,92 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
             onSubmitted: (_) => _save(),
           ),
           const SizedBox(height: 24),
+          FilledButton(
+            onPressed: _save,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+            ),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bottom sheet choosing the hour the app day, and its morning, start, on
+/// a slider from midnight to 7 a.m.
+class _StartHourSheet extends ConsumerStatefulWidget {
+  const _StartHourSheet({required this.hour});
+
+  final int hour;
+
+  @override
+  ConsumerState<_StartHourSheet> createState() => _StartHourSheetState();
+}
+
+class _StartHourSheetState extends ConsumerState<_StartHourSheet> {
+  late int _hour = widget.hour;
+
+  Future<void> _save() async {
+    if (_hour != widget.hour) {
+      await runUserAction(
+        ScaffoldMessenger.of(context),
+        AppLocalizations.of(context),
+        () => ref.read(databaseProvider).settingsDao.setDayStartHour(_hour),
+      );
+    }
+    // Closed even on failure: the message shows under the sheet otherwise.
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final locale = context.localeName;
+    String hour(int value) => formatTime(DateTime(2000, 1, 1, value), locale);
+    final ends = textTheme.bodySmall!.copyWith(color: colors.textSecondary);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.menuDayStart, style: textTheme.headlineSmall),
+          const SizedBox(height: 6),
+          Text(
+            l10n.dayStartSheetBody,
+            style: textTheme.bodyLarge!.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            hour(_hour),
+            textAlign: TextAlign.center,
+            style: textTheme.displaySmall!.copyWith(fontSize: 36),
+          ),
+          Slider(
+            value: _hour.toDouble(),
+            max: maxAppDayStartHour.toDouble(),
+            divisions: maxAppDayStartHour,
+            inactiveColor: colors.divider,
+            label: hour(_hour),
+            semanticFormatterCallback: (value) => hour(value.round()),
+            onChanged: (value) => setState(() => _hour = value.round()),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(hour(0), style: ends),
+                Text(hour(maxAppDayStartHour), style: ends),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
           FilledButton(
             onPressed: _save,
             style: FilledButton.styleFrom(

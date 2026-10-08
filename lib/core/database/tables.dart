@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
@@ -97,6 +98,10 @@ class AppSettings extends Table {
   TextColumn get productSort => textEnum<ProductSort>().withDefault(
     Constant(ProductSort.alphabetical.name),
   )();
+
+  /// Hour the app day starts, see `appDayStartHour`.
+  IntColumn get dayStartHour =>
+      integer().withDefault(const Constant(defaultAppDayStartHour))();
 
   /// How the history tab shows the days.
   TextColumn get historyView =>

@@ -218,15 +218,15 @@
   },
   "slotMorning": "Matinée",
   "@slotMorning": {
-    "description": "Part of the day from 3 a.m. to noon."
+    "description": "Part of the day from the start of the app day (3 a.m. by default) to 11:30 a.m."
   },
   "slotAfternoon": "Journée",
   "@slotAfternoon": {
-    "description": "Part of the day from noon to 6 p.m."
+    "description": "Part of the day from 11:30 a.m. to 6 p.m."
   },
   "slotEvening": "Soirée",
   "@slotEvening": {
-    "description": "Part of the day from 6 p.m. to 3 a.m."
+    "description": "Part of the day from 6 p.m. to the start of the next app day."
   },
   "unnamedEntry": "Sans nom",
   "@unnamedEntry": {
@@ -660,5 +660,13 @@
   "calendarReached": "Objectif atteint",
   "@calendarReached": {
     "description": "Calendar legend and screen reader text: a day that reached its goal."
+  },
+  "menuDayStart": "Début de la journée",
+  "@menuDayStart": {
+    "description": "Menu: hour the app day and its morning start."
+  },
+  "dayStartSheetBody": "Ta journée et ta matinée commencent à cette heure : ce que tu ajoutes avant compte pour la veille au soir. Le changement vaut pour tes prochaines entrées.",
+  "@dayStartSheetBody": {
+    "description": "Bottom sheet explaining the start hour of the app day."
   }
 }
