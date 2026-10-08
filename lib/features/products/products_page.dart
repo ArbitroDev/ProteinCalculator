@@ -68,14 +68,16 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
         ref.watch(productSortProvider).value ?? ProductSort.alphabetical;
     final products = ref.watch(sortedProductsProvider).value;
     final notifications = ref.watch(notificationStatusProvider).value;
-    // Some routines cannot notify: a banner says so.
+    // Some routines cannot notify, or only late: a banner says so.
+    final routines = [
+      for (final product in products ?? const <Product>[])
+        if (product.activeRoutineMinutes != null) product.routine,
+    ];
     final unnotified =
         notifications != null &&
-        (products ?? const <Product>[]).any(
-          (product) =>
-              product.activeRoutineMinutes != null &&
-              !notifications.shows(product.routine),
-        );
+        routines.any((routine) => !notifications.shows(routine));
+    final late =
+        !unnotified && routines.isNotEmpty && notifications?.exact == false;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tabProducts)),
@@ -103,11 +105,14 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
                       ),
                     ),
                   ),
-                  if (unnotified)
+                  if (unnotified || late)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
                       child: NotificationsOff(
-                        message: l10n.notificationsOffBanner,
+                        message: unnotified
+                            ? l10n.notificationsOffBanner
+                            : l10n.routinesMayBeLateBanner,
+                        late: late,
                       ),
                     ),
                   Expanded(

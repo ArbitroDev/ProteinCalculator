@@ -4,6 +4,10 @@
     <!-- Plans the notifications of the daily routines again after the phone
          restarts. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Shows the notifications of the daily routines at their time: Android
+         may delay other alarms by hours. From Android 14, the user allows it
+         in the settings ("Alarms & reminders"). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <application
         android:label="Protein Calculator"
         android:name="${applicationName}"

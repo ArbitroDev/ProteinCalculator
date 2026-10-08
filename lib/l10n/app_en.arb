@@ -123,5 +123,11 @@
   "notificationsOffAutoAdd": "Notifications are off: it will still be added, but without telling you.",
   "notificationsOffReminder": "Notifications are off: this reminder won't show.",
   "notificationsOffBanner": "Notifications are off: your routines can't notify you.",
-  "openSettings": "Settings"
+  "openSettings": "Settings",
+  "exactAlarmsTitle": "Right on time",
+  "exactAlarmsBody": "So your routines notify you on time, allow “Alarms & reminders” for Protein Calculator on the page that opens. Without it, Android may delay them by hours.",
+  "exactAlarmsAllow": "Allow",
+  "exactAlarmsLater": "Later",
+  "routineMayBeLate": "Alarms & reminders not allowed: the notification may arrive late.",
+  "routinesMayBeLateBanner": "Alarms & reminders not allowed: your routines may notify you late."
 }

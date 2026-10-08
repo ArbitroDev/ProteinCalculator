@@ -612,5 +612,29 @@
   "openSettings": "Réglages",
   "@openSettings": {
     "description": "Button opening the notification settings of the app in Android."
+  },
+  "exactAlarmsTitle": "Arriver à l'heure",
+  "@exactAlarmsTitle": {
+    "description": "Dialog title asking to allow exact alarms."
+  },
+  "exactAlarmsBody": "Pour que tes routines te préviennent à l'heure, autorise « Alarmes et rappels » pour Protein Calculator dans la page qui va s'ouvrir. Sans ça, Android peut les retarder de plusieurs heures.",
+  "@exactAlarmsBody": {
+    "description": "Dialog body asking to allow exact alarms."
+  },
+  "exactAlarmsAllow": "Autoriser",
+  "@exactAlarmsAllow": {
+    "description": "Dialog button opening the exact alarms settings."
+  },
+  "exactAlarmsLater": "Plus tard",
+  "@exactAlarmsLater": {
+    "description": "Dialog button closing it without allowing exact alarms."
+  },
+  "routineMayBeLate": "Alarmes et rappels non autorisés : la notification peut arriver en retard.",
+  "@routineMayBeLate": {
+    "description": "Warning in the form when exact alarms are not allowed."
+  },
+  "routinesMayBeLateBanner": "Alarmes et rappels non autorisés : tes routines peuvent te prévenir en retard.",
+  "@routinesMayBeLateBanner": {
+    "description": "Products tab banner when exact alarms are not allowed."
   }
 }

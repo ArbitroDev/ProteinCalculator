@@ -53,6 +53,14 @@ class NotificationStatusNotifier extends AsyncNotifier<NotificationStatus> {
   }
 
   Future<void> openSettings() => _notifications.openSettings();
+
+  /// Asks the user to let notifications show at their exact time. Completes
+  /// with whether they do.
+  Future<bool> requestExactAlarms() async {
+    await _notifications.requestExactAlarms();
+    await refresh();
+    return state.value?.exact ?? false;
+  }
 }
 
 /// Keeps the daily routines of the products running while the app runs:
@@ -114,14 +122,18 @@ class _RoutineRunner {
   Future<void> _onResume() async {
     _reloadData();
     await _addDue();
-    // The language of the phone may have changed.
+    // The language of the phone, or the permission of exact times, may have
+    // changed.
     _plan();
   }
 
   Future<void> _addDue() =>
       _report(() => db.entriesDao.addRoutineEntries(now()));
 
-  void _plan() {
+  void _plan() => unawaited(_report(_planNow));
+
+  Future<void> _planNow() async {
+    final exact = (await notifications.status()).exact;
     final l10n = lookupAppLocalizations(
       resolveLocale(
         PlatformDispatcher.instance.locales,
@@ -130,6 +142,7 @@ class _RoutineRunner {
     );
     final planned = [
       l10n.localeName,
+      exact,
       for (final product in _products)
         if (product.activeRoutineMinutes case final minutes?)
           '${product.id}/${product.name}/${product.routine.name}/$minutes/'
@@ -137,7 +150,7 @@ class _RoutineRunner {
     ].join('|');
     if (planned == _planned) return;
     _planned = planned;
-    unawaited(_report(() => notifications.schedule(_products, l10n)));
+    await notifications.schedule(_products, l10n);
   }
 
   /// Wakes up at the next time a product adds itself.

@@ -164,22 +164,20 @@ class _FormViewState extends ConsumerState<_FormView> {
 
   /// Chooses the routine, asking to allow notifications first. A reminder
   /// is only a notification: it needs them. An automatic addition works
-  /// without them, which the form then says.
+  /// without them, which the form then says. Then asks for exact times, so
+  /// the notifications are not delayed.
   Future<void> _setRoutine(DailyRoutine routine) async {
     final status = ref.read(notificationStatusProvider.notifier);
     final shows =
         ref.read(notificationStatusProvider).value?.shows(routine) ?? true;
     final reminder = routine == DailyRoutine.reminder;
     if (!reminder || shows) _notifier.setRoutine(routine);
-    if (routine == DailyRoutine.none || shows) return;
+    if (routine == DailyRoutine.none) return;
 
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    final allowed = await status.request(routine);
-    if (!reminder) return;
-    if (allowed) {
-      _notifier.setRoutine(routine);
-    } else {
+    if (!shows && !await status.request(routine)) {
+      if (!reminder) return;
       messenger.showSnackBar(
         SnackBar(
           content: Text(l10n.reminderNeedsNotifications),
@@ -189,6 +187,38 @@ class _FormViewState extends ConsumerState<_FormView> {
           ),
         ),
       );
+      return;
+    }
+    if (reminder && !shows) _notifier.setRoutine(routine);
+    await _askExactAlarms();
+  }
+
+  /// Explains why exact times matter, then opens their page in Android.
+  Future<void> _askExactAlarms() async {
+    if (!mounted ||
+        ref.read(notificationStatusProvider).value?.exact != false) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    final allow = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.exactAlarmsTitle),
+        content: Text(l10n.exactAlarmsBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.exactAlarmsLater),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.exactAlarmsAllow),
+          ),
+        ],
+      ),
+    );
+    if (allow ?? false) {
+      await ref.read(notificationStatusProvider.notifier).requestExactAlarms();
     }
   }
 
@@ -381,6 +411,14 @@ class _FormViewState extends ConsumerState<_FormView> {
                             message: form.routine == DailyRoutine.reminder
                                 ? l10n.notificationsOffReminder
                                 : l10n.notificationsOffAutoAdd,
+                          ),
+                        )
+                      else if (notifications?.exact == false)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: NotificationsOff(
+                            message: l10n.routineMayBeLate,
+                            late: true,
                           ),
                         ),
                     ],

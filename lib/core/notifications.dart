@@ -39,13 +39,21 @@ abstract interface class RoutineNotifications {
 
   /// Opens the notification settings of the app in Android.
   Future<void> openSettings();
+
+  /// Opens the page of Android allowing the app to show notifications at
+  /// their exact time, if not allowed yet. Completes with whether it is.
+  Future<bool> requestExactAlarms();
 }
 
 /// Whether notifications can show: those of the app, and those of each
 /// routine, which the user can turn off one by one in Android.
 @immutable
 class NotificationStatus {
-  const NotificationStatus({required this.allowed, this.blocked = const {}});
+  const NotificationStatus({
+    required this.allowed,
+    this.blocked = const {},
+    this.exact = true,
+  });
 
   /// Notifications that always show, where there are none to turn off.
   static const all = NotificationStatus(allowed: true);
@@ -56,6 +64,10 @@ class NotificationStatus {
   /// Routines whose notifications are turned off.
   final Set<DailyRoutine> blocked;
 
+  /// Whether notifications show at their exact time. Otherwise, Android may
+  /// delay them by hours.
+  final bool exact;
+
   /// Whether the notifications of [routine] show.
   bool shows(DailyRoutine routine) => allowed && !blocked.contains(routine);
 
@@ -63,10 +75,12 @@ class NotificationStatus {
   bool operator ==(Object other) =>
       other is NotificationStatus &&
       other.allowed == allowed &&
-      setEquals(other.blocked, blocked);
+      setEquals(other.blocked, blocked) &&
+      other.exact == exact;
 
   @override
-  int get hashCode => Object.hash(allowed, Object.hashAllUnordered(blocked));
+  int get hashCode =>
+      Object.hash(allowed, Object.hashAllUnordered(blocked), exact);
 }
 
 const _remindersChannel = 'routine_reminders';
@@ -147,6 +161,9 @@ class _NoNotifications implements RoutineNotifications {
 
   @override
   Future<void> openSettings() async {}
+
+  @override
+  Future<bool> requestExactAlarms() async => true;
 }
 
 class _AndroidNotifications implements RoutineNotifications {
@@ -176,6 +193,7 @@ class _AndroidNotifications implements RoutineNotifications {
         if (off(_remindersChannel)) DailyRoutine.reminder,
         if (off(_autoAddsChannel)) DailyRoutine.autoAdd,
       },
+      exact: await android.canScheduleExactNotifications() ?? false,
     );
   }
 
@@ -186,6 +204,10 @@ class _AndroidNotifications implements RoutineNotifications {
   @override
   Future<void> openSettings() =>
       _settings.invokeMethod<void>('openNotificationSettings');
+
+  @override
+  Future<bool> requestExactAlarms() async =>
+      await _android?.requestExactAlarmsPermission() ?? false;
 
   @override
   Future<void> schedule(List<Product> products, AppLocalizations l10n) async {
@@ -200,12 +222,26 @@ class _AndroidNotifications implements RoutineNotifications {
         await _plugin.cancel(id: pending.id);
       }
     }
+    // At their exact time when allowed. Otherwise Android may delay them
+    // by up to three quarters of the time left: hours for a time set the
+    // day before.
+    final exact = await _android?.canScheduleExactNotifications() ?? false;
     for (final product in routines.values) {
-      await _schedule(product, l10n);
+      await _schedule(
+        product,
+        l10n,
+        exact
+            ? AndroidScheduleMode.exactAllowWhileIdle
+            : AndroidScheduleMode.inexactAllowWhileIdle,
+      );
     }
   }
 
-  Future<void> _schedule(Product product, AppLocalizations l10n) {
+  Future<void> _schedule(
+    Product product,
+    AppLocalizations l10n,
+    AndroidScheduleMode mode,
+  ) {
     final reminder = product.routine == DailyRoutine.reminder;
     final grams = formatProtein(product.amount.proteinGrams, l10n.localeName);
     return _plugin.zonedSchedule(
@@ -217,9 +253,7 @@ class _AndroidNotifications implements RoutineNotifications {
       payload: '${product.id}',
       scheduledDate: _next(product.routineMinutes!),
       matchDateTimeComponents: DateTimeComponents.time,
-      // Within a few minutes: exact times need a permission Android grants
-      // to alarm clocks and calendars.
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: mode,
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           reminder ? _remindersChannel : _autoAddsChannel,

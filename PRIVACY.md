@@ -97,6 +97,8 @@ contient ni publicité, ni outil d'analyse d'audience.
   le rappeler ou te dire qu'il a été ajouté. Les notifications sont créées sur ton téléphone ;
   rien n'est envoyé.
 - **Démarrage du téléphone** : permet de reprogrammer ces notifications après un redémarrage.
+- **Alarmes et rappels** : permet d'afficher ces notifications à l'heure choisie. Sans elle,
+  Android peut les retarder.
 
 L'application ne demande ni la localisation, ni les contacts, ni l'appareil photo, ni le micro.
 
@@ -210,6 +212,8 @@ no third party receives data from the app. The app contains no ads and no audien
 - **Notifications**: requested when you choose a daily routine for a product, to remind you of it
   or tell you it was added. Notifications are created on your phone; nothing is sent.
 - **Phone startup**: lets the app plan these notifications again after a restart.
+- **Alarms & reminders**: lets the app show these notifications at the chosen time. Without it,
+  Android may delay them.
 
 The app does not request location, contacts, camera or microphone access.
 
