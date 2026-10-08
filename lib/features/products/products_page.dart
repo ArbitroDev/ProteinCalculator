@@ -15,8 +15,8 @@ import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/empty_state.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/notifications_off.dart';
+import 'package:protein_calculator/core/widgets/pill_tabs.dart';
 import 'package:protein_calculator/core/widgets/product_description.dart';
-import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -162,58 +162,14 @@ class _SortChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final colors = AppColors.of(context);
-    final style = Theme.of(context).textTheme.bodyMedium!;
-    final labels = {
-      ProductSort.alphabetical: l10n.sortAlphabetical,
-      ProductSort.mostUsed: l10n.sortMostUsed,
-      ProductSort.recentlyUsed: l10n.sortRecentlyUsed,
-    };
-
-    final options = labels.keys.toList();
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: ShapeDecoration(
-        color: colors.surface,
-        shape: StadiumBorder(side: BorderSide(color: colors.divider)),
-      ),
-      // Same look as the tab bar.
-      child: SlidingSelector(
-        selectedIndex: options.indexOf(sort),
-        gap: 4,
-        shape: const StadiumBorder(),
-        children: [
-          for (final value in options)
-            Semantics(
-              button: true,
-              selected: value == sort,
-              child: Material(
-                type: MaterialType.transparency,
-                child: InkWell(
-                  customBorder: const StadiumBorder(),
-                  onTap: () => onChanged(value),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 9),
-                    child: Text(
-                      labels[value]!,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: style.copyWith(
-                        color: value == sort
-                            ? AppColors.onAccent
-                            : colors.textSecondary,
-                        fontWeight: value == sort
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
+    return PillTabs(
+      labels: {
+        ProductSort.alphabetical: l10n.sortAlphabetical,
+        ProductSort.mostUsed: l10n.sortMostUsed,
+        ProductSort.recentlyUsed: l10n.sortRecentlyUsed,
+      },
+      selected: sort,
+      onChanged: onChanged,
     );
   }
 }

@@ -7,6 +7,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/day_progress.dart';
+import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
 /// The app database, opened in `main` before the first frame.
@@ -47,6 +49,28 @@ final dailyGoalProvider = StreamProvider<double?>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchDailyGoal(),
 );
 
+/// Daily goals over time as `(dayKey, grams)`, oldest first, see `goalOn`.
+final goalChangesProvider = StreamProvider<List<({int dayKey, double grams})>>(
+  (ref) => ref
+      .watch(databaseProvider)
+      .settingsDao
+      .watchGoalChanges()
+      .map(
+        (changes) => [
+          for (final change in changes)
+            (dayKey: change.dayKey, grams: change.grams),
+        ],
+      ),
+);
+
+/// Goal of one app day: the one it had, which may differ from the current
+/// one. Null until the first launch is completed.
+final dayGoalProvider = Provider.family<double?, int>(
+  (ref, dayKey) =>
+      goalOn(dayKey, ref.watch(goalChangesProvider).value ?? const []) ??
+      ref.watch(dailyGoalProvider).value,
+);
+
 /// Entries of one app day, in the order they were added.
 final dayEntriesProvider = StreamProvider.family<List<Entry>, int>(
   (ref, dayKey) =>
@@ -82,6 +106,11 @@ final crashReportsProvider = StreamProvider<bool>(
 /// Sort order chosen in the products tab, remembered between launches.
 final productSortProvider = StreamProvider<ProductSort>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchProductSort(),
+);
+
+/// How the history tab shows the days, remembered between launches.
+final historyViewProvider = StreamProvider<HistoryView>(
+  (ref) => ref.watch(databaseProvider).settingsDao.watchHistoryView(),
 );
 
 /// Saved products in the order chosen in the products tab.

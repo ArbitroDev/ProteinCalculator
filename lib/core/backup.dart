@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
@@ -9,6 +10,7 @@ import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
+import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
@@ -20,7 +22,8 @@ const backupFormat = 'protein-calculator';
 ///
 /// 2: entries hold their part of the day.
 /// 3: products hold their daily routine.
-const backupVersion = 3;
+/// 4: the goals set over time, and how the history shows the days.
+const backupVersion = 4;
 
 /// Thrown when a file is not a valid Protein Calculator backup.
 class InvalidBackupException implements Exception {
@@ -39,12 +42,18 @@ class Backup {
     required this.products,
     required this.dailyGoal,
     required this.productSort,
+    this.historyView = HistoryView.list,
+    this.goalChanges = const [],
   });
 
   final List<EntriesCompanion> entries;
   final List<ProductsCompanion> products;
   final double? dailyGoal;
+
+  /// Goals set over time; empty in backups made before they were kept.
+  final List<GoalChangesCompanion> goalChanges;
   final ProductSort productSort;
+  final HistoryView historyView;
 }
 
 /// File name suggested for a backup made on [date].
@@ -58,6 +67,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
   final settings = await (db.select(
     db.appSettings,
   )..where((s) => s.id.equals(SettingsDao.rowId))).getSingle();
+  final goalChanges = await db.select(db.goalChanges).get();
 
   return const JsonEncoder.withIndent('  ').convert({
     'format': backupFormat,
@@ -66,7 +76,11 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
     'settings': {
       'dailyGoalGrams': settings.dailyGoalGrams,
       'productSort': settings.productSort.name,
+      'historyView': settings.historyView.name,
     },
+    'goalChanges': [
+      for (final g in goalChanges) {'dayKey': g.dayKey, 'grams': g.grams},
+    ],
     'entries': [
       for (final e in entries)
         {
@@ -145,12 +159,24 @@ Backup parseBackup(String text) {
     if (dailyGoal != null && !isValidDailyGoal(dailyGoal)) {
       throw const InvalidBackupException('daily goal out of range');
     }
+    final goalChanges = [
+      for (final g in json['goalChanges'] as List? ?? const [])
+        _goalChange(g as Map<String, dynamic>),
+    ];
+    if (!_unique(goalChanges.map((g) => g.dayKey.value))) {
+      throw const InvalidBackupException('duplicate goal days');
+    }
 
     return Backup(
       entries: entries,
       products: products,
       dailyGoal: dailyGoal,
       productSort: ProductSort.values.byName(settings['productSort'] as String),
+      // Absent from backups made before the calendar existed.
+      historyView: HistoryView.values.byName(
+        settings['historyView'] as String? ?? HistoryView.list.name,
+      ),
+      goalChanges: goalChanges,
     );
   } on InvalidBackupException {
     rethrow;
@@ -166,11 +192,16 @@ Backup parseBackup(String text) {
 /// Daily routines start again from [now] (the current time by default):
 /// the products added automatically are not added for the days between the
 /// backup and its restoration.
-Future<void> restoreBackup(AppDatabase db, Backup backup, {DateTime? now}) {
+Future<void> restoreBackup(
+  AppDatabase db,
+  Backup backup, {
+  DateTime? now,
+}) async {
   final checkedAt = now ?? DateTime.now();
-  return db.transaction(() async {
+  await db.transaction(() async {
     await db.delete(db.entries).go();
     await db.delete(db.products).go();
+    await db.delete(db.goalChanges).go();
     await db.batch((batch) {
       batch
         ..insertAll(db.entries, backup.entries)
@@ -181,6 +212,24 @@ Future<void> restoreBackup(AppDatabase db, Backup backup, {DateTime? now}) {
                 : product.copyWith(routineCheckedAt: Value(checkedAt)),
         ]);
     });
+    final goal = backup.dailyGoal;
+    if (backup.goalChanges.isNotEmpty) {
+      await db.batch(
+        (batch) => batch.insertAll(db.goalChanges, backup.goalChanges),
+      );
+    } else if (goal != null) {
+      // Backups made before goals were kept over time: the goal counts from
+      // the first day with entries.
+      final first = backup.entries.map((e) => e.dayKey.value).minOrNull;
+      await db
+          .into(db.goalChanges)
+          .insert(
+            GoalChangesCompanion.insert(
+              dayKey: Value(first ?? dayKeyOf(checkedAt)),
+              grams: goal,
+            ),
+          );
+    }
     // Uses follow the restored entries, whatever the file says.
     await db.refreshUses();
     await (db.update(
@@ -191,9 +240,20 @@ Future<void> restoreBackup(AppDatabase db, Backup backup, {DateTime? now}) {
             ? const Value.absent()
             : Value(backup.dailyGoal),
         productSort: Value(backup.productSort),
+        historyView: Value(backup.historyView),
       ),
     );
   });
+}
+
+GoalChangesCompanion _goalChange(Map<String, dynamic> g) {
+  final dayKey = g['dayKey'] as int;
+  if (!isValidDayKey(dayKey)) throw const InvalidBackupException('invalid day');
+  final grams = (g['grams'] as num).toDouble();
+  if (!isValidDailyGoal(grams)) {
+    throw const InvalidBackupException('daily goal out of range');
+  }
+  return GoalChangesCompanion.insert(dayKey: Value(dayKey), grams: grams);
 }
 
 EntriesCompanion _entry(Map<String, dynamic> e, int version) {

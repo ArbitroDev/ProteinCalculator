@@ -7,16 +7,18 @@ import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/database/tables.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Entries, Products, AppSettings],
+  tables: [Entries, Products, AppSettings, GoalChanges],
   daos: [EntriesDao, ProductsDao, SettingsDao],
 )
 class AppDatabase extends _$AppDatabase {
@@ -42,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -66,6 +68,11 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(schema.products, schema.products.routine);
         await m.addColumn(schema.products, schema.products.routineMinutes);
         await m.addColumn(schema.products, schema.products.routineCheckedAt);
+      },
+      from5To6: (m, schema) async {
+        await m.create(schema.goalChanges);
+        await _fillGoalChanges();
+        await m.addColumn(schema.appSettings, schema.appSettings.historyView);
       },
     ),
     beforeOpen: (details) async {
@@ -103,6 +110,16 @@ class AppDatabase extends _$AppDatabase {
       }
     }
   }
+
+  /// Starts the history of goals with the current goal, from the first day
+  /// with entries: the earlier goals were not kept.
+  Future<void> _fillGoalChanges() => customStatement(
+    'INSERT INTO goal_changes (day_key, grams) '
+    'SELECT COALESCE((SELECT MIN(day_key) FROM entries), ?), '
+    'daily_goal_grams FROM app_settings '
+    'WHERE id = ${SettingsDao.rowId} AND daily_goal_grams IS NOT NULL',
+    [dayKeyOf(DateTime.now())],
+  );
 
   /// Sets the normalized name of every entry having a name. Done in Dart:
   /// the normalization folds accents, which SQLite cannot do.

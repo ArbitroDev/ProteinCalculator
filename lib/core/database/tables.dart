@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
 /// Protein entries. Each entry keeps a full copy of the values it was created
@@ -74,6 +75,18 @@ class Products extends Table {
   DateTimeColumn get routineCheckedAt => dateTime().nullable()();
 }
 
+/// Daily goals over time: each row holds the goal set on an app day, which
+/// counts from that day until the next change. Days are judged against the
+/// goal they had, not the current one.
+class GoalChanges extends Table {
+  /// App day the goal was set, see `dayKeyOf`.
+  IntColumn get dayKey => integer()();
+  RealColumn get grams => real()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {dayKey};
+}
+
 /// Single-row table holding the app settings.
 @DataClassName('AppSettingsRow')
 class AppSettings extends Table {
@@ -84,6 +97,10 @@ class AppSettings extends Table {
   TextColumn get productSort => textEnum<ProductSort>().withDefault(
     Constant(ProductSort.alphabetical.name),
   )();
+
+  /// How the history tab shows the days.
+  TextColumn get historyView =>
+      textEnum<HistoryView>().withDefault(Constant(HistoryView.list.name))();
 
   /// Whether crash reports are sent; off until the user agrees.
   BoolColumn get crashReports => boolean().withDefault(const Constant(false))();

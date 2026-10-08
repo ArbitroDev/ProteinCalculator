@@ -44,6 +44,10 @@ class AppColors extends ThemeExtension<AppColors> {
   /// lighter [accent], so it does not look like an add button.
   static const selection = Color(0xFFFF9854);
   static const danger = Color(0xFFFF5C7A);
+
+  /// Calendar days at half of their goal or more: a pale [accent], the full
+  /// one marking the goal reached.
+  static const progressHalf = Color(0xFFFFC59E);
   static const cobalt = Color(0xFF2D3FE0);
 
   static const light = AppColors(

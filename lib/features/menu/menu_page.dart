@@ -185,7 +185,10 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
     await runUserAction(
       ScaffoldMessenger.of(context),
       AppLocalizations.of(context),
-      () => ref.read(databaseProvider).settingsDao.setDailyGoal(goal),
+      () => ref
+          .read(databaseProvider)
+          .settingsDao
+          .setDailyGoal(goal, now: ref.read(clockProvider)()),
     );
     // Closed even on failure: the message shows under the sheet otherwise.
     if (mounted) Navigator.of(context).pop();

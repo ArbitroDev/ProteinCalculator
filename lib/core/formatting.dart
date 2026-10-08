@@ -28,6 +28,10 @@ String formatShortDate(DateTime date, String locale) =>
     _capitalize(DateFormat.MMMEd(locale).format(date));
 
 /// Time of day: "08:15", "8:15 AM".
+/// Month and year: "Octobre 2026", "October 2026".
+String formatMonth(DateTime month, String locale) =>
+    _capitalize(DateFormat.yMMMM(locale).format(month));
+
 String formatTime(DateTime time, String locale) =>
     DateFormat.jm(locale).format(time);
 

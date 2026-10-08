@@ -636,5 +636,29 @@
   "routinesMayBeLateBanner": "Alarmes et rappels non autorisés : tes routines peuvent te prévenir en retard.",
   "@routinesMayBeLateBanner": {
     "description": "Products tab banner when exact alarms are not allowed."
+  },
+  "historyList": "Liste",
+  "@historyList": {
+    "description": "History view: every day with entries, most recent first."
+  },
+  "historyCalendar": "Calendrier",
+  "@historyCalendar": {
+    "description": "History view: the days of a month, colored by how far each went towards its goal."
+  },
+  "calendarNone": "Rien",
+  "@calendarNone": {
+    "description": "Calendar legend and screen reader text: a day without protein."
+  },
+  "calendarLow": "Moins de 50 %",
+  "@calendarLow": {
+    "description": "Calendar legend and screen reader text: a day under half of its goal."
+  },
+  "calendarHalf": "50 % et plus",
+  "@calendarHalf": {
+    "description": "Calendar legend and screen reader text: a day at half of its goal or more."
+  },
+  "calendarReached": "Objectif atteint",
+  "@calendarReached": {
+    "description": "Calendar legend and screen reader text: a day that reached its goal."
   }
 }

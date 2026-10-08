@@ -129,5 +129,11 @@
   "exactAlarmsAllow": "Allow",
   "exactAlarmsLater": "Later",
   "routineMayBeLate": "Alarms & reminders not allowed: the notification may arrive late.",
-  "routinesMayBeLateBanner": "Alarms & reminders not allowed: your routines may notify you late."
+  "routinesMayBeLateBanner": "Alarms & reminders not allowed: your routines may notify you late.",
+  "historyList": "List",
+  "historyCalendar": "Calendar",
+  "calendarNone": "Nothing",
+  "calendarLow": "Under 50%",
+  "calendarHalf": "50% or more",
+  "calendarReached": "Goal reached"
 }

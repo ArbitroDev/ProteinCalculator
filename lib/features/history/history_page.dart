@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/day_progress.dart';
+import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
@@ -11,34 +13,81 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/empty_state.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
+import 'package:protein_calculator/core/widgets/pill_tabs.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
+import 'package:protein_calculator/core/widgets/user_action.dart';
+import 'package:protein_calculator/features/history/calendar_view.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// History tab: every day with entries, most recent first.
+/// History tab: every day with entries, most recent first, or a calendar
+/// of the days. The view chosen is remembered, the list by default.
 class HistoryPage extends ConsumerWidget {
   const HistoryPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final days = ref.watch(historyProvider).value;
-    final goal = ref.watch(dailyGoalProvider).value ?? 0;
+    final view = ref.watch(historyViewProvider).value ?? HistoryView.list;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tabHistory)),
       body: ContentWidth(
-        child: switch (days) {
-          null => const SizedBox.shrink(),
-          [] => EmptyState(l10n.historyEmpty),
-          _ => ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            itemCount: days.length,
-            itemBuilder: (context, index) =>
-                _DayTile(day: days[index], goal: goal),
-          ),
-        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+              child: PillTabs(
+                labels: {
+                  HistoryView.list: l10n.historyList,
+                  HistoryView.calendar: l10n.historyCalendar,
+                },
+                selected: view,
+                onChanged: (value) => runUserAction(
+                  ScaffoldMessenger.of(context),
+                  l10n,
+                  () => ref
+                      .read(databaseProvider)
+                      .settingsDao
+                      .setHistoryView(value),
+                ),
+              ),
+            ),
+            Expanded(
+              child: switch (view) {
+                HistoryView.list => const _DayList(),
+                HistoryView.calendar => const CalendarView(),
+              },
+            ),
+          ],
+        ),
       ),
     );
+  }
+}
+
+class _DayList extends ConsumerWidget {
+  const _DayList();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final days = ref.watch(historyProvider).value;
+    final goals = ref.watch(goalChangesProvider).value ?? const [];
+    final goal = ref.watch(dailyGoalProvider).value;
+
+    return switch (days) {
+      null => const SizedBox.shrink(),
+      [] => EmptyState(AppLocalizations.of(context).historyEmpty),
+      _ => ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        itemCount: days.length,
+        itemBuilder: (context, index) => _DayTile(
+          day: days[index],
+          // The goal each day had.
+          goal: goalOn(days[index].dayKey, goals) ?? goal ?? 0,
+        ),
+      ),
+    };
   }
 }
 
