@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
@@ -200,6 +201,96 @@ void main() {
 
       expect(stateOf(args).name, 'Skyr');
       expect(stateOf(args).revision, 1);
+    });
+  });
+
+  group('daily routine', () {
+    const args = NewEntryArgs();
+
+    test('is offered at the current time, by steps of 5 minutes', () async {
+      await open(args);
+
+      expect(stateOf(args).routine, DailyRoutine.none);
+      expect(stateOf(args).routineMinutes, 9 * 60);
+    });
+
+    test('saves the entry as a product, which cannot be unchecked', () async {
+      final form = await open(args);
+      form.setRoutine(DailyRoutine.reminder);
+
+      expect(stateOf(args).saveAsProduct, isTrue);
+      form.setSaveAsProduct(false);
+      expect(stateOf(args).saveAsProduct, isTrue);
+
+      form.setRoutine(DailyRoutine.none);
+      form.setSaveAsProduct(false);
+      expect(stateOf(args).saveAsProduct, isFalse);
+    });
+
+    test('is saved on the new product, from now', () async {
+      final form = await open(args);
+      form
+        ..setName('Skyr')
+        ..setProtein('20')
+        ..setRoutine(DailyRoutine.autoAdd)
+        ..setRoutineMinutes(7 * 60 + 30);
+
+      expect(await form.submit(), isTrue);
+
+      final product = (await products()).single;
+      expect(product.routine, DailyRoutine.autoAdd);
+      expect(product.routineMinutes, 7 * 60 + 30);
+      expect(product.routineCheckedAt, now);
+      expect(await todayEntries(), hasLength(1));
+    });
+
+    test('needs a name, like a product', () async {
+      final form = await open(args);
+      form
+        ..setProtein('20')
+        ..setRoutine(DailyRoutine.reminder);
+
+      expect(await form.submit(), isFalse);
+      expect(
+        stateOf(args).errors[EntryFormField.name],
+        EntryFormError.nameRequired,
+      );
+    });
+
+    test('goes on the unchanged product the entry starts from', () async {
+      final productId = await addProduct('Skyr');
+      final productArgs = NewEntryArgs(productId: productId);
+      final form = await open(productArgs);
+      form.setRoutine(DailyRoutine.reminder);
+
+      expect(stateOf(productArgs).saveAsProduct, isFalse);
+      expect(await form.submit(), isTrue);
+
+      expect(await products(), hasLength(1));
+      final product = (await db.productsDao.getProduct(productId))!;
+      expect(product.routine, DailyRoutine.reminder);
+      expect(product.routineMinutes, 9 * 60);
+    });
+
+    test('is kept as it was when the product keeps its routine', () async {
+      final productId = await addProduct('Skyr');
+      final since = DateTime(2026, 9, 20);
+      await db.productsDao.setRoutine(
+        productId,
+        DailyRoutine.autoAdd,
+        minutes: 480,
+        now: since,
+      );
+      final productArgs = NewEntryArgs(productId: productId);
+      final form = await open(productArgs);
+
+      expect(stateOf(productArgs).routine, DailyRoutine.autoAdd);
+      expect(stateOf(productArgs).routineMinutes, 480);
+      expect(await form.submit(), isTrue);
+
+      // Choosing it again would skip the additions due since.
+      final product = (await db.productsDao.getProduct(productId))!;
+      expect(product.routineCheckedAt, since);
     });
   });
 
