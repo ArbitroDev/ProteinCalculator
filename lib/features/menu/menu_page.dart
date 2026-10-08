@@ -159,8 +159,10 @@ class MenuPage extends ConsumerWidget {
 Future<void> _editStartHour(BuildContext context, int hour) =>
     showModalBottomSheet<void>(
       context: context,
-      // Above the tab bar, which would hide the last hours.
+      // Above the tab bar, which would hide the slider.
       useRootNavigator: true,
+      // As tall as its content, which scrolls on short screens.
+      isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: AppColors.of(context).background,
       shape: const RoundedRectangleBorder(
@@ -334,52 +336,54 @@ class _StartHourSheetState extends ConsumerState<_StartHourSheet> {
     String hour(int value) => formatTime(DateTime(2000, 1, 1, value), locale);
     final ends = textTheme.bodySmall!.copyWith(color: colors.textSecondary);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(l10n.menuDayStart, style: textTheme.headlineSmall),
-          const SizedBox(height: 6),
-          Text(
-            l10n.dayStartSheetBody,
-            style: textTheme.bodyLarge!.copyWith(color: colors.textSecondary),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            hour(_hour),
-            textAlign: TextAlign.center,
-            style: textTheme.displaySmall!.copyWith(fontSize: 36),
-          ),
-          Slider(
-            value: _hour.toDouble(),
-            max: maxAppDayStartHour.toDouble(),
-            divisions: maxAppDayStartHour,
-            inactiveColor: colors.divider,
-            label: hour(_hour),
-            semanticFormatterCallback: (value) => hour(value.round()),
-            onChanged: (value) => setState(() => _hour = value.round()),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(hour(0), style: ends),
-                Text(hour(maxAppDayStartHour), style: ends),
-              ],
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.menuDayStart, style: textTheme.headlineSmall),
+            const SizedBox(height: 6),
+            Text(
+              l10n.dayStartSheetBody,
+              style: textTheme.bodyLarge!.copyWith(color: colors.textSecondary),
             ),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _save,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(52),
+            const SizedBox(height: 18),
+            Text(
+              hour(_hour),
+              textAlign: TextAlign.center,
+              style: textTheme.displaySmall!.copyWith(fontSize: 36),
             ),
-            child: Text(l10n.save),
-          ),
-        ],
+            Slider(
+              value: _hour.toDouble(),
+              max: maxAppDayStartHour.toDouble(),
+              divisions: maxAppDayStartHour,
+              inactiveColor: colors.divider,
+              label: hour(_hour),
+              semanticFormatterCallback: (value) => hour(value.round()),
+              onChanged: (value) => setState(() => _hour = value.round()),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(hour(0), style: ends),
+                  Text(hour(maxAppDayStartHour), style: ends),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _save,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+              ),
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
       ),
     );
   }

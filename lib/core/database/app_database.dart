@@ -84,7 +84,11 @@ class AppDatabase extends _$AppDatabase {
         mode: InsertMode.insertOrIgnore,
       );
       // Days and parts of the day follow the start hour chosen by the user.
-      appDayStartHour = await settingsDao.getDayStartHour();
+      // Only once the schema is current: the migration tests open the
+      // database at earlier versions, without the column.
+      if (details.versionNow == schemaVersion) {
+        appDayStartHour = await settingsDao.getDayStartHour();
+      }
     },
   );
 
