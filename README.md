@@ -7,6 +7,9 @@ A Flutter application to calculate protein intake.
 ## Platforms
 
 - **Android**: target platform, to be published on Google Play.
+- **Wear OS**: companion app for the watch, written in Kotlin (Compose for
+  Wear OS): the day and its entries, a tile, a complication, and quick
+  additions of saved products. The phone stays the only source of truth.
 - **Web**: used for development and debugging only.
 
 ## Getting started
@@ -19,7 +22,8 @@ flutter run                   # Android device or emulator
 ```
 
 Crash reporting is off in these builds: see
-[Crash reports](CONTRIBUTING.md#crash-reports).
+[Crash reports](CONTRIBUTING.md#crash-reports). The watch app is built with
+Gradle: see [Wear OS watch app](CONTRIBUTING.md#wear-os-watch-app).
 
 ## Privacy
 
@@ -29,6 +33,10 @@ sent to [Sentry](https://sentry.io) (EU region) only if the user turns them
 on, on the first launch screen or in *Data and privacy*. A report holds the
 error, the app version, the phone model and its Android version, never the
 user's entries, products or goal.
+
+With a Wear OS watch, the phone and the watch exchange the day, its entries
+and the saved products directly, over Bluetooth or the same Wi-Fi network,
+never through a server. The watch app has no Internet access.
 
 The user can export all their data to a backup file and import it again, on
 the same phone or another one, from *Data and privacy*. If the data ever
