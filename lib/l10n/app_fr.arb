@@ -366,7 +366,7 @@
   "@goalSheetBody": {
     "description": "Explanation when editing the daily goal."
   },
-  "privacyLocal": "Tes données restent sur ton téléphone. Protein Calculator ne demande pas de compte, et tes entrées et tes produits ne quittent jamais ton appareil.",
+  "privacyLocal": "Tes données restent sur ton téléphone. Protein Calculator ne demande pas de compte, et tes entrées et tes produits ne quittent jamais ton téléphone, sauf vers ta montre Wear OS si tu en utilises une : ils y passent directement, sans serveur.",
   "@privacyLocal": {
     "description": "Privacy page: data stays on the device."
   },
@@ -386,7 +386,7 @@
   "@onboardingCrashReports": {
     "description": "First launch: checkbox for crash reports, unchecked by default."
   },
-  "onboardingCrashReportsHint": "Tes entrées, tes produits et ton objectif ne quittent jamais ton téléphone. Modifiable à tout moment dans le menu.",
+  "onboardingCrashReportsHint": "Tes entrées, tes produits et ton objectif ne quittent jamais ton téléphone, sauf vers ta montre. Modifiable à tout moment dans le menu.",
   "@onboardingCrashReportsHint": {
     "description": "First launch: note under the crash reports checkbox."
   },
