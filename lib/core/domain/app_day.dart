@@ -1,6 +1,21 @@
-/// An app day runs from 3 a.m. to 3 a.m. the next calendar day, so that a
-/// late-night snack still counts for the evening it belongs to.
-const appDayStartHour = 3;
+/// An app day runs from its start hour, 3 a.m. by default, to the same hour
+/// the next calendar day, so that a late-night snack still counts for the
+/// evening it belongs to. The user picks the hour in the menu, from
+/// midnight to 7 a.m.
+const defaultAppDayStartHour = 3;
+const maxAppDayStartHour = 7;
+
+/// Whether [hour] can start the app day.
+bool isValidAppDayStartHour(int hour) =>
+    hour >= 0 && hour <= maxAppDayStartHour;
+
+/// Start hour of the app day chosen by the user. Read from the settings
+/// when the database opens, in the app as in the buttons of the
+/// notifications, and set again when the user changes it.
+///
+/// It only applies to what is added from then on: an entry keeps the day
+/// and the part of the day it was given.
+int appDayStartHour = defaultAppDayStartHour;
 
 /// Identifies the app day of [time] as a `yyyymmdd` integer.
 ///

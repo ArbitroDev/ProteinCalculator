@@ -7,15 +7,18 @@ import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/database/tables.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Entries, Products, AppSettings],
+  tables: [Entries, Products, AppSettings, GoalChanges],
   daos: [EntriesDao, ProductsDao, SettingsDao],
 )
 class AppDatabase extends _$AppDatabase {
@@ -27,7 +30,12 @@ class AppDatabase extends _$AppDatabase {
       name: 'protein_calculator',
       // The path drift_flutter uses by default, given explicitly so the file
       // can be set aside when it cannot be opened.
-      native: const DriftNativeOptions(databasePath: databasePath),
+      native: DriftNativeOptions(
+        databasePath: databasePath,
+        // The buttons of the notifications write to the data apart from the
+        // app: one waits for the other rather than failing.
+        setup: (db) => db.execute('PRAGMA busy_timeout = 5000'),
+      ),
       web: DriftWebOptions(
         sqlite3Wasm: Uri.parse('sqlite3.wasm'),
         driftWorker: Uri.parse('drift_worker.js'),
@@ -36,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,12 +64,31 @@ class AppDatabase extends _$AppDatabase {
         await _fillNameKeys();
         await refreshUses();
       },
+      from4To5: (m, schema) async {
+        await m.addColumn(schema.products, schema.products.routine);
+        await m.addColumn(schema.products, schema.products.routineMinutes);
+        await m.addColumn(schema.products, schema.products.routineCheckedAt);
+      },
+      from5To6: (m, schema) async {
+        await m.create(schema.goalChanges);
+        await _fillGoalChanges();
+        await m.addColumn(schema.appSettings, schema.appSettings.historyView);
+      },
+      from6To7: (m, schema) async {
+        await m.addColumn(schema.appSettings, schema.appSettings.dayStartHour);
+      },
     ),
     beforeOpen: (details) async {
       await into(appSettings).insert(
         AppSettingsCompanion.insert(id: const Value(SettingsDao.rowId)),
         mode: InsertMode.insertOrIgnore,
       );
+      // Days and parts of the day follow the start hour chosen by the user.
+      // Only once the schema is current: the migration tests open the
+      // database at earlier versions, without the column.
+      if (details.versionNow == schemaVersion) {
+        appDayStartHour = await settingsDao.getDayStartHour();
+      }
     },
   );
 
@@ -92,6 +119,16 @@ class AppDatabase extends _$AppDatabase {
       }
     }
   }
+
+  /// Starts the history of goals with the current goal, from the first day
+  /// with entries: the earlier goals were not kept.
+  Future<void> _fillGoalChanges() => customStatement(
+    'INSERT INTO goal_changes (day_key, grams) '
+    'SELECT COALESCE((SELECT MIN(day_key) FROM entries), ?), '
+    'daily_goal_grams FROM app_settings '
+    'WHERE id = ${SettingsDao.rowId} AND daily_goal_grams IS NOT NULL',
+    [dayKeyOf(DateTime.now())],
+  );
 
   /// Sets the normalized name of every entry having a name. Done in Dart:
   /// the normalization folds accents, which SQLite cannot do.

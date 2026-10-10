@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
@@ -174,5 +175,73 @@ void main() {
         'Œufs',
       ]);
     });
+  });
+
+  group('daily routines', () {
+    test('setRoutine saves the routine, its time and when it starts', () async {
+      final id = await addProduct('Skyr');
+      final now = DateTime(2026, 10, 8, 9);
+
+      await dao.setRoutine(id, DailyRoutine.autoAdd, minutes: 480, now: now);
+
+      final product = (await dao.getProduct(id))!;
+      expect(product.routine, DailyRoutine.autoAdd);
+      expect(product.routineMinutes, 480);
+      expect(product.routineCheckedAt, now);
+      expect(product.activeRoutineMinutes, 480);
+    });
+
+    test('setRoutine with none clears the time', () async {
+      final id = await addProduct('Skyr');
+      await dao.setRoutine(
+        id,
+        DailyRoutine.reminder,
+        minutes: 480,
+        now: DateTime(2026, 10, 8),
+      );
+
+      await dao.setRoutine(
+        id,
+        DailyRoutine.none,
+        minutes: 480,
+        now: DateTime(2026, 10, 8),
+      );
+
+      final product = (await dao.getProduct(id))!;
+      expect(product.routine, DailyRoutine.none);
+      expect(product.routineMinutes, isNull);
+      expect(product.activeRoutineMinutes, isNull);
+    });
+
+    test(
+      'products with a routine come after the favorite, earliest first',
+      () async {
+        final apple = await addProduct('Apple');
+        final eggs = await addProduct('Eggs');
+        final skyr = await addProduct('Skyr');
+        final whey = await addProduct('Whey');
+        await dao.setFavorite(whey, favorite: true);
+        final now = DateTime(2026, 10, 8);
+        await dao.setRoutine(
+          skyr,
+          DailyRoutine.reminder,
+          minutes: 420,
+          now: now,
+        );
+        await dao.setRoutine(
+          eggs,
+          DailyRoutine.autoAdd,
+          minutes: 600,
+          now: now,
+        );
+
+        final names = (await dao.watchAll(ProductSort.alphabetical).first).map(
+          (p) => p.name,
+        );
+
+        expect(names, ['Whey', 'Skyr', 'Eggs', 'Apple']);
+        expect(apple, isPositive);
+      },
+    );
   });
 }

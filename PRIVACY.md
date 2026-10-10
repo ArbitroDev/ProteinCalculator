@@ -2,7 +2,7 @@
 
 *[English version below](#privacy-policy--protein-calculator)*
 
-**Date d'entrée en vigueur : 3 octobre 2026**
+**Date d'entrée en vigueur : 7 octobre 2026**
 
 Cette politique explique quelles données l'application **Protein Calculator** (Android) traite,
 pourquoi, et quels sont tes droits. Elle s'applique à l'application publiée sur Google Play.
@@ -25,7 +25,8 @@ Contact : <arbitro.contact@gmail.com>.
 L'application enregistre localement, dans une base de données sur ton téléphone :
 
 - tes entrées (nom facultatif, quantités, protéines, date et heure) ;
-- tes produits enregistrés et ton produit favori ;
+- tes produits enregistrés, ton produit favori et leurs routines quotidiennes (rappel ou ajout
+  automatique, et son heure) ;
 - ton objectif quotidien et tes réglages (tri des produits, choix concernant les rapports
   d'erreur).
 
@@ -92,6 +93,12 @@ contient ni publicité, ni outil d'analyse d'audience.
 ## 4. Autorisations Android
 
 - **Internet** : utilisée uniquement pour envoyer les rapports d'erreur, si tu les as acceptés.
+- **Notifications** : demandée quand tu choisis une routine quotidienne pour un produit, pour te
+  le rappeler ou te dire qu'il a été ajouté. Les notifications sont créées sur ton téléphone ;
+  rien n'est envoyé.
+- **Démarrage du téléphone** : permet de reprogrammer ces notifications après un redémarrage.
+- **Alarmes et rappels** : permet d'afficher ces notifications à l'heure choisie. Sans elle,
+  Android peut les retarder.
 
 L'application ne demande ni la localisation, ni les contacts, ni l'appareil photo, ni le micro.
 
@@ -119,7 +126,7 @@ demande de consentement dans l'application.
 
 # Privacy policy — Protein Calculator
 
-**Effective date: October 3, 2026**
+**Effective date: October 7, 2026**
 
 This policy explains what data the **Protein Calculator** Android app processes, why, and what
 your rights are. It applies to the app published on Google Play.
@@ -142,7 +149,8 @@ Contact: <arbitro.contact@gmail.com>.
 The app stores locally, in a database on your phone:
 
 - your entries (optional name, quantities, protein, date and time);
-- your saved products and your favorite product;
+- your saved products, your favorite product and their daily routines (reminder or automatic
+  addition, and its time);
 - your daily goal and your settings (product sort, crash report choice).
 
 This data is **never sent to us or to any third party**. You can delete it at any time by
@@ -201,6 +209,11 @@ no third party receives data from the app. The app contains no ads and no audien
 ## 4. Android permissions
 
 - **Internet**: only used to send crash reports, if you agreed to them.
+- **Notifications**: requested when you choose a daily routine for a product, to remind you of it
+  or tell you it was added. Notifications are created on your phone; nothing is sent.
+- **Phone startup**: lets the app plan these notifications again after a restart.
+- **Alarms & reminders**: lets the app show these notifications at the chosen time. Without it,
+  Android may delay them.
 
 The app does not request location, contacts, camera or microphone access.
 

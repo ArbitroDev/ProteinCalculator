@@ -46,7 +46,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     setState(() => _saving = true);
     final settings = ref.read(databaseProvider).settingsDao;
     final saved = await runUserAction(messenger, l10n, () async {
-      await settings.setDailyGoal(goal);
+      await settings.setDailyGoal(goal, now: ref.read(clockProvider)());
       if (crashReportingAvailable) {
         await settings.setCrashReports(_crashReports);
       }

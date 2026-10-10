@@ -44,7 +44,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
     final colors = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     final locale = context.localeName;
-    final goal = ref.watch(dailyGoalProvider).value ?? 0;
+    final goal = ref.watch(dayGoalProvider(widget.dayKey)) ?? 0;
     final entries = [
       for (final entry
           in ref.watch(dayEntriesProvider(widget.dayKey)).value ?? <Entry>[])

@@ -218,15 +218,15 @@
   },
   "slotMorning": "Matinée",
   "@slotMorning": {
-    "description": "Part of the day from 3 a.m. to noon."
+    "description": "Part of the day from the start of the app day (3 a.m. by default) to 11:30 a.m."
   },
   "slotAfternoon": "Journée",
   "@slotAfternoon": {
-    "description": "Part of the day from noon to 6 p.m."
+    "description": "Part of the day from 11:30 a.m. to 6 p.m."
   },
   "slotEvening": "Soirée",
   "@slotEvening": {
-    "description": "Part of the day from 6 p.m. to 3 a.m."
+    "description": "Part of the day from 6 p.m. to the start of the next app day."
   },
   "unnamedEntry": "Sans nom",
   "@unnamedEntry": {
@@ -507,5 +507,166 @@
   "startupStillFailing": "Tes données ne peuvent toujours pas être lues.",
   "@startupStillFailing": {
     "description": "Snack bar when trying again still cannot open the data."
+  },
+  "routineTitle": "Tous les jours",
+  "@routineTitle": {
+    "description": "Entry and product forms: title of the daily routine section."
+  },
+  "routineNone": "Non",
+  "@routineNone": {
+    "description": "Daily routine option: no routine."
+  },
+  "routineReminder": "Rappel",
+  "@routineReminder": {
+    "description": "Daily routine option: a notification reminds the user."
+  },
+  "routineAutoAdd": "Ajout auto",
+  "@routineAutoAdd": {
+    "description": "Daily routine option: the product is added on its own."
+  },
+  "routineReminderHint": "Une notification te le rappelle chaque jour, avec un bouton pour l'ajouter.",
+  "@routineReminderHint": {
+    "description": "Explains the reminder routine, under the selector."
+  },
+  "routineAutoAddHint": "Il s'ajoute tout seul chaque jour, et une notification te le dit, avec un bouton pour le retirer.",
+  "@routineAutoAddHint": {
+    "description": "Explains the automatic addition routine, under the selector."
+  },
+  "routineAt": "À {time}",
+  "@routineAt": {
+    "description": "Button showing the time of the daily routine; tapping it changes the time.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "productRoutineReminder": "Rappel à {time}",
+  "@productRoutineReminder": {
+    "description": "Products list: the product has a daily reminder.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "productRoutineAutoAdd": "Ajouté à {time}",
+  "@productRoutineAutoAdd": {
+    "description": "Products list: the product is added on its own every day.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationReminderBody": "C'est l'heure · {grams} g de protéines",
+  "@notificationReminderBody": {
+    "description": "Body of the daily reminder notification, under the product name.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationAutoAddBody": "Ajouté à ta journée · {grams} g de protéines",
+  "@notificationAutoAddBody": {
+    "description": "Body of the notification saying the product was added on its own.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationAdd": "Ajouter",
+  "@notificationAdd": {
+    "description": "Reminder notification button adding the product."
+  },
+  "notificationRemove": "Retirer",
+  "@notificationRemove": {
+    "description": "Automatic addition notification button removing the entry."
+  },
+  "notificationChannelReminders": "Rappels quotidiens",
+  "@notificationChannelReminders": {
+    "description": "Android notification channel of the daily reminders."
+  },
+  "notificationChannelAutoAdds": "Ajouts automatiques",
+  "@notificationChannelAutoAdds": {
+    "description": "Android notification channel of the automatic additions."
+  },
+  "reminderNeedsNotifications": "Le rappel passe par une notification : autorise-les pour le choisir.",
+  "@reminderNeedsNotifications": {
+    "description": "Snack bar when the reminder routine is tapped but notifications are refused."
+  },
+  "notificationsOffAutoAdd": "Notifications désactivées : il s'ajoutera quand même, mais sans te prévenir.",
+  "@notificationsOffAutoAdd": {
+    "description": "Warning when the automatic addition is chosen while its notifications are off."
+  },
+  "notificationsOffReminder": "Notifications désactivées : ce rappel ne s'affichera pas.",
+  "@notificationsOffReminder": {
+    "description": "Warning in the form when the product has a reminder but its notifications are off."
+  },
+  "notificationsOffBanner": "Notifications désactivées : tes routines ne peuvent pas te prévenir.",
+  "@notificationsOffBanner": {
+    "description": "Products tab banner when products have a routine but its notifications are off."
+  },
+  "openSettings": "Réglages",
+  "@openSettings": {
+    "description": "Button opening the notification settings of the app in Android."
+  },
+  "exactAlarmsTitle": "Arriver à l'heure",
+  "@exactAlarmsTitle": {
+    "description": "Dialog title asking to allow exact alarms."
+  },
+  "exactAlarmsBody": "Pour que tes routines te préviennent à l'heure, autorise « Alarmes et rappels » pour Protein Calculator dans la page qui va s'ouvrir. Sans ça, Android peut les retarder de plusieurs heures.",
+  "@exactAlarmsBody": {
+    "description": "Dialog body asking to allow exact alarms."
+  },
+  "exactAlarmsAllow": "Autoriser",
+  "@exactAlarmsAllow": {
+    "description": "Dialog button opening the exact alarms settings."
+  },
+  "exactAlarmsLater": "Plus tard",
+  "@exactAlarmsLater": {
+    "description": "Dialog button closing it without allowing exact alarms."
+  },
+  "routineMayBeLate": "Alarmes et rappels non autorisés : la notification peut arriver en retard.",
+  "@routineMayBeLate": {
+    "description": "Warning in the form when exact alarms are not allowed."
+  },
+  "routinesMayBeLateBanner": "Alarmes et rappels non autorisés : tes routines peuvent te prévenir en retard.",
+  "@routinesMayBeLateBanner": {
+    "description": "Products tab banner when exact alarms are not allowed."
+  },
+  "historyList": "Liste",
+  "@historyList": {
+    "description": "History view: every day with entries, most recent first."
+  },
+  "historyCalendar": "Calendrier",
+  "@historyCalendar": {
+    "description": "History view: the days of a month, colored by how far each went towards its goal."
+  },
+  "calendarNone": "Rien",
+  "@calendarNone": {
+    "description": "Calendar legend and screen reader text: a day without protein."
+  },
+  "calendarLow": "Moins de 50 %",
+  "@calendarLow": {
+    "description": "Calendar legend and screen reader text: a day under half of its goal."
+  },
+  "calendarHalf": "50 % et plus",
+  "@calendarHalf": {
+    "description": "Calendar legend and screen reader text: a day at half of its goal or more."
+  },
+  "calendarReached": "Objectif atteint",
+  "@calendarReached": {
+    "description": "Calendar legend and screen reader text: a day that reached its goal."
+  },
+  "menuDayStart": "Début de la journée",
+  "@menuDayStart": {
+    "description": "Menu: hour the app day and its morning start."
+  },
+  "dayStartSheetBody": "Ta journée et ta matinée commencent à cette heure : ce que tu ajoutes avant compte pour la veille au soir. Le changement vaut pour tes prochaines entrées.",
+  "@dayStartSheetBody": {
+    "description": "Bottom sheet explaining the start hour of the app day."
   }
 }

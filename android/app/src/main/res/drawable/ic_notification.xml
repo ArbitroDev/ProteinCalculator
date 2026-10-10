@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Small icon of the notifications: the shaker of the launcher icon, in
+     white, as Android requires. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <group android:translateX="-3" android:translateY="-2.55"
+      android:scaleX="0.297" android:scaleY="0.297">
+    <group android:rotation="-16" android:pivotX="50" android:pivotY="52">
+      <clip-path android:pathData="M37 40 L39.5 79 Q40 84 45 84 H55 Q60 84 60.5 79 L63 40 Z" />
+      <group android:rotation="16" android:pivotX="50" android:pivotY="52">
+        <path android:pathData="M20 57 Q35 51 50 57 T80 57 V100 H20 Z" android:fillColor="#FFFFFF" />
+      </group>
+    </group>
+    <group android:rotation="-16" android:pivotX="50" android:pivotY="52">
+        <path android:pathData="M37 40 L39.5 79 Q40 84 45 84 H55 Q60 84 60.5 79 L63 40 Z" android:strokeColor="#FFFFFF" android:strokeWidth="3.6" android:strokeLineJoin="round" />
+        <path android:pathData="M36.5 31 H63.5 Q66 31 66 33.5 V38.5 Q66 41 63.5 41 H36.5 Q34 41 34 38.5 V33.5 Q34 31 36.5 31 Z" android:fillColor="#FFFFFF" />
+        <path android:pathData="M36 31 Q36 23 43 23 H57 Q64 23 64 31 Z" android:fillColor="#FFFFFF" />
+        <path android:pathData="M41 17 H46 Q48 17 48 19 V22 Q48 24 46 24 H41 Q39 24 39 22 V19 Q39 17 41 17 Z" android:fillColor="#FFFFFF" />
+        <path android:pathData="M55 24 V18 Q55 13 59.5 13 Q64 13 64 18 V24" android:strokeColor="#FFFFFF" android:strokeWidth="2.8" />
+    </group>
+        <path android:pathData="M22 32 Q16 44 22 56" android:strokeColor="#FFFFFF" android:strokeWidth="3.6" android:strokeLineCap="round" />
+        <path android:pathData="M79 46 Q85 58 79 70" android:strokeColor="#FFFFFF" android:strokeWidth="3.6" android:strokeLineCap="round" />
+  </group>
+</vector>

@@ -1,6 +1,9 @@
 import 'package:drift/drift.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
 /// Protein entries. Each entry keeps a full copy of the values it was created
@@ -57,6 +60,32 @@ class Products extends Table {
 
   /// The favorite product, listed first whatever the sort; one at most.
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
+
+  /// What the product does every day at [routineMinutes]: remind the user,
+  /// or add itself.
+  TextColumn get routine =>
+      textEnum<DailyRoutine>().withDefault(Constant(DailyRoutine.none.name))();
+
+  /// Time of day of the [routine], in minutes since midnight; null without
+  /// a routine.
+  IntColumn get routineMinutes => integer().nullable()();
+
+  /// Up to when the automatic additions of the [routine] were made: the
+  /// next ones come after it. Set when the routine is chosen, so it never
+  /// adds entries for the days before.
+  DateTimeColumn get routineCheckedAt => dateTime().nullable()();
+}
+
+/// Daily goals over time: each row holds the goal set on an app day, which
+/// counts from that day until the next change. Days are judged against the
+/// goal they had, not the current one.
+class GoalChanges extends Table {
+  /// App day the goal was set, see `dayKeyOf`.
+  IntColumn get dayKey => integer()();
+  RealColumn get grams => real()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {dayKey};
 }
 
 /// Single-row table holding the app settings.
@@ -69,6 +98,14 @@ class AppSettings extends Table {
   TextColumn get productSort => textEnum<ProductSort>().withDefault(
     Constant(ProductSort.alphabetical.name),
   )();
+
+  /// Hour the app day starts, see `appDayStartHour`.
+  IntColumn get dayStartHour =>
+      integer().withDefault(const Constant(defaultAppDayStartHour))();
+
+  /// How the history tab shows the days.
+  TextColumn get historyView =>
+      textEnum<HistoryView>().withDefault(Constant(HistoryView.list.name))();
 
   /// Whether crash reports are sent; off until the user agrees.
   BoolColumn get crashReports => boolean().withDefault(const Constant(false))();

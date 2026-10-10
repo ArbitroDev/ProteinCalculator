@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
@@ -49,15 +50,21 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
   @override
   Future<EntryFormState> build() async {
     final db = ref.read(databaseProvider);
+    // A new routine is offered at the current time, by steps of 5 minutes.
+    final now = ref.read(clockProvider)();
+    final blank = EntryFormState(
+      routineMinutes:
+          ((now.hour * 60 + now.minute) / 5).round() * 5 % minutesPerDay,
+    );
     switch (args) {
       case NewEntryArgs(:final productId):
-        if (productId == null) return const EntryFormState();
+        if (productId == null) return blank;
         final product = await db.productsDao.getProduct(productId);
-        if (product == null) return const EntryFormState();
+        if (product == null) return blank;
         _source = product;
-        return _withSourceStatus(_fromProduct(const EntryFormState(), product));
+        return _withSourceStatus(_fromProduct(blank, product));
       case NewProductArgs():
-        return const EntryFormState();
+        return blank;
       case EditEntryArgs(:final entryId):
         final entry = await db.entriesDao.getEntry(entryId);
         if (entry == null) return const EntryFormState();
@@ -67,9 +74,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         );
       case EditProductArgs(:final productId):
         final product = await db.productsDao.getProduct(productId);
-        return product == null
-            ? const EntryFormState()
-            : _fromProduct(const EntryFormState(), product);
+        return product == null ? blank : _fromProduct(blank, product);
     }
   }
 
@@ -77,6 +82,8 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       _withAmount(
         base.copyWith(
           name: product.name,
+          routine: product.routine,
+          routineMinutes: product.routineMinutes,
           errors: const {},
           revision: base.revision + 1,
         ),
@@ -127,7 +134,10 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
     final changed = !_matches(form, source);
     return form.copyWith(
       canSaveAsProduct: changed,
-      saveAsProduct: changed && form.saveAsProduct,
+      // A routine needs a product: once the values differ from the source,
+      // it goes with them.
+      saveAsProduct:
+          changed && (form.saveAsProduct || form.routine != DailyRoutine.none),
       updatesProduct: productNameKey(form.name) == source.nameKey,
     );
   }
@@ -170,9 +180,29 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         .copyWith(reference: value),
   );
 
+  /// Ignored while a routine is chosen: it needs the product, see
+  /// [setRoutine].
   void setSaveAsProduct(bool value) => _update(
-    (s) => s.clearError(EntryFormField.name).copyWith(saveAsProduct: value),
+    (s) => s.canSaveAsProduct && s.routine != DailyRoutine.none
+        ? s
+        : s.clearError(EntryFormField.name).copyWith(saveAsProduct: value),
   );
+
+  /// A routine belongs to a product: a new entry is saved as one, unless it
+  /// is the unchanged product it starts from.
+  void setRoutine(DailyRoutine value) => _update(
+    (s) => s.copyWith(
+      routine: value,
+      saveAsProduct:
+          args is NewEntryArgs &&
+              value != DailyRoutine.none &&
+              s.canSaveAsProduct ||
+          s.saveAsProduct,
+    ),
+  );
+
+  void setRoutineMinutes(int value) =>
+      _update((s) => s.copyWith(routineMinutes: value));
 
   /// Fills the form with the values of a suggested product.
   void applyProduct(Product product) {
@@ -185,7 +215,10 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
     final current = state.value;
     if (current == null) return false;
 
-    final needsName = args.isProduct || current.saveAsProduct;
+    final needsName =
+        args.isProduct ||
+        current.saveAsProduct ||
+        current.routine != DailyRoutine.none;
     final errors = current.validate(nameRequired: needsName);
     if (needsName && !errors.containsKey(EntryFormField.name)) {
       final taken = await _db.productsDao.isNameTaken(
@@ -235,6 +268,24 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       product.withAmount(amount).copyWith(name: name),
     );
 
+    /// Gives the product [id] the routine of the form, if [product], its
+    /// values before, had another one: choosing it again would skip the
+    /// additions due meanwhile.
+    Future<void> setRoutine(int id, Product? product) async {
+      final same =
+          product != null &&
+          product.routine == form.routine &&
+          (form.routine == DailyRoutine.none ||
+              product.routineMinutes == form.routineMinutes);
+      if (same) return;
+      await db.productsDao.setRoutine(
+        id,
+        form.routine,
+        minutes: form.routineMinutes,
+        now: now,
+      );
+    }
+
     switch (args) {
       case NewEntryArgs():
         await db.transaction(() async {
@@ -245,9 +296,14 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
                 : null;
             if (source != null) {
               await updateProduct(source);
+              await setRoutine(source.id, source);
             } else {
-              await insertProduct();
+              await setRoutine(await insertProduct(), null);
             }
+          } else if (_source case final source?) {
+            // The unchanged product the entry starts from.
+            final product = await db.productsDao.getProduct(source.id);
+            if (product != null) await setRoutine(product.id, product);
           }
           await db.entriesDao.insertEntry(
             name: name.isEmpty ? null : name,
@@ -264,10 +320,16 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
               .copyWith(name: Value(name.isEmpty ? null : name)),
         );
       case NewProductArgs():
-        await insertProduct();
+        await db.transaction(
+          () async => setRoutine(await insertProduct(), null),
+        );
       case EditProductArgs(:final productId):
-        final product = await db.productsDao.getProduct(productId);
-        if (product != null) await updateProduct(product);
+        await db.transaction(() async {
+          final product = await db.productsDao.getProduct(productId);
+          if (product == null) return;
+          await updateProduct(product);
+          await setRoutine(productId, product);
+        });
     }
   }
 }

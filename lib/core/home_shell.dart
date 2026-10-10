@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/shaker_icon.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -30,10 +31,10 @@ class HomeShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final tabs = [
-      (LucideIcons.calendarDays, l10n.tabToday),
-      (LucideIcons.history, l10n.tabHistory),
-      (LucideIcons.shoppingBasket, l10n.tabProducts),
-      (LucideIcons.menu, l10n.tabMenu),
+      (const ShakerIcon(), l10n.tabToday),
+      (const Icon(LucideIcons.history), l10n.tabHistory),
+      (const Icon(LucideIcons.shoppingBasket), l10n.tabProducts),
+      (const Icon(LucideIcons.menu), l10n.tabMenu),
     ];
     final bar = _TabBar(
       tabs: tabs,
@@ -76,7 +77,7 @@ class _TabBar extends StatelessWidget {
     required this.vertical,
   });
 
-  final List<(IconData, String)> tabs;
+  final List<(Widget, String)> tabs;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final String addLabel;
@@ -170,7 +171,7 @@ class _Tab extends StatelessWidget {
     required this.onTap,
   });
 
-  final IconData icon;
+  final Widget icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -190,12 +191,14 @@ class _Tab extends StatelessWidget {
             customBorder: const StadiumBorder(),
             onTap: onTap,
             child: Center(
-              child: Icon(
-                icon,
-                size: 22,
-                color: selected
-                    ? AppColors.onAccent
-                    : AppColors.of(context).textSecondary,
+              child: IconTheme(
+                data: IconThemeData(
+                  size: 22,
+                  color: selected
+                      ? AppColors.onAccent
+                      : AppColors.of(context).textSecondary,
+                ),
+                child: icon,
               ),
             ),
           ),

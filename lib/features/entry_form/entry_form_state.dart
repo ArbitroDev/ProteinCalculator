@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
@@ -97,6 +98,8 @@ class EntryFormState {
     this.saveAsProduct = false,
     this.canSaveAsProduct = true,
     this.updatesProduct = false,
+    this.routine = DailyRoutine.none,
+    this.routineMinutes = 8 * 60,
     this.errors = const {},
     this.revision = 0,
   });
@@ -116,6 +119,11 @@ class EntryFormState {
   /// Whether saving as a product updates the product the entry starts from,
   /// because it keeps its name, instead of creating a new one.
   final bool updatesProduct;
+
+  /// Daily routine of the product, and its time in minutes since midnight,
+  /// kept when the routine is turned off in case it is turned on again.
+  final DailyRoutine routine;
+  final int routineMinutes;
   final Map<EntryFormField, EntryFormError> errors;
 
   /// Increases when the values are replaced as a whole (a product is
@@ -190,6 +198,8 @@ class EntryFormState {
     bool? saveAsProduct,
     bool? canSaveAsProduct,
     bool? updatesProduct,
+    DailyRoutine? routine,
+    int? routineMinutes,
     Map<EntryFormField, EntryFormError>? errors,
     int? revision,
   }) => EntryFormState(
@@ -202,6 +212,8 @@ class EntryFormState {
     saveAsProduct: saveAsProduct ?? this.saveAsProduct,
     canSaveAsProduct: canSaveAsProduct ?? this.canSaveAsProduct,
     updatesProduct: updatesProduct ?? this.updatesProduct,
+    routine: routine ?? this.routine,
+    routineMinutes: routineMinutes ?? this.routineMinutes,
     errors: errors ?? this.errors,
     revision: revision ?? this.revision,
   );

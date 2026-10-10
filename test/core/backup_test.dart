@@ -3,7 +3,10 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/backup.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
+import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 
@@ -157,6 +160,110 @@ void main() {
       DaySlot.evening,
       DaySlot.afternoon,
     ]);
+  });
+
+  group('routines, goals over time and settings', () {
+    tearDown(() => appDayStartHour = defaultAppDayStartHour);
+
+    test('are restored, routines starting again at the restoration', () async {
+      final skyr = (await source.select(source.products).get()).single;
+      await source.productsDao.setRoutine(
+        skyr.id,
+        DailyRoutine.autoAdd,
+        minutes: 480,
+        now: DateTime(2026, 9, 1),
+      );
+      await source.settingsDao.setDailyGoal(160, now: DateTime(2026, 9, 20));
+      await source.settingsDao.setHistoryView(HistoryView.calendar);
+      await source.settingsDao.setDayStartHour(5);
+      final target = openTestDatabase();
+      addTearDown(target.close);
+      final restoredAt = DateTime(2026, 10, 8, 12);
+
+      await restoreBackup(target, parseBackup(await export()), now: restoredAt);
+
+      final product = (await target.select(target.products).get()).single;
+      expect(product.routine, DailyRoutine.autoAdd);
+      expect(product.routineMinutes, 480);
+      // No entry is added for the days between the backup and now.
+      expect(product.routineCheckedAt, restoredAt);
+      expect(
+        (await target.settingsDao.watchGoalChanges().first).map(
+          (g) => (g.dayKey, g.grams),
+        ),
+        (await source.settingsDao.watchGoalChanges().first).map(
+          (g) => (g.dayKey, g.grams),
+        ),
+      );
+      expect(
+        await target.settingsDao.watchHistoryView().first,
+        HistoryView.calendar,
+      );
+      expect(await target.settingsDao.getDayStartHour(), 5);
+    });
+
+    test(
+      'older backups take the goal from their first day, at 3 a.m.',
+      () async {
+        final json = jsonDecode(await export()) as Map<String, dynamic>;
+        json
+          ..['version'] = 3
+          ..remove('goalChanges');
+        (json['settings'] as Map<String, dynamic>)
+          ..remove('historyView')
+          ..remove('dayStartHour');
+        final target = openTestDatabase();
+        addTearDown(target.close);
+
+        await restoreBackup(target, parseBackup(jsonEncode(json)));
+
+        final goals = await target.settingsDao.watchGoalChanges().first;
+        expect(goals.map((g) => (g.dayKey, g.grams)), [(20260930, 140.0)]);
+        expect(
+          await target.settingsDao.watchHistoryView().first,
+          HistoryView.list,
+        );
+        expect(await target.settingsDao.getDayStartHour(), 3);
+      },
+    );
+
+    test('refuse an invalid routine, goal or start hour', () async {
+      Future<void> refuses(
+        void Function(Map<String, dynamic> json) change,
+      ) async {
+        final json = jsonDecode(await export()) as Map<String, dynamic>;
+        change(json);
+        expect(
+          () => parseBackup(jsonEncode(json)),
+          throwsA(isA<InvalidBackupException>()),
+        );
+      }
+
+      await refuses(
+        (json) => rows(json, 'products').first
+          ..['routine'] = 'reminder'
+          ..['routineMinutes'] = null,
+      );
+      await refuses(
+        (json) => rows(json, 'products').first
+          ..['routine'] = 'autoAdd'
+          ..['routineMinutes'] = 1440,
+      );
+      await refuses(
+        (json) => json['goalChanges'] = [
+          {'dayKey': 20260931, 'grams': 140},
+        ],
+      );
+      await refuses(
+        (json) => json['goalChanges'] = [
+          {'dayKey': 20260930, 'grams': 0},
+        ],
+      );
+      await refuses(
+        (json) =>
+            (json['settings'] as Map<String, dynamic>)['dayStartHour'] = 8,
+      );
+    });
   });
 
   test('names the file after the date', () {
