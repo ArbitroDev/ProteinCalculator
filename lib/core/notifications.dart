@@ -5,13 +5,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:protein_calculator/core/background_changes.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/formatting.dart';
-import 'package:protein_calculator/core/notification_changes.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/watch/watch_sync.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -120,7 +121,7 @@ Future<RoutineNotifications> openRoutineNotifications() async {
 ///
 /// Android runs it apart from the app, which may be closed: it opens the
 /// data itself, then tells the app if it runs, see
-/// [listenToNotificationChanges].
+/// [listenToBackgroundChanges], and the watch.
 @pragma('vm:entry-point')
 Future<void> onNotificationAction(NotificationResponse response) async {
   final productId = int.tryParse(response.payload ?? '');
@@ -140,10 +141,11 @@ Future<void> onNotificationAction(NotificationResponse response) async {
     } else {
       await db.entriesDao.removeRoutineEntry(productId, now);
     }
+    await updateWatch(db, now);
   } finally {
     await db.close();
   }
-  notifyNotificationChange();
+  notifyBackgroundChange();
 }
 
 class _NoNotifications implements RoutineNotifications {

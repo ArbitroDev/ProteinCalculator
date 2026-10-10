@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Lets the phone app find the watch having the app, reading the
+         messages of version 1: WatchProtocol.watchCapability in
+         android/wear/protocol. -->
+    <string-array
+        name="android_wear_capabilities"
+        translatable="false"
+        tools:ignore="UnusedResources">
+        <item>protein_calculator_watch_v1</item>
+    </string-array>
+</resources>

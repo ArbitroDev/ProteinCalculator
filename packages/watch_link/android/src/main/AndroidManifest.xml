@@ -1,0 +1,18 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Answers the watch app, even when the app is closed: its requests,
+             and its coming nearby. -->
+        <service
+            android:name=".PhoneListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.REQUEST_RECEIVED" />
+                <data android:scheme="wear" android:host="*" android:path="/protein_calculator/sync" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.CAPABILITY_CHANGED" />
+                <data android:scheme="wear" android:host="*" android:path="/protein_calculator_watch_v1" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

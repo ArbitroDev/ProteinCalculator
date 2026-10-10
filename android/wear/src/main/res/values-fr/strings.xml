@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="grams">%1$s g</string>
+    <string name="goal_of">sur %1$s g</string>
+    <string name="remaining">encore %1$s g à secouer</string>
+    <string name="goal_reached">Objectif atteint</string>
+    <string name="updated_at">Mis à jour à %1$s</string>
+    <string name="updated_on">Mis à jour le %1$s</string>
+    <string name="phone_away">Téléphone hors de portée</string>
+    <string name="products">Produits</string>
+    <string name="no_products">Enregistre des produits sur ton téléphone pour les ajouter d\'ici.</string>
+    <string name="favorite">Favori</string>
+    <string name="open_phone">Ouvre Protein Calculator sur ton téléphone.</string>
+    <string name="update_watch">Mets à jour Protein Calculator sur ta montre.</string>
+    <string name="update_phone">Mets à jour Protein Calculator sur ton téléphone.</string>
+</resources>

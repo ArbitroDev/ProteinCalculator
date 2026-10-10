@@ -9,6 +9,7 @@ import 'package:protein_calculator/core/database/database_file.dart';
 import 'package:protein_calculator/core/notifications.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
+import 'package:protein_calculator/core/watch/watch_sync.dart';
 import 'package:protein_calculator/features/startup/startup_error_app.dart';
 
 /// Opens the data, then runs the app. Completes with whether it started.
@@ -68,6 +69,7 @@ Future<bool> startApp({
       overrides: [
         databaseProvider.overrideWithValue(database),
         routineNotificationsProvider.overrideWithValue(notifications),
+        watchLinkProvider.overrideWithValue(WatchLink.platform()),
         initialLocationProvider.overrideWithValue(
           goal == null ? AppRoutes.onboarding : AppRoutes.today,
         ),

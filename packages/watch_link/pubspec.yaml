@@ -1,0 +1,21 @@
+name: watch_link
+description: "Link of Protein Calculator with its Wear OS watch app."
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+# Android only: registered in every Flutter engine of the app (the app, the
+# buttons of the notifications, the engine started for the watch).
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: arbitro.android.protein_calculator.watch_link
+        pluginClass: WatchLinkPlugin

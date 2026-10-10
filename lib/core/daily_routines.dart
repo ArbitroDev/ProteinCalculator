@@ -9,7 +9,6 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
-import 'package:protein_calculator/core/notification_changes.dart';
 import 'package:protein_calculator/core/notifications.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -65,8 +64,7 @@ class NotificationStatusNotifier extends AsyncNotifier<NotificationStatus> {
 
 /// Keeps the daily routines of the products running while the app runs:
 /// plans their notifications, and adds the products added automatically at
-/// their time, when the app comes back to the foreground, and after a
-/// button of a notification changed the data.
+/// their time and when the app comes back to the foreground.
 final dailyRoutinesProvider = Provider<void>((ref) {
   final runner = _RoutineRunner(
     db: ref.watch(databaseProvider),
@@ -87,14 +85,12 @@ class _RoutineRunner {
     required this.now,
   }) {
     _lifecycle = AppLifecycleListener(onResume: _onResume);
-    _stopListening = listenToNotificationChanges(_reloadData);
   }
 
   final AppDatabase db;
   final RoutineNotifications notifications;
   final DateTime Function() now;
   late final AppLifecycleListener _lifecycle;
-  late final VoidCallback _stopListening;
 
   List<Product> _products = const [];
 
@@ -112,11 +108,11 @@ class _RoutineRunner {
   void dispose() {
     _timer?.cancel();
     _lifecycle.dispose();
-    _stopListening();
   }
 
-  /// The buttons of the notifications change the data apart from the app:
-  /// the screens read it again.
+  /// The buttons of the notifications and the watch change the data apart
+  /// from the app, maybe while it was in the background: the screens read
+  /// it again.
   void _reloadData() => db.markTablesUpdated([db.entries, db.products]);
 
   Future<void> _onResume() async {

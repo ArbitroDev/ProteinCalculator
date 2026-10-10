@@ -1,0 +1,27 @@
+# Libraries of the watch app and of its link with the phone app. The Gradle
+# plugins follow the versions set by Flutter, in settings.gradle.kts.
+#
+# The newest AndroidX versions need the Android Gradle plugin 9, which
+# Flutter does not use yet.
+[versions]
+activity = "1.13.0"
+compose-bom = "2026.06.01"
+coroutines = "1.10.2"
+datastore = "1.2.1"
+lifecycle = "2.10.0"
+play-services-wearable = "20.0.1"
+serialization = "1.9.0"
+wear-compose = "1.6.2"
+
+[libraries]
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
+datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+play-services-wearable = { module = "com.google.android.gms:play-services-wearable", version.ref = "play-services-wearable" }
+serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wear-compose" }
+wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wear-compose" }
