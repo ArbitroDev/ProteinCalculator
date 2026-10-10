@@ -2,24 +2,17 @@ package arbitro.android.protein_calculator.wear
 
 import android.content.Context
 import androidx.datastore.preferences.core.MutablePreferences
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.longPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import arbitro.android.protein_calculator.protocol.AddReply
 import arbitro.android.protein_calculator.protocol.DayState
 import arbitro.android.protein_calculator.protocol.Received
 import arbitro.android.protein_calculator.protocol.WatchAddition
 import arbitro.android.protein_calculator.protocol.WatchMessages
 import arbitro.android.protein_calculator.protocol.WatchProduct
-import arbitro.android.protein_calculator.protocol.WatchProtocol
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.Json
 
 private val Context.dataStore by preferencesDataStore(name = "watch")
 
@@ -53,18 +46,7 @@ class WatchStore(context: Context) {
         ProteinComplicationService.refresh(context)
     }
 
-    val saved: Flow<Saved> = dataStore.data.map { preferences ->
-        Saved(
-            state = preferences[STATE]?.let { stored ->
-                (WatchMessages.decodeState(stored.encodeToByteArray()) as? Received.Message)?.value
-            },
-            receivedAt = preferences[RECEIVED_AT],
-            incompatibility = preferences[INCOMPATIBILITY]?.let { name ->
-                Incompatibility.entries.firstOrNull { it.name == name }
-            },
-            pending = preferences.pending,
-        )
-    }
+    val saved: Flow<Saved> = dataStore.data.map { it.toSaved() }
 
     /** Additions waiting for the phone, oldest first. */
     suspend fun pending(): List<WatchAddition> = saved.first().pending
@@ -78,7 +60,7 @@ class WatchStore(context: Context) {
             protein = product.protein,
             addedAt = now,
         )
-        edit { it.pending = it.pending + addition }
+        edit { it.addPending(addition) }
         return addition
     }
 
@@ -88,9 +70,9 @@ class WatchStore(context: Context) {
      */
     suspend fun receiveState(message: ByteArray, receivedAt: Long) {
         when (val received = WatchMessages.decodeState(message)) {
-            is Received.Message -> edit { it.keep(received.value, receivedAt) }
-            is Received.OtherVersion -> saveIncompatibility(received.version)
-            is Received.Unsupported -> saveIncompatibility(received.versions.max())
+            is Received.Message -> edit { it.keepState(received.value, receivedAt) }
+            is Received.OtherVersion -> edit { it.noteIncompatibility(received.version) }
+            is Received.Unsupported -> edit { it.noteIncompatibility(received.versions.max()) }
             // Not from the phone app: ignored.
             Received.Malformed -> Unit
         }
@@ -104,61 +86,17 @@ class WatchStore(context: Context) {
     suspend fun receiveAddReply(message: ByteArray, receivedAt: Long): Boolean =
         when (val received = WatchMessages.decodeAddReply(message)) {
             is Received.Message -> {
-                edit { it.keep(received.value, receivedAt) }
+                edit { it.keepReply(received.value, receivedAt) }
                 true
             }
             is Received.OtherVersion -> {
-                saveIncompatibility(received.version)
+                edit { it.noteIncompatibility(received.version) }
                 false
             }
             is Received.Unsupported -> {
-                saveIncompatibility(received.versions.max())
+                edit { it.noteIncompatibility(received.versions.max()) }
                 false
             }
             Received.Malformed -> false
         }
-
-    private fun MutablePreferences.keep(reply: AddReply, receivedAt: Long) {
-        val answered = reply.results.map { it.id }.toSet()
-        pending = pending.filterNot { it.id in answered }
-        keep(reply.state, receivedAt)
-    }
-
-    /** Keeps [state], and drops the additions it says were made. */
-    private fun MutablePreferences.keep(state: DayState, receivedAt: Long) {
-        // Kept as the phone writes it, read again by the protocol.
-        this[STATE] = WatchMessages.encodeState(state).decodeToString()
-        this[RECEIVED_AT] = receivedAt
-        remove(INCOMPATIBILITY)
-        val handled = state.handled.toSet()
-        pending = pending.filterNot { it.id in handled }
-    }
-
-    /** Notes that the phone writes the messages of [version]. */
-    private suspend fun saveIncompatibility(version: Int) {
-        val incompatibility = if (version > WatchProtocol.VERSION) {
-            Incompatibility.UPDATE_WATCH
-        } else {
-            Incompatibility.UPDATE_PHONE
-        }
-        edit { it[INCOMPATIBILITY] = incompatibility.name }
-    }
-
-    private companion object {
-        val STATE: Preferences.Key<String> = stringPreferencesKey("state")
-        val RECEIVED_AT: Preferences.Key<Long> = longPreferencesKey("receivedAt")
-        val INCOMPATIBILITY: Preferences.Key<String> = stringPreferencesKey("incompatibility")
-        val PENDING: Preferences.Key<String> = stringPreferencesKey("pending")
-
-        val pendingSerializer = ListSerializer(WatchAddition.serializer())
-    }
-
-    private var MutablePreferences.pending: List<WatchAddition>
-        get() = (this as Preferences).pending
-        set(value) {
-            this[PENDING] = Json.encodeToString(pendingSerializer, value)
-        }
-
-    private val Preferences.pending: List<WatchAddition>
-        get() = this[PENDING]?.let { Json.decodeFromString(pendingSerializer, it) } ?: emptyList()
 }

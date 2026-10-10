@@ -18,4 +18,9 @@ kotlin {
 
 dependencies {
     api(libs.serialization.json)
+    testImplementation(kotlin("test"))
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
