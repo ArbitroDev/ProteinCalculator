@@ -34,9 +34,12 @@ request can only be merged once all checks pass.
   `develop` alone, opened by the maintainer when a version is ready.
 - Every merge into `main` runs the release workflow: it runs the automated
   checks again on the merged commit and, only if they pass, builds the
-  signed app bundle, sends it to the closed testing track of Google Play
-  and tags the version (`v1.2.3`). The version in `pubspec.yaml` must therefore be
-  increased in `develop` before each release.
+  signed app bundles of the phone and of the watch, sends them to their
+  closed testing tracks of Google Play (`alpha` and `wear:alpha`) and tags
+  the version (`v1.2.3`). The version in `pubspec.yaml` must therefore be
+  increased in `develop` before each release; its build number must stay
+  below `wear.versionCodeOffset`, which the version code of the watch app
+  adds to it.
 - The publishing job uses the `release` environment of the repository: its
   secrets (signing key, Google Play service account, Sentry address) are
   stored there only, and each release waits for the maintainer's approval.
