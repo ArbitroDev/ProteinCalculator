@@ -50,6 +50,7 @@ class WatchStore(context: Context) {
     private suspend fun edit(change: (MutablePreferences) -> Unit) {
         dataStore.edit(change)
         ProteinTileService.refresh(context)
+        ProteinComplicationService.refresh(context)
     }
 
     val saved: Flow<Saved> = dataStore.data.map { preferences ->

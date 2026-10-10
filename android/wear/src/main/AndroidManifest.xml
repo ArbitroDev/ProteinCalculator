@@ -44,6 +44,25 @@
                 tools:ignore="SquareAndRoundTilePreviews" />
         </service>
 
+        <!-- Progress of the day for the watch faces. Shown again when the data
+             changes, and at the start of the next app day by a timeline. -->
+        <service
+            android:name=".ProteinComplicationService"
+            android:exported="true"
+            android:icon="@drawable/ic_shaker"
+            android:label="@string/complication_label"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="RANGED_VALUE,SHORT_TEXT" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="0" />
+        </service>
+
         <!-- Receives the state of the day from the phone, and learns when the
              phone comes nearby. -->
         <service

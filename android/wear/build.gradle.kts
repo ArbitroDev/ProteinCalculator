@@ -90,6 +90,7 @@ dependencies {
     implementation(project(":wear:protocol"))
     implementation(platform(libs.compose.bom))
     implementation(libs.activity.compose)
+    implementation(libs.complications.data.source)
     implementation(libs.compose.ui)
     implementation(libs.coroutines.play.services)
     implementation(libs.datastore.preferences)
