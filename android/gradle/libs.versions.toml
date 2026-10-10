@@ -10,7 +10,9 @@ coroutines = "1.10.2"
 datastore = "1.2.1"
 lifecycle = "2.10.0"
 play-services-wearable = "20.0.1"
+protolayout = "1.4.2"
 serialization = "1.9.0"
+tiles = "1.6.2"
 wear-compose = "1.6.2"
 work = "2.11.2"
 
@@ -23,7 +25,11 @@ datastore-preferences = { module = "androidx.datastore:datastore-preferences", v
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 play-services-wearable = { module = "com.google.android.gms:play-services-wearable", version.ref = "play-services-wearable" }
+protolayout = { module = "androidx.wear.protolayout:protolayout", version.ref = "protolayout" }
+protolayout-expression = { module = "androidx.wear.protolayout:protolayout-expression", version.ref = "protolayout" }
+protolayout-material3 = { module = "androidx.wear.protolayout:protolayout-material3", version.ref = "protolayout" }
 serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+tiles = { module = "androidx.wear.tiles:tiles", version.ref = "tiles" }
 wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wear-compose" }
 wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wear-compose" }
 wear-compose-navigation = { module = "androidx.wear.compose:compose-navigation", version.ref = "wear-compose" }

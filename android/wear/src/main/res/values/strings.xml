@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Protein Calculator</string>
+    <string name="tile_label">Protein of the day</string>
+    <string name="tile_title">Protein</string>
     <string name="grams">%1$s g</string>
     <string name="goal_of">of %1$s g</string>
     <string name="remaining">%1$s g left to shake</string>

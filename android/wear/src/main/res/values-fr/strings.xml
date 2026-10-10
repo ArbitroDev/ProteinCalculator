@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="tile_label">Protéines du jour</string>
+    <string name="tile_title">Protéines</string>
     <string name="grams">%1$s g</string>
     <string name="goal_of">sur %1$s g</string>
     <string name="remaining">encore %1$s g à secouer</string>

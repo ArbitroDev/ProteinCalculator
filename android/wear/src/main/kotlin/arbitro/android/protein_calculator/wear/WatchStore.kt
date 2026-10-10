@@ -43,7 +43,14 @@ data class Saved(
  * off.
  */
 class WatchStore(context: Context) {
-    private val dataStore = context.applicationContext.dataStore
+    private val context = context.applicationContext
+    private val dataStore = this.context.dataStore
+
+    /** Changes the data, then draws again what shows it outside the app. */
+    private suspend fun edit(change: (MutablePreferences) -> Unit) {
+        dataStore.edit(change)
+        ProteinTileService.refresh(context)
+    }
 
     val saved: Flow<Saved> = dataStore.data.map { preferences ->
         Saved(
@@ -70,7 +77,7 @@ class WatchStore(context: Context) {
             protein = product.protein,
             addedAt = now,
         )
-        dataStore.edit { it.pending = it.pending + addition }
+        edit { it.pending = it.pending + addition }
         return addition
     }
 
@@ -80,7 +87,7 @@ class WatchStore(context: Context) {
      */
     suspend fun receiveState(message: ByteArray, receivedAt: Long) {
         when (val received = WatchMessages.decodeState(message)) {
-            is Received.Message -> dataStore.edit { it.keep(received.value, receivedAt) }
+            is Received.Message -> edit { it.keep(received.value, receivedAt) }
             is Received.OtherVersion -> saveIncompatibility(received.version)
             is Received.Unsupported -> saveIncompatibility(received.versions.max())
             // Not from the phone app: ignored.
@@ -96,7 +103,7 @@ class WatchStore(context: Context) {
     suspend fun receiveAddReply(message: ByteArray, receivedAt: Long): Boolean =
         when (val received = WatchMessages.decodeAddReply(message)) {
             is Received.Message -> {
-                dataStore.edit { it.keep(received.value, receivedAt) }
+                edit { it.keep(received.value, receivedAt) }
                 true
             }
             is Received.OtherVersion -> {
@@ -133,7 +140,7 @@ class WatchStore(context: Context) {
         } else {
             Incompatibility.UPDATE_PHONE
         }
-        dataStore.edit { it[INCOMPATIBILITY] = incompatibility.name }
+        edit { it[INCOMPATIBILITY] = incompatibility.name }
     }
 
     private companion object {
