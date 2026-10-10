@@ -24,7 +24,8 @@ request.
    template.
 
 Every pull request runs the automated checks (formatting, analysis, tests,
-commit messages). A pull request can only be merged once all checks pass.
+commit messages, and the lint, tests and build of the watch app). A pull
+request can only be merged once all checks pass.
 
 ### Branches and releases
 
@@ -62,7 +63,9 @@ merging one, the maintainer:
 Dependabot does the same for the Dart and Flutter packages of
 `pubspec.yaml`, in a separate weekly pull request: the maintainer reads the
 changelog of each package before merging, and the automated checks run on
-the updated packages.
+the updated packages. A third weekly pull request updates the libraries of
+the watch app (`android/gradle/libs.versions.toml`), under the same rules;
+the Gradle plugins follow the versions set by Flutter.
 
 ## Commit messages
 

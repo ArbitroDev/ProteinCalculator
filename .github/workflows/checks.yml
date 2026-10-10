@@ -41,3 +41,40 @@ jobs:
 
       - name: Test
         run: flutter test
+
+  watch:
+    name: Watch app
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.47.5
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Writes the Gradle wrapper and local.properties, without building.
+      - name: Set up the Gradle build
+        run: flutter build apk --config-only
+
+      # The watch app, the messages it exchanges with the phone, and the
+      # plugin of the phone app linking them. The release build checks that
+      # the shrunk app still works with its libraries.
+      - name: Lint, test and build the watch app
+        working-directory: android
+        run: >-
+          ./gradlew --no-daemon
+          :wear:protocol:test
+          :wear:lintRelease
+          :wear:testReleaseUnitTest
+          :wear:assembleRelease
+          :watch_link:lintRelease
