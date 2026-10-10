@@ -326,6 +326,18 @@ class _DismissibleEntry extends StatelessWidget {
                           text: '  $time',
                           style: textTheme.bodySmall!.copyWith(color: faded),
                         ),
+                        if (entry.fromWatch) ...[
+                          const TextSpan(text: ' '),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Icon(
+                              LucideIcons.watch,
+                              size: 12,
+                              color: faded,
+                              semanticLabel: l10n.entryFromWatch,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

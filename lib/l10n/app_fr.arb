@@ -232,6 +232,10 @@
   "@unnamedEntry": {
     "description": "Shown for an entry without a name."
   },
+  "entryFromWatch": "Ajoutée depuis la montre",
+  "@entryFromWatch": {
+    "description": "Read by screen readers on the watch icon of an entry added on the watch."
+  },
   "entryDeleted": "Entrée supprimée",
   "@entryDeleted": {
     "description": "Snack bar shown after deleting an entry."

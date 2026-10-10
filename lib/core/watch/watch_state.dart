@@ -5,8 +5,8 @@ import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/day_progress.dart';
 
-/// What the watch app shows: the protein total and the goal of the current
-/// app day, and the products it adds. The plugin `watch_link` writes it in
+/// What the watch app shows: the protein total, the goal and the entries of
+/// the current app day, and the products it adds. The plugin `watch_link` writes it in
 /// the format of the watch messages, see `android/wear/protocol/PROTOCOL.md`.
 @immutable
 class WatchState {
@@ -15,7 +15,9 @@ class WatchState {
     required this.dayStartHour,
     required this.total,
     required this.goal,
+    required this.entries,
     required this.products,
+    required this.handled,
   });
 
   /// State of the app day [dayKey], from its [entries], its [goal] and the
@@ -26,11 +28,21 @@ class WatchState {
     required Iterable<Entry> entries,
     required double? goal,
     required Iterable<Product> products,
+    required List<String> handled,
   }) => WatchState(
     dayKey: dayKey,
     dayStartHour: dayStartHour,
     total: entries.proteinGrams,
     goal: goal,
+    entries: [
+      for (final entry in entries.toList().reversed)
+        WatchEntry(
+          name: entry.name,
+          protein: entry.proteinGrams,
+          time: entry.createdAt,
+          fromWatch: entry.fromWatch,
+        ),
+    ],
     products: [
       for (final product in products)
         WatchProduct(
@@ -40,6 +52,7 @@ class WatchState {
           isFavorite: product.isFavorite,
         ),
     ],
+    handled: handled,
   );
 
   final int dayKey;
@@ -53,7 +66,14 @@ class WatchState {
   /// Goal of the day in grams; null until the first launch is completed.
   final double? goal;
 
+  /// Entries of the day, the most recent first.
+  final List<WatchEntry> entries;
+
   final List<WatchProduct> products;
+
+  /// Ids of the additions of the watch made since [handledSince]: the watch
+  /// stops sending those whose answer it did not get.
+  final List<String> handled;
 
   /// Values taken by `sendWatchState` of the plugin `watch_link`.
   Map<String, Object?> toChannel() => {
@@ -61,6 +81,15 @@ class WatchState {
     'dayStartHour': dayStartHour,
     'total': total,
     'goal': goal,
+    'entries': [
+      for (final entry in entries)
+        {
+          'name': entry.name,
+          'protein': entry.protein,
+          'time': entry.time.millisecondsSinceEpoch,
+          'fromWatch': entry.fromWatch,
+        },
+    ],
     'products': [
       for (final product in products)
         {
@@ -70,6 +99,7 @@ class WatchState {
           'favorite': product.isFavorite,
         },
     ],
+    'handled': handled,
   };
 
   @override
@@ -79,7 +109,9 @@ class WatchState {
       other.dayStartHour == dayStartHour &&
       other.total == total &&
       other.goal == goal &&
-      const ListEquality<WatchProduct>().equals(other.products, products);
+      const ListEquality<WatchEntry>().equals(other.entries, entries) &&
+      const ListEquality<WatchProduct>().equals(other.products, products) &&
+      const ListEquality<String>().equals(other.handled, handled);
 
   @override
   int get hashCode => Object.hash(
@@ -87,8 +119,40 @@ class WatchState {
     dayStartHour,
     total,
     goal,
+    const ListEquality<WatchEntry>().hash(entries),
     const ListEquality<WatchProduct>().hash(products),
+    const ListEquality<String>().hash(handled),
   );
+}
+
+/// An entry of the day, as the watch lists it.
+@immutable
+class WatchEntry {
+  const WatchEntry({
+    required this.name,
+    required this.protein,
+    required this.time,
+    required this.fromWatch,
+  });
+
+  /// Null for an entry without a name.
+  final String? name;
+  final double protein;
+  final DateTime time;
+
+  /// Whether it was added on the watch.
+  final bool fromWatch;
+
+  @override
+  bool operator ==(Object other) =>
+      other is WatchEntry &&
+      other.name == name &&
+      other.protein == protein &&
+      other.time == time &&
+      other.fromWatch == fromWatch;
+
+  @override
+  int get hashCode => Object.hash(name, protein, time, fromWatch);
 }
 
 /// A product the watch adds one portion of.
@@ -137,5 +201,13 @@ Future<WatchState> readWatchState(AppDatabase db, DateTime now) async {
         ]) ??
         await db.settingsDao.getDailyGoal(),
     products: await db.productsDao.watchAll(sort).first,
+    handled: await db.watchDao.watchHandledSince(handledSince(dayKey)).first,
   );
+}
+
+/// Start of the app day before [dayKey]: the state tells the additions of
+/// the watch made from then on.
+DateTime handledSince(int dayKey) {
+  final date = dateOfDayKey(dayKey);
+  return DateTime(date.year, date.month, date.day - 1, appDayStartHour);
 }

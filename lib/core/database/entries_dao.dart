@@ -83,6 +83,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     String? name,
     required ProteinAmount amount,
     required DateTime createdAt,
+    bool fromWatch = false,
   }) {
     final columns = amountColumns(amount);
     return transaction(() async {
@@ -98,6 +99,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
           createdAt: createdAt,
           dayKey: dayKeyOf(createdAt),
           slot: Value(DaySlot.of(createdAt)),
+          fromWatch: Value(fromWatch),
         ),
       );
       await attachedDatabase.refreshUses(entryNameKey(name));
@@ -106,12 +108,16 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   }
 
   /// Adds one portion of [product] at [createdAt], as the product says.
-  Future<int> addPortion(Product product, {required DateTime createdAt}) =>
-      insertEntry(
-        name: product.name,
-        amount: product.amount,
-        createdAt: createdAt,
-      );
+  Future<int> addPortion(
+    Product product, {
+    required DateTime createdAt,
+    bool fromWatch = false,
+  }) => insertEntry(
+    name: product.name,
+    amount: product.amount,
+    createdAt: createdAt,
+    fromWatch: fromWatch,
+  );
 
   /// Saves the edited values of an existing entry. Its time, app day and
   /// part of the day are kept, and the uses of products follow a name change.

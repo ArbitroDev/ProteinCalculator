@@ -47,6 +47,7 @@
   "slotAfternoon": "Afternoon",
   "slotEvening": "Evening",
   "unnamedEntry": "Unnamed",
+  "entryFromWatch": "Added on the watch",
   "entryDeleted": "Entry deleted",
   "undo": "Undo",
   "delete": "Delete",

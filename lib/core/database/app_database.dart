@@ -7,6 +7,7 @@ import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/database/tables.dart';
+import 'package:protein_calculator/core/database/watch_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
@@ -18,8 +19,8 @@ import 'package:protein_calculator/core/domain/product_sort.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Entries, Products, AppSettings, GoalChanges],
-  daos: [EntriesDao, ProductsDao, SettingsDao],
+  tables: [Entries, Products, AppSettings, GoalChanges, WatchRequests],
+  daos: [EntriesDao, ProductsDao, SettingsDao, WatchDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
@@ -44,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,6 +77,10 @@ class AppDatabase extends _$AppDatabase {
       },
       from6To7: (m, schema) async {
         await m.addColumn(schema.appSettings, schema.appSettings.dayStartHour);
+      },
+      from7To8: (m, schema) async {
+        await m.create(schema.watchRequests);
+        await m.addColumn(schema.entries, schema.entries.fromWatch);
       },
     ),
     beforeOpen: (details) async {

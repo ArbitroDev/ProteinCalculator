@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/core/background_changes.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/providers.dart';
+import 'package:protein_calculator/core/watch/watch_addition.dart';
 import 'package:protein_calculator/core/watch/watch_state.dart';
 import 'package:watch_link/watch_link.dart';
 
@@ -43,6 +44,15 @@ class _AndroidWatchLink implements WatchLink {
 /// Link with the watch, opened in `startApp`.
 final watchLinkProvider = Provider<WatchLink>((ref) => const WatchLink.none());
 
+/// Ids of the additions of the watch made since the start of the app day
+/// before [dayKey], see `handledSince`.
+final watchHandledProvider = StreamProvider.family<List<String>, int>(
+  (ref, dayKey) => ref
+      .watch(databaseProvider)
+      .watchDao
+      .watchHandledSince(handledSince(dayKey)),
+);
+
 /// State of the current app day for the watch; null while the data loads.
 final watchStateProvider = Provider<WatchState?>((ref) {
   final dayKey = ref.watch(currentDayKeyProvider).value;
@@ -53,13 +63,15 @@ final watchStateProvider = Provider<WatchState?>((ref) {
       ref.watch(dailyGoalProvider).hasValue;
   if (dayKey == null || dayStartHour == null || products == null) return null;
   final entries = ref.watch(dayEntriesProvider(dayKey)).value;
-  if (entries == null || !goalsLoaded) return null;
+  final handled = ref.watch(watchHandledProvider(dayKey)).value;
+  if (entries == null || handled == null || !goalsLoaded) return null;
   return WatchState.of(
     dayKey: dayKey,
     dayStartHour: dayStartHour,
     entries: entries,
     goal: ref.watch(dayGoalProvider(dayKey)),
     products: products,
+    handled: handled,
   );
 });
 
@@ -87,19 +99,44 @@ Future<void> updateWatch(AppDatabase db, DateTime now) => _report(
 Future<void> watchBackgroundMain() async {
   WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
-  await answerWatchRequests(() async {
-    final db = AppDatabase.open();
-    try {
-      final now = DateTime.now();
-      // As when the app starts: the products added automatically while it
-      // was closed count in the total.
-      await db.entriesDao.addRoutineEntries(now);
+  await answerWatchRequests(
+    readState: () => _withData((db, now) async {
       return (await readWatchState(db, now)).toChannel();
-    } finally {
-      await db.close();
-      notifyBackgroundChange();
-    }
-  });
+    }),
+    addPortions: (additions) => _withData((db, now) async {
+      final results = [
+        for (final value in additions)
+          {
+            'id': (value as Map?)?['id'],
+            'status': switch (WatchAddition.fromChannel(value)) {
+              final addition? => (await db.watchDao.add(addition, now)).name,
+              null => WatchAdditionStatus.invalid.name,
+            },
+          },
+      ];
+      return {
+        'results': results,
+        'state': (await readWatchState(db, now)).toChannel(),
+      };
+    }),
+  );
+}
+
+/// Opens the data and runs [action] at the current time, after the
+/// products added automatically while the app was closed, as when it
+/// starts. Then tells the app, if it runs, to read the data again.
+Future<T> _withData<T>(
+  Future<T> Function(AppDatabase db, DateTime now) action,
+) async {
+  final db = AppDatabase.open();
+  try {
+    final now = DateTime.now();
+    await db.entriesDao.addRoutineEntries(now);
+    return await action(db, now);
+  } finally {
+    await db.close();
+    notifyBackgroundChange();
+  }
 }
 
 /// Runs [action], only reporting a failure: the watch keeps its state.

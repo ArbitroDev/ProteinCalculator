@@ -45,7 +45,8 @@ while to sync them, so they are not needed to send.
 
 Sent by the phone to the watch when the day changes (an entry, the goal, the
 products, the start of a new day), when the phone app starts, and when the
-watch comes nearby. Also the answer to `/protein_calculator/sync`.
+watch comes nearby. Also the answer to `/protein_calculator/sync`, and part of
+the answer to `/protein_calculator/add`.
 
 ```json
 {
@@ -54,9 +55,13 @@ watch comes nearby. Also the answer to `/protein_calculator/sync`.
   "dayStartHour": 3,
   "total": 87.5,
   "goal": 140.0,
+  "entries": [
+    { "name": "Skyr", "protein": 25.0, "time": 1791637440000, "fromWatch": true }
+  ],
   "products": [
     { "id": 3, "name": "Skyr", "protein": 25.0, "favorite": true }
-  ]
+  ],
+  "handled": ["0b6f6f0e-4c1e-4a39-9a8e-5d1f2a3c4b5d"]
 }
 ```
 
@@ -66,11 +71,17 @@ watch comes nearby. Also the answer to `/protein_calculator/sync`.
 | `dayStartHour` | Hour the app days start, from 0 to 7: the watch starts a new day at that hour, with a total of zero, without waiting for the phone. |
 | `total` | Protein grams of the entries of `day`, exact. The watch truncates it to the unit, as the phone app does. |
 | `goal` | Goal of `day` in grams, or `null` until the first launch of the phone app is done. |
+| `entries` | Entries of `day`, the most recent first, 100 at most. |
+| `entries[].name` | Name of the entry, or `null` for an entry without a name. |
+| `entries[].protein` | Protein grams of the entry. |
+| `entries[].time` | When it was added, in milliseconds since the epoch. |
+| `entries[].fromWatch` | Whether it was added on the watch. |
 | `products` | Saved products, 100 at most: the favorite first, then in the order chosen in the products tab. |
 | `products[].id` | Id of the product on the phone. |
 | `products[].name` | Name of the product. |
 | `products[].protein` | Protein grams of one portion. |
 | `products[].favorite` | Whether it is the favorite product; one at most. |
+| `handled` | Ids of the additions of the watch the phone made since the start of the previous app day (see below). |
 
 A state whose values are out of range (a date that does not exist, a negative
 total...) is ignored.
@@ -83,3 +94,62 @@ the state of the day, even when the phone app is closed.
 ```json
 { "v": 1 }
 ```
+
+### Additions: `/protein_calculator/add`
+
+Request of the watch, answered by the phone once the additions are made, even
+when the phone app is closed. A tap on a product adds one portion of it on the
+watch at once: the watch keeps it, with a random id, until the phone answers
+for it, and sends it again each time the phone is nearby, oldest first, 50 at
+most at once.
+
+```json
+{
+  "v": 1,
+  "requests": [
+    {
+      "id": "0b6f6f0e-4c1e-4a39-9a8e-5d1f2a3c4b5d",
+      "productId": 3,
+      "name": "Skyr",
+      "protein": 25.0,
+      "addedAt": 1791637440000
+    }
+  ]
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | Random id of the addition, 64 characters at most, the same each time it is sent. |
+| `productId` | Id of the product on the phone. |
+| `name`, `protein` | Name and protein grams of one portion, as the watch showed them. |
+| `addedAt` | When it was added on the watch, in milliseconds since the epoch. |
+
+The phone adds each one at its time (its app day and part of the day follow
+from it), or at the current time if it says later:
+
+- a portion of the product of that id, if it still has that name;
+- otherwise (product deleted, or ids changed by a backup restored), an entry
+  with the name and protein the watch showed: the addition is never lost.
+
+It saves the id with the entry, at once: an addition sent again, its answer
+lost, is not made twice. Ids are kept 60 days.
+
+```json
+{
+  "v": 1,
+  "results": [
+    { "id": "0b6f6f0e-4c1e-4a39-9a8e-5d1f2a3c4b5d", "status": "added" }
+  ],
+  "state": { "day": 20261008, "dayStartHour": 3, "total": 112.5, "goal": 140.0, "entries": [], "products": [], "handled": [] }
+}
+```
+
+| `status` | Meaning |
+|---|---|
+| `added` | Made now. |
+| `duplicate` | Already made from an earlier sending. |
+| `invalid` | Values the phone cannot add (a blank name, a protein out of range...): the watch drops it. |
+
+The watch drops the additions the answer gives a status for, and those listed
+in `handled` of any state it receives.

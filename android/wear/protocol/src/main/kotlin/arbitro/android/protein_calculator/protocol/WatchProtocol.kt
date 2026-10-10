@@ -23,6 +23,12 @@ object WatchProtocol {
     const val SYNC_PATH = "/protein_calculator/sync"
 
     /**
+     * Additions of the watch, answered by the phone once made, see
+     * [WatchMessages.encodeAddRequest] and [AddReply].
+     */
+    const val ADD_PATH = "/protein_calculator/add"
+
+    /**
      * Capability of the phones having the app, declared in its resources:
      * tells the watch the phone app comes nearby.
      */
@@ -35,6 +41,15 @@ object WatchProtocol {
      */
     fun watchCapability(version: Int = VERSION) = "protein_calculator_watch_v$version"
 
+    /** Most entries of the day sent to the watch: the most recent ones. */
+    const val MAX_ENTRIES = 100
+
     /** Most products sent to the watch: the first ones of the list. */
     const val MAX_PRODUCTS = 100
+
+    /** Most additions sent at once. */
+    const val MAX_ADDITIONS = 50
+
+    /** Longest id of an addition. */
+    const val MAX_ID_LENGTH = 64
 }

@@ -13,7 +13,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             WatchTheme {
-                WatchApp(viewModel.screen.collectAsStateWithLifecycle().value)
+                WatchApp(
+                    screen = viewModel.screen.collectAsStateWithLifecycle().value,
+                    added = viewModel.added.collectAsStateWithLifecycle().value,
+                    onAdd = viewModel::add,
+                    onDismissAdded = viewModel::dismissAdded,
+                )
             }
         }
     }

@@ -10,6 +10,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material3.ColorScheme
 import androidx.wear.compose.material3.MaterialTheme
@@ -31,9 +32,17 @@ object WatchColors {
 
 /** Text styles of the app: Saira Semi Condensed for numbers, Outfit for text. */
 class WatchFonts(val numbers: FontFamily, val text: FontFamily) {
-    val total = TextStyle(fontFamily = numbers, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp)
+    val total = TextStyle(
+        fontFamily = numbers,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 40.sp,
+        // Without the space above and below the digits, to fit in the ring.
+        lineHeight = 40.sp,
+        lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
+    )
     val unit = TextStyle(fontFamily = numbers, fontWeight = FontWeight.Bold, fontSize = 18.sp)
     val value = TextStyle(fontFamily = numbers, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+    val button = TextStyle(fontFamily = text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
     val body = TextStyle(fontFamily = text, fontWeight = FontWeight.Normal, fontSize = 14.sp)
     val caption = TextStyle(fontFamily = text, fontWeight = FontWeight.Normal, fontSize = 12.sp)
 }

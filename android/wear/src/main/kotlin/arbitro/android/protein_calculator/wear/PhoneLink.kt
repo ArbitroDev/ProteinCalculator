@@ -68,4 +68,39 @@ class PhoneLink(context: Context) {
         store.receiveState(reply, System.currentTimeMillis())
         return true
     }
+
+    /** What became of the additions waiting for the phone. */
+    enum class Sending {
+        /** The phone made them all. */
+        DONE,
+
+        /** No phone nearby: they wait for it. */
+        PHONE_AWAY,
+
+        /** The phone did not answer, or not in a way the watch understands. */
+        FAILED,
+    }
+
+    /**
+     * Sends the additions waiting in [store] to the nearby phone, oldest
+     * first, by batches. Each stays until the phone answers for it: one
+     * sent again is not added twice by the phone.
+     */
+    suspend fun sendPending(store: WatchStore): Sending {
+        while (true) {
+            val pending = store.pending()
+            if (pending.isEmpty()) return Sending.DONE
+            val phone = nearbyPhone() ?: return Sending.PHONE_AWAY
+            val batch = pending.take(WatchProtocol.MAX_ADDITIONS)
+            val reply = try {
+                messages.sendRequest(phone.id, WatchProtocol.ADD_PATH, WatchMessages.encodeAddRequest(batch))
+                    .await()
+            } catch (_: ApiException) {
+                return Sending.FAILED
+            }
+            if (!store.receiveAddReply(reply, System.currentTimeMillis())) return Sending.FAILED
+            // An answer leaving the oldest addition waiting would loop forever.
+            if (store.pending().any { it.id == batch.first().id }) return Sending.FAILED
+        }
+    }
 }

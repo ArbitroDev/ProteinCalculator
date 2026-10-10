@@ -4,7 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import arbitro.android.protein_calculator.protocol.AddReply
 import arbitro.android.protein_calculator.protocol.DayState
+import arbitro.android.protein_calculator.protocol.WatchAddition
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.TaskCompletionSource
 import io.flutter.FlutterInjector
@@ -49,8 +51,19 @@ object WatchEngine {
     private var running = 0
 
     /** Reads the state of the current app day from the data. */
-    fun readState(context: Context): Task<DayState> {
-        val source = TaskCompletionSource<DayState>()
+    fun readState(context: Context): Task<DayState> =
+        request(context) { channel, answer -> channel.readState(answer) }
+
+    /** Makes [additions] of the watch, all valid, and reads the new state of the day. */
+    fun addPortions(context: Context, additions: List<WatchAddition>): Task<AddReply> =
+        request(context) { channel, answer -> channel.addPortions(additions, answer) }
+
+    /** Runs [ask] once the Dart code answers: its answer completes the task, null fails it. */
+    private fun <T : Any> request(
+        context: Context,
+        ask: (WatchChannel, (T?) -> Unit) -> Unit,
+    ): Task<T> {
+        val source = TaskCompletionSource<T>()
         handler.post {
             start()
             val timeout = Runnable {
@@ -61,12 +74,12 @@ object WatchEngine {
             }
             handler.postDelayed(timeout, TIMEOUT_MS)
             withChannel(context) { channel ->
-                channel.readState { state ->
+                ask(channel) { answer ->
                     handler.removeCallbacks(timeout)
-                    if (state != null) {
-                        source.trySetResult(state)
+                    if (answer != null) {
+                        source.trySetResult(answer)
                     } else {
-                        source.trySetException(IllegalStateException("No state of the day"))
+                        source.trySetException(IllegalStateException("No answer of the Dart code"))
                     }
                 }
             }

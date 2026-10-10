@@ -12,6 +12,7 @@ lifecycle = "2.10.0"
 play-services-wearable = "20.0.1"
 serialization = "1.9.0"
 wear-compose = "1.6.2"
+work = "2.11.2"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
@@ -25,3 +26,5 @@ play-services-wearable = { module = "com.google.android.gms:play-services-wearab
 serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wear-compose" }
 wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wear-compose" }
+wear-compose-navigation = { module = "androidx.wear.compose:compose-navigation", version.ref = "wear-compose" }
+work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }

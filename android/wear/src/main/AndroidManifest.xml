@@ -26,13 +26,18 @@
             </intent-filter>
         </activity>
 
-        <!-- Receives the state of the day from the phone. -->
+        <!-- Receives the state of the day from the phone, and learns when the
+             phone comes nearby. -->
         <service
             android:name=".WatchListenerService"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
                 <data android:scheme="wear" android:host="*" android:path="/protein_calculator/state" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.CAPABILITY_CHANGED" />
+                <data android:scheme="wear" android:host="*" android:path="/protein_calculator_phone" />
             </intent-filter>
         </service>
     </application>

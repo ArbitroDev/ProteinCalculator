@@ -35,6 +35,9 @@ class Entries extends Table {
   /// then computes the right value of every entry.
   TextColumn get slot =>
       textEnum<DaySlot>().withDefault(Constant(DaySlot.morning.name))();
+
+  /// Whether the entry was added on the watch, see `WatchDao.add`.
+  BoolColumn get fromWatch => boolean().withDefault(const Constant(false))();
 }
 
 /// Products saved by the user to fill in entries quickly.
@@ -86,6 +89,17 @@ class GoalChanges extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {dayKey};
+}
+
+/// Additions of the watch already made, by the id the watch gave them: one
+/// sent again, its answer lost, is not added twice. Kept 60 days, specific
+/// to the phone: not in the backups.
+class WatchRequests extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get handledAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
 }
 
 /// Single-row table holding the app settings.

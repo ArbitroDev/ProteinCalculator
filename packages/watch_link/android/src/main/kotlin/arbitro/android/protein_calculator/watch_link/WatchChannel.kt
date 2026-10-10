@@ -1,7 +1,12 @@
 package arbitro.android.protein_calculator.watch_link
 
 import android.content.Context
+import arbitro.android.protein_calculator.protocol.AddReply
+import arbitro.android.protein_calculator.protocol.AddResult
+import arbitro.android.protein_calculator.protocol.AddStatus
 import arbitro.android.protein_calculator.protocol.DayState
+import arbitro.android.protein_calculator.protocol.WatchAddition
+import arbitro.android.protein_calculator.protocol.WatchEntry
 import arbitro.android.protein_calculator.protocol.WatchProduct
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
@@ -45,12 +50,31 @@ class WatchChannel(context: Context, messenger: BinaryMessenger) {
     fun dispose() = channel.setMethodCallHandler(null)
 
     /** Asks the Dart code for the state of the day, null if it fails. */
-    fun readState(callback: (DayState?) -> Unit) {
+    fun readState(callback: (DayState?) -> Unit) = call("readState", null) { callback(dayStateOf(it)) }
+
+    /**
+     * Asks the Dart code to make [additions], all valid: [callback] gets the
+     * results and the new state of the day, or null if it fails.
+     */
+    fun addPortions(additions: List<WatchAddition>, callback: (AddReply?) -> Unit) {
+        val arguments = additions.map {
+            mapOf(
+                "id" to it.id,
+                "productId" to it.productId,
+                "name" to it.name,
+                "protein" to it.protein,
+                "addedAt" to it.addedAt,
+            )
+        }
+        call("addPortions", arguments) { callback(addReplyOf(it)) }
+    }
+
+    private fun call(method: String, arguments: Any?, callback: (Any?) -> Unit) {
         channel.invokeMethod(
-            "readState",
-            null,
+            method,
+            arguments,
             object : MethodChannel.Result {
-                override fun success(result: Any?) = callback(dayStateOf(result))
+                override fun success(result: Any?) = callback(result)
 
                 override fun error(code: String, message: String?, details: Any?) = callback(null)
 
@@ -64,6 +88,28 @@ class WatchChannel(context: Context, messenger: BinaryMessenger) {
     }
 }
 
+/** Results of the additions and new state sent by the Dart code as a map. */
+private fun addReplyOf(arguments: Any?): AddReply? {
+    val map = arguments as? Map<*, *> ?: return null
+    val state = dayStateOf(map["state"]) ?: return null
+    return try {
+        AddReply(
+            results = (map["results"] as List<*>).map { result ->
+                result as Map<*, *>
+                val status = result["status"] as String
+                AddResult(
+                    id = result["id"] as String,
+                    status = AddStatus.entries.first { it.name.equals(status, ignoreCase = true) },
+                )
+            },
+            state = state,
+        )
+    } catch (_: RuntimeException) {
+        // A value missing or of another type.
+        null
+    }
+}
+
 /** State of the day sent by the Dart code as a map, see `WatchState.toChannel` in the app. */
 private fun dayStateOf(arguments: Any?): DayState? {
     val map = arguments as? Map<*, *> ?: return null
@@ -73,6 +119,15 @@ private fun dayStateOf(arguments: Any?): DayState? {
             dayStartHour = (map["dayStartHour"] as Number).toInt(),
             total = (map["total"] as Number).toDouble(),
             goal = (map["goal"] as Number?)?.toDouble(),
+            entries = (map["entries"] as List<*>).map { entry ->
+                entry as Map<*, *>
+                WatchEntry(
+                    name = entry["name"] as String?,
+                    protein = (entry["protein"] as Number).toDouble(),
+                    time = (entry["time"] as Number).toLong(),
+                    fromWatch = entry["fromWatch"] as Boolean,
+                )
+            },
             products = (map["products"] as List<*>).map { product ->
                 product as Map<*, *>
                 WatchProduct(
@@ -82,6 +137,7 @@ private fun dayStateOf(arguments: Any?): DayState? {
                     favorite = product["favorite"] as Boolean,
                 )
             },
+            handled = (map["handled"] as List<*>).map { it as String },
         )
     } catch (_: ClassCastException) {
         null
