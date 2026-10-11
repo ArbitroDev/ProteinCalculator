@@ -74,6 +74,11 @@ android {
         compose = true
     }
 
+    // The store screenshots draw the screens with the resources of the app.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     // The fonts of the phone app, and their licenses.
     sourceSets["main"].assets.srcDir("../../assets/fonts")
 }
@@ -84,6 +89,13 @@ android {
 // :wear:assembleDebug.
 if (providers.gradleProperty("target").isPresent) {
     tasks.configureEach { enabled = false }
+}
+
+// The store screenshots (StoreScreenshotsTest) are not tests: they only run
+// on demand, from android/:
+//   ./gradlew :wear:testDebugUnitTest -PstoreScreenshots --tests '*StoreScreenshotsTest'
+if (!providers.gradleProperty("storeScreenshots").isPresent) {
+    tasks.withType<Test>().configureEach { exclude("**/StoreScreenshotsTest*") }
 }
 
 dependencies {
@@ -107,4 +119,11 @@ dependencies {
     implementation(libs.wear.input)
     implementation(libs.work.runtime)
     testImplementation(kotlin("test-junit"))
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    // Debug builds only, for the store screenshots: their resources must be
+    // merged with those of the app, which test dependencies are not.
+    debugImplementation(libs.compose.ui.test.manifest)
+    debugImplementation(libs.tiles.renderer)
 }

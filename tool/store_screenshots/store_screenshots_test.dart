@@ -40,6 +40,7 @@ class _Texts {
     required this.products,
     required this.entries,
     required this.earlierDays,
+    required this.newFood,
   });
 
   final Locale locale;
@@ -52,6 +53,10 @@ class _Texts {
 
   /// Names used on the previous days.
   final List<String> earlierDays;
+
+  /// Name of a food with the values of the second product, typed in the
+  /// entry form: not a product yet, it can be saved as one.
+  final String newFood;
 }
 
 const _french = _Texts(
@@ -71,6 +76,7 @@ const _french = _Texts(
     ('Lentilles cuites', 18, 19, 20),
   ],
   earlierDays: ['Skyr nature', 'Blanc de poulet', 'Whey vanille', 'Œufs'],
+  newFood: 'Thon au naturel',
 );
 
 const _english = _Texts(
@@ -90,6 +96,7 @@ const _english = _Texts(
     ('Cooked lentils', 18, 19, 20),
   ],
   earlierDays: ['Plain skyr', 'Chicken breast', 'Vanilla whey', 'Eggs'],
+  newFood: 'Canned tuna',
 );
 
 Future<AppDatabase> _seed(_Texts texts) async {
@@ -197,7 +204,11 @@ void main() {
         final chicken = products!.firstWhere(
           (product) => product.name == texts.products[1].$1,
         );
+        // Filled from a product, under the name of a new food.
         unawaited(router().push(AppRoutes.newEntryFrom(chicken.id)));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField).first, texts.newFood);
+        FocusManager.instance.primaryFocus?.unfocus();
         await shoot('5-entry');
 
         await disposeApp(tester, db);

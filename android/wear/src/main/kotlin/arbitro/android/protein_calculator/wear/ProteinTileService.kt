@@ -70,7 +70,8 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
         return tile.build()
     }
 
-    private fun MaterialScope.layout(screen: WatchScreen, addedId: Long?): LayoutElement {
+    /** Layout of the tile showing [screen]; also drawn by the store screenshots. */
+    internal fun MaterialScope.layout(screen: WatchScreen, addedId: Long?): LayoutElement {
         val open = clickable(launchAction(ComponentName(context, MainActivity::class.java)), OPEN)
         if (screen !is WatchScreen.Day) {
             val message = when ((screen as? WatchScreen.Incompatible)?.incompatibility) {
@@ -154,7 +155,7 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
         private val ACCENT = WatchColors.accent.toArgb()
         private val ON_ACCENT = WatchColors.onAccent.toArgb()
 
-        private val tileColors = ColorScheme(
+        internal val tileColors = ColorScheme(
             primary = LayoutColor(ACCENT),
             onPrimary = LayoutColor(ON_ACCENT),
             onSurface = LayoutColor(TEXT),

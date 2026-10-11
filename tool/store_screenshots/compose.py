@@ -2,11 +2,14 @@
 
 Run from the root of the repository, after
     flutter test tool/store_screenshots --update-goldens
+and, from android/, for the watch app:
+    ./gradlew :wear:testDebugUnitTest -PstoreScreenshots --tests '*StoreScreenshotsTest'
 with:
     python tool/store_screenshots/compose.py
 Needs Pillow (pip install pillow). Writes, for the version of pubspec.yaml,
-store/<language>/screenshots/<n>_<language>_<version>.png (1080 x 1920) and
-store/<language>/feature-graphic_<language>_<version>.png (1024 x 500).
+store/<language>/screenshots/<n>_<language>_<version>.png (1080 x 1920),
+store/<language>/feature-graphic_<language>_<version>.png (1024 x 500) and
+store/<language>/wear/<n>_<language>_<version>.png (384 x 384).
 """
 import os
 import re
@@ -40,6 +43,11 @@ SCREENS = {
         ('1-today', 'light', 'Light or dark,', 'your choice'),
     ],
 }
+# Raw screenshots of the watch app, rendered by android/wear
+# (StoreScreenshotsTest): shown as they are, as Google Play wants the
+# interface of the app alone, without frame nor text.
+WATCH_SCREENS = ['1-day', '2-entries', '3-products', '4-tile']
+
 TAGLINES = {
     'fr': 'Suis tes protéines, simplement',
     'en': 'Track your protein, simply',
@@ -83,6 +91,12 @@ def screenshot(language, shot, theme, line1, line2, path):
     stamp(canvas, VERSION).save(path, optimize=True)
 
 
+def watch_screenshot(language, shot, path):
+    raw = Image.open(f'tool/store_screenshots/{language}/wear-{shot}.png')
+    # Without transparency, which Google Play refuses.
+    stamp(raw.convert('RGB'), VERSION).save(path, optimize=True)
+
+
 def feature_graphic(language, path):
     graphic = Image.new('RGB', (1024, 500), COBALT)
     draw = ImageDraw.Draw(graphic)
@@ -112,4 +126,11 @@ for language, screens in SCREENS.items():
     feature_graphic(
         language, f'store/{language}/feature-graphic_{language}_{VERSION}.png'
     )
-    print(f'{language} {VERSION}: {len(screens)} screenshots and the feature graphic')
+    wear = f'store/{language}/wear'
+    os.makedirs(wear, exist_ok=True)
+    for index, shot in enumerate(WATCH_SCREENS, 1):
+        watch_screenshot(language, shot, f'{wear}/{index}_{language}_{VERSION}.png')
+    print(
+        f'{language} {VERSION}: {len(screens)} screenshots, the feature graphic '
+        f'and {len(WATCH_SCREENS)} screenshots of the watch app'
+    )
