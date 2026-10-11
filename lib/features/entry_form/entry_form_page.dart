@@ -364,7 +364,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                       onChanged: _dismissing(_notifier.setTime),
                     ),
                   ],
-                  if (args is! EditEntryArgs) ...[
+                  if (args.isProduct || form.saveAsProduct) ...[
                     const SizedBox(height: 8),
                     _Label(l10n.routineTitle),
                     _OptionSelector(
@@ -419,16 +419,12 @@ class _FormViewState extends ConsumerState<_FormView> {
                   if (args is NewEntryArgs)
                     _SaveAsProduct(
                       value: form.saveAsProduct,
-                      label: form.updatesProduct
-                          ? l10n.updateProduct
-                          : l10n.saveAsProduct,
-                      // Locked on while a routine is chosen: it belongs to
-                      // the product.
-                      onChanged:
-                          form.canSaveAsProduct &&
-                              form.routine == DailyRoutine.none
-                          ? _notifier.setSaveAsProduct
-                          : null,
+                      label: l10n.saveAsProduct,
+                      // A new product needs a name of its own.
+                      hint: form.nameTaken ? l10n.errorNameTaken : null,
+                      onChanged: form.nameTaken
+                          ? null
+                          : _notifier.setSaveAsProduct,
                     ),
                   FilledButton(
                     onPressed: _saving ? null : _submit,
@@ -840,11 +836,15 @@ class _SaveAsProduct extends StatelessWidget {
   const _SaveAsProduct({
     required this.value,
     required this.label,
+    required this.hint,
     required this.onChanged,
   });
 
   final bool value;
   final String label;
+
+  /// Why the option is not available, under its label.
+  final String? hint;
 
   /// Null while the option is not available.
   final ValueChanged<bool>? onChanged;
@@ -868,10 +868,17 @@ class _SaveAsProduct extends StatelessWidget {
                   : null,
             ),
             Expanded(
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.bodyLarge!
-                    .copyWith(color: enabled ? null : colors.textSecondary),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyLarge!
+                        .copyWith(color: enabled ? null : colors.textSecondary),
+                  ),
+                  if (hint case final hint?)
+                    Text(hint, style: Theme.of(context).textTheme.bodySmall),
+                ],
               ),
             ),
           ],

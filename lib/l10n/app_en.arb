@@ -40,7 +40,6 @@
   "formDayAt": "{day} at {time}",
   "suggestionsTitle": "Saved products",
   "saveAsProduct": "Save as a product",
-  "updateProduct": "Update the product",
   "save": "Save",
   "errorRequired": "Enter a quantity.",
   "errorNotPositive": "Enter a quantity greater than 0.",

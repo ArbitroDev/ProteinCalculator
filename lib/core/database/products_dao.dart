@@ -35,6 +35,12 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
     products,
   )..where((p) => p.routine.equalsValue(DailyRoutine.autoAdd))).get();
 
+  /// Normalized names of the products, see [productNameKey].
+  Future<Set<String>> getNameKeys() async {
+    final query = selectOnly(products)..addColumns([products.nameKey]);
+    return {for (final row in await query.get()) row.read(products.nameKey)!};
+  }
+
   /// Whether [name] is already used by a product other than [exceptId].
   Future<bool> isNameTaken(String name, {int? exceptId}) async {
     final query = select(products)

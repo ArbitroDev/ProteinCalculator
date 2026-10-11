@@ -104,8 +104,7 @@ class EntryFormState {
     this.proteinPerReference = '',
     this.reference = '100',
     this.saveAsProduct = false,
-    this.canSaveAsProduct = true,
-    this.updatesProduct = false,
+    this.nameTaken = false,
     this.routine = DailyRoutine.none,
     this.routineMinutes = 8 * 60,
     this.time,
@@ -119,15 +118,14 @@ class EntryFormState {
   final String consumed;
   final String proteinPerReference;
   final String reference;
+
+  /// Whether a new entry is also saved as a new product, which then gets the
+  /// [routine]. Off while the [name] is [nameTaken].
   final bool saveAsProduct;
 
-  /// Whether a new entry can be saved as a product: when it starts from a
-  /// saved product, only once its values have been changed.
-  final bool canSaveAsProduct;
-
-  /// Whether saving as a product updates the product the entry starts from,
-  /// because it keeps its name, instead of creating a new one.
-  final bool updatesProduct;
+  /// Whether another product already has the [name]: a new entry cannot be
+  /// saved as a product, a product cannot take it.
+  final bool nameTaken;
 
   /// Daily routine of the product, and its time in minutes since midnight,
   /// kept when the routine is turned off in case it is turned on again.
@@ -216,8 +214,7 @@ class EntryFormState {
     String? proteinPerReference,
     String? reference,
     bool? saveAsProduct,
-    bool? canSaveAsProduct,
-    bool? updatesProduct,
+    bool? nameTaken,
     DailyRoutine? routine,
     int? routineMinutes,
     DateTime? time,
@@ -232,8 +229,7 @@ class EntryFormState {
     proteinPerReference: proteinPerReference ?? this.proteinPerReference,
     reference: reference ?? this.reference,
     saveAsProduct: saveAsProduct ?? this.saveAsProduct,
-    canSaveAsProduct: canSaveAsProduct ?? this.canSaveAsProduct,
-    updatesProduct: updatesProduct ?? this.updatesProduct,
+    nameTaken: nameTaken ?? this.nameTaken,
     routine: routine ?? this.routine,
     routineMinutes: routineMinutes ?? this.routineMinutes,
     time: clearTime ? null : time ?? this.time,

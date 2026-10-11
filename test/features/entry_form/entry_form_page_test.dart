@@ -81,6 +81,34 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  testWidgets('saves as a product only under a free name', (tester) async {
+    final productId = await db.productsDao.insertProduct(
+      name: 'Skyr',
+      amount: const DirectAmount(15),
+      createdAt: DateTime(2026),
+    );
+    await pumpApp(tester, db);
+    final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+    unawaited(router.push(AppRoutes.newEntryFrom(productId)));
+    await tester.pumpAndSettle();
+
+    // Filled from the product, whose name is taken.
+    final box = find.byType(Checkbox);
+    expect(tester.widget<Checkbox>(box).onChanged, isNull);
+    expect(find.text('A product already has this name.'), findsOneWidget);
+    expect(find.text('Every day'), findsNothing);
+
+    await tester.enterText(find.byType(TextField).first, 'Skyr vanille');
+    await tester.pumpAndSettle();
+    expect(find.text('A product already has this name.'), findsNothing);
+
+    // The routine comes with the new product.
+    await tester.tap(box);
+    await tester.pumpAndSettle();
+    expect(find.text('Every day'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
   group('suggestions', () {
     setUp(
       () => db.productsDao.insertProduct(
