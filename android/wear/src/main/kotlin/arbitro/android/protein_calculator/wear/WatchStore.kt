@@ -61,12 +61,22 @@ class WatchStore(context: Context) {
     suspend fun hasWaiting(): Boolean = saved.first().let { it.pending.isNotEmpty() || it.deletions.isNotEmpty() }
 
     /** Adds a portion of [product] at [now], in milliseconds since the epoch, for the phone to add. */
-    suspend fun add(product: WatchProduct, now: Long): WatchAddition {
+    suspend fun add(product: WatchProduct, now: Long): WatchAddition =
+        add(productId = product.id, name = product.name, protein = product.protein, now = now)
+
+    /**
+     * Adds a free entry of [protein] grams, named [name] or without name, at
+     * [now], in milliseconds since the epoch, for the phone to add.
+     */
+    suspend fun addFree(protein: Double, name: String?, now: Long): WatchAddition =
+        add(productId = null, name = name, protein = protein, now = now)
+
+    private suspend fun add(productId: Long?, name: String?, protein: Double, now: Long): WatchAddition {
         val addition = WatchAddition(
             id = UUID.randomUUID().toString(),
-            productId = product.id,
-            name = product.name,
-            protein = product.protein,
+            productId = productId,
+            name = name,
+            protein = protein,
             addedAt = now,
         )
         edit { it.addPending(addition) }

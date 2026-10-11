@@ -88,22 +88,30 @@ data class WatchProduct(
         id > 0 && name.isNotBlank() && protein.isFinite() && protein > 0
 }
 
-/** A portion of a product added on the watch, for the phone to add. */
+/**
+ * An entry added on the watch, for the phone to add: a portion of a
+ * product, or a free entry of protein grams typed on the watch.
+ */
 @Serializable
 data class WatchAddition(
     /** Random id given by the watch, the same each time it is sent. */
     val id: String,
-    /** Id of the product on the phone. */
-    val productId: Long,
-    /** Name and protein grams of one portion, as the watch showed them. */
-    val name: String,
+    /** Id of the product on the phone, null for a free entry. */
+    val productId: Long?,
+    /**
+     * Name and protein grams of one portion of the product, as the watch
+     * showed them, or those typed for a free entry, whose name is optional.
+     */
+    val name: String?,
     val protein: Double,
     /** When it was added on the watch, in milliseconds since the epoch. */
     val addedAt: Long,
 ) {
     /** Whether the phone can add it: otherwise, the watch drops it. */
     fun isValid(): Boolean =
-        isValidAdditionId(id) && productId > 0 && name.isNotBlank() &&
+        isValidAdditionId(id) &&
+            (productId == null || (productId > 0 && name != null)) &&
+            (name == null || name.isNotBlank()) &&
             protein.isFinite() && protein > 0 && addedAt > 0
 }
 

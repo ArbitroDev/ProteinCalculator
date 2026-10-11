@@ -18,8 +18,9 @@ class WatchDao extends DatabaseAccessor<AppDatabase> with _$WatchDaoMixin {
   static const keptFor = Duration(days: 60);
 
   /// Adds [addition] at its time, or at [now] if it says later, unless it
-  /// was already added: a portion of its product, or, if no product with
-  /// that id and name exists any more, the protein the watch showed.
+  /// was already added: a portion of its product, or, for a free entry or if
+  /// no product with that id and name exists any more, the protein the
+  /// watch showed.
   ///
   /// The id of the addition and the entry are saved together: an addition
   /// is added once, even sent again.
@@ -30,10 +31,14 @@ class WatchDao extends DatabaseAccessor<AppDatabase> with _$WatchDaoMixin {
         return WatchAdditionStatus.duplicate;
       }
       final createdAt = addition.addedAt.isAfter(now) ? now : addition.addedAt;
-      final product = await attachedDatabase.productsDao.getProduct(
-        addition.productId,
-      );
-      if (product != null && product.nameKey == productNameKey(addition.name)) {
+      final productId = addition.productId;
+      final name = addition.name?.trim();
+      final product = productId == null
+          ? null
+          : await attachedDatabase.productsDao.getProduct(productId);
+      if (product != null &&
+          name != null &&
+          product.nameKey == productNameKey(name)) {
         await attachedDatabase.entriesDao.addPortion(
           product,
           createdAt: createdAt,
@@ -42,7 +47,7 @@ class WatchDao extends DatabaseAccessor<AppDatabase> with _$WatchDaoMixin {
       } else {
         // Its id may name another product after a backup was restored.
         await attachedDatabase.entriesDao.insertEntry(
-          name: addition.name.trim(),
+          name: name,
           amount: DirectAmount((addition.protein * 10).round() / 10),
           createdAt: createdAt,
           fromWatch: true,

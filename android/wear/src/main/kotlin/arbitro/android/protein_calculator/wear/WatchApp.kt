@@ -24,9 +24,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -77,6 +79,9 @@ import arbitro.android.protein_calculator.protocol.WatchProduct
 private object Routes {
     const val DAY = "day"
     const val PRODUCTS = "products"
+    const val FREE = "free"
+    const val KEYPAD = "keypad"
+    const val FREE_NAME = "free-name"
 }
 
 @Composable
@@ -84,6 +89,7 @@ fun WatchApp(
     screen: WatchScreen,
     added: WatchViewModel.Added?,
     onAdd: (WatchProduct) -> Unit,
+    onAddFree: (protein: Double, name: String?) -> Unit,
     onDismissAdded: () -> Unit,
     onDelete: (DayEntry) -> Unit,
     onUndoDelete: (DayEntry) -> Unit,
@@ -92,6 +98,8 @@ fun WatchApp(
         val navController = rememberSwipeDismissableNavController()
         // The screens of the graph, built once, read the latest state.
         val current by rememberUpdatedState(screen)
+        // Grams of the free entry being typed, kept from one to the next.
+        var freeGrams by rememberSaveable { mutableIntStateOf(FREE_GRAMS_START) }
         SwipeDismissableNavHost(navController, startDestination = Routes.DAY) {
             composable(Routes.DAY) {
                 DayScreen(
@@ -107,6 +115,32 @@ fun WatchApp(
                     onAdd = { product ->
                         onAdd(product)
                         navController.popBackStack()
+                    },
+                    onAddFree = { navController.navigate(Routes.FREE) },
+                )
+            }
+            composable(Routes.FREE) {
+                FreeGramsScreen(
+                    grams = freeGrams,
+                    onGramsChange = { freeGrams = it },
+                    onType = { navController.navigate(Routes.KEYPAD) },
+                    onNext = { navController.navigate(Routes.FREE_NAME) },
+                )
+            }
+            composable(Routes.KEYPAD) {
+                KeypadScreen(
+                    onDone = { grams ->
+                        freeGrams = grams
+                        navController.popBackStack()
+                    },
+                )
+            }
+            composable(Routes.FREE_NAME) {
+                FreeNameScreen(
+                    grams = freeGrams,
+                    onAdd = { name ->
+                        onAddFree(freeGrams.toDouble(), name)
+                        navController.popBackStack(Routes.DAY, inclusive = false)
                     },
                 )
             }
@@ -176,9 +210,13 @@ private fun DayScreen(
     }
 }
 
-/** The saved products, the favorite first: a tap adds one portion. */
+/** A free entry first, then the saved products, the favorite first: a tap adds one portion. */
 @Composable
-private fun ProductsScreen(products: List<WatchProduct>, onAdd: (WatchProduct) -> Unit) {
+private fun ProductsScreen(
+    products: List<WatchProduct>,
+    onAdd: (WatchProduct) -> Unit,
+    onAddFree: () -> Unit,
+) {
     val listState = rememberTransformingLazyColumnState()
     val transformation = rememberTransformationSpec()
     ScreenScaffold(scrollState = listState) { scaffoldPadding ->
@@ -198,6 +236,9 @@ private fun ProductsScreen(products: List<WatchProduct>, onAdd: (WatchProduct) -
                     ListHeader(Modifier.transformed(this, transformation)) {
                         Text(stringResource(R.string.products))
                     }
+                }
+                item(key = "free") {
+                    FreeEntryRow(onAddFree, Modifier.transformed(this, transformation))
                 }
                 if (products.isEmpty()) {
                     item { Hint(stringResource(R.string.no_products)) }
@@ -421,9 +462,10 @@ private fun AddedConfirmation(added: WatchViewModel.Added?, onDismiss: () -> Uni
             textColor = WatchColors.text,
         ),
         text = {
-            val product = shown?.product ?: return@ConfirmationDialog
+            val entry = shown ?: return@ConfirmationDialog
+            val grams = stringResource(R.string.added, formatProtein(entry.protein, locale))
             Text(
-                stringResource(R.string.added, formatProtein(product.protein, locale)) + " · " + product.name,
+                entry.name?.let { "$grams · $it" } ?: grams,
                 style = fonts.body,
                 color = WatchColors.text,
                 textAlign = TextAlign.Center,

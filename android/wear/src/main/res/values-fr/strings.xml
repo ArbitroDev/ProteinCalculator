@@ -22,6 +22,15 @@
     <string name="from_watch">Ajoutée depuis la montre</string>
     <string name="delete">Supprimer</string>
     <string name="undo">Annuler</string>
+    <string name="free_entry">Entrée libre</string>
+    <string name="free_grams_hint">Touche pour taper</string>
+    <string name="type_grams">Taper les grammes</string>
+    <string name="next">Suivant</string>
+    <string name="erase">Effacer</string>
+    <string name="done">Valider</string>
+    <string name="entry_name">Nom de l\'entrée</string>
+    <string name="add_name">Ajouter un nom</string>
+    <string name="change_name">Changer le nom</string>
     <string name="products">Produits</string>
     <string name="no_products">Enregistre des produits sur ton téléphone pour les ajouter d\'ici.</string>
     <string name="favorite">Favori</string>

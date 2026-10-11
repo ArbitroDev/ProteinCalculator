@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 
-/// A portion of a product added on the watch, maybe while out of range of
-/// the phone, for the phone to add. The watch gives it an [id], the same
-/// each time it sends it, so it is never added twice.
+/// An entry added on the watch, maybe while out of range of the phone, for
+/// the phone to add: a portion of a product, or a free entry of protein
+/// grams. The watch gives it an [id], the same each time it sends it, so it
+/// is never added twice.
 @immutable
 class WatchAddition {
   const WatchAddition({
@@ -18,8 +19,8 @@ class WatchAddition {
   static WatchAddition? fromChannel(Object? value) {
     if (value case {
       'id': final String id,
-      'productId': final int productId,
-      'name': final String name,
+      'productId': final int? productId,
+      'name': final String? name,
       'protein': final double protein,
       'addedAt': final int addedAt,
     }) {
@@ -35,11 +36,14 @@ class WatchAddition {
   }
 
   final String id;
-  final int productId;
+
+  /// Id of the product, null for a free entry.
+  final int? productId;
 
   /// Name and protein grams of one portion of the product, as the watch
-  /// showed them: they make the entry if the product no longer exists.
-  final String name;
+  /// showed them: they make the entry if the product no longer exists. For
+  /// a free entry, those typed on the watch; its name is optional.
+  final String? name;
   final double protein;
 
   /// When it was added on the watch: the time of the entry.
@@ -48,7 +52,8 @@ class WatchAddition {
   /// Whether the values can make an entry, as the form would accept them.
   bool get isValid =>
       id.isNotEmpty &&
-      isValidName(name.trim()) &&
+      (productId == null || name != null) &&
+      (name == null || isValidName(name!.trim())) &&
       protein.isFinite &&
       protein > 0 &&
       protein < 10000;

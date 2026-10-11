@@ -4,6 +4,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class FormattingTest {
     @Test
@@ -20,6 +21,16 @@ class FormattingTest {
         assertEquals("1,234", formatGrams(1234.9, Locale.US))
         assertEquals(NumberFormat.getIntegerInstance(Locale.FRANCE).format(1234), formatGrams(1234.9, Locale.FRANCE))
         assertEquals("140", formatGrams(140.0, Locale.FRANCE))
+    }
+
+    @Test
+    fun `a name typed is trimmed, and cut to the length the phone accepts`() {
+        assertEquals("Oeufs", entryName("  Oeufs "))
+        assertNull(entryName("   "))
+        assertEquals("a".repeat(MAX_NAME_LENGTH), entryName("a".repeat(MAX_NAME_LENGTH + 5)))
+        // Not cut in the middle of an emoji, nor ending with a space.
+        assertEquals("a".repeat(MAX_NAME_LENGTH - 1), entryName("a".repeat(MAX_NAME_LENGTH - 1) + " b"))
+        assertEquals("😀".repeat(MAX_NAME_LENGTH), entryName("😀".repeat(MAX_NAME_LENGTH + 1)))
     }
 
     @Test

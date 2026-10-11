@@ -24,8 +24,8 @@ void main() {
 
   WatchAddition addition({
     String id = 'a1',
-    int productId = 1,
-    String name = 'Skyr',
+    int? productId = 1,
+    String? name = 'Skyr',
     double protein = 15,
     DateTime? addedAt,
   }) => WatchAddition(
@@ -88,6 +88,20 @@ void main() {
     // Rounded to one decimal, like the protein amounts typed.
     expect(entry.proteinGrams, 25.3);
     expect(entry.fromWatch, isTrue);
+  });
+
+  test('adds a free entry, with or without name', () async {
+    await dao.add(addition(id: 'a1', productId: null, name: null), now);
+    await dao.add(
+      addition(id: 'a2', productId: null, name: ' Oeufs ', protein: 12),
+      now,
+    );
+
+    final added = await entries();
+    expect([for (final entry in added) entry.name], [null, 'Oeufs']);
+    expect([for (final entry in added) entry.proteinGrams], [15, 12]);
+    expect(added.first.mode, EntryMode.direct);
+    expect(added.every((entry) => entry.fromWatch), isTrue);
   });
 
   test('ignores a product of another name having the same id', () async {

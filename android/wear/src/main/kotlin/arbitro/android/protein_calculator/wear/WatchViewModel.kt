@@ -3,6 +3,7 @@ package arbitro.android.protein_calculator.wear
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import arbitro.android.protein_calculator.protocol.WatchAddition
 import arbitro.android.protein_calculator.protocol.WatchProduct
 import java.time.ZoneId
 import kotlinx.coroutines.Job
@@ -38,8 +39,8 @@ class WatchViewModel(application: Application) : AndroidViewModel(application) {
             watchScreenOf(saved, nearby, now, ZoneId.systemDefault())
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WatchScreen.Loading)
 
-    /** A portion added on the watch, confirmed on the screen until [dismissAdded]. */
-    data class Added(val product: WatchProduct, val phoneNearby: Boolean)
+    /** An entry added on the watch, confirmed on the screen until [dismissAdded]. */
+    data class Added(val name: String?, val protein: Double, val phoneNearby: Boolean)
 
     private val _added = MutableStateFlow<Added?>(null)
     val added: StateFlow<Added?> = _added.asStateFlow()
@@ -58,11 +59,26 @@ class WatchViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun add(product: WatchProduct) {
         viewModelScope.launch {
-            store.add(product, System.currentTimeMillis())
-            SendWorker.schedule(getApplication())
-            val nearby = (screen.value as? WatchScreen.Day)?.phoneNearby ?: false
-            _added.value = Added(product, nearby)
+            confirm(store.add(product, System.currentTimeMillis()))
         }
+    }
+
+    /**
+     * Adds a free entry of [protein] grams, named [name] or without name:
+     * kept on the watch at once, then sent to the phone, now or once it is
+     * nearby.
+     */
+    fun addFree(protein: Double, name: String?) {
+        viewModelScope.launch {
+            confirm(store.addFree(protein, name, System.currentTimeMillis()))
+        }
+    }
+
+    /** Sends [addition] to the phone and shows it is added. */
+    private fun confirm(addition: WatchAddition) {
+        SendWorker.schedule(getApplication())
+        val nearby = (screen.value as? WatchScreen.Day)?.phoneNearby ?: false
+        _added.value = Added(addition.name, addition.protein, nearby)
     }
 
     fun dismissAdded() {

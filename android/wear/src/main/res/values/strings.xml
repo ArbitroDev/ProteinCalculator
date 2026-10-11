@@ -23,6 +23,15 @@
     <string name="from_watch">Added on the watch</string>
     <string name="delete">Delete</string>
     <string name="undo">Undo</string>
+    <string name="free_entry">Free entry</string>
+    <string name="free_grams_hint">Tap to type</string>
+    <string name="type_grams">Type the grams</string>
+    <string name="next">Next</string>
+    <string name="erase">Erase</string>
+    <string name="done">Done</string>
+    <string name="entry_name">Name of the entry</string>
+    <string name="add_name">Add a name</string>
+    <string name="change_name">Change the name</string>
     <string name="products">Products</string>
     <string name="no_products">Save products on your phone to add them from here.</string>
     <string name="favorite">Favorite</string>

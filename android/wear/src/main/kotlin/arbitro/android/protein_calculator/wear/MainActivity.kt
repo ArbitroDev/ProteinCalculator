@@ -17,6 +17,7 @@ class MainActivity : ComponentActivity() {
                     screen = viewModel.screen.collectAsStateWithLifecycle().value,
                     added = viewModel.added.collectAsStateWithLifecycle().value,
                     onAdd = viewModel::add,
+                    onAddFree = viewModel::addFree,
                     onDismissAdded = viewModel::dismissAdded,
                     onDelete = viewModel::delete,
                     onUndoDelete = viewModel::undoDelete,

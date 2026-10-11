@@ -17,6 +17,22 @@ fun truncateGrams(grams: Double): Long = floor(grams + 1e-9).toLong()
 fun formatGrams(grams: Double, locale: Locale): String =
     NumberFormat.getIntegerInstance(locale).format(truncateGrams(grams))
 
+/** Longest name of an entry, as in the phone app (`maxNameLength`). */
+const val MAX_NAME_LENGTH = 40
+
+/**
+ * Name of an entry from [text] typed or dictated: without spaces around it,
+ * cut to [MAX_NAME_LENGTH] characters, null if blank. Characters are
+ * counted as code points, which the phone counts as many characters or
+ * fewer: an emoji made of several counts as one there.
+ */
+fun entryName(text: String): String? {
+    val name = text.trim()
+    if (name.isEmpty()) return null
+    val length = minOf(MAX_NAME_LENGTH, name.codePointCount(0, name.length))
+    return name.substring(0, name.offsetByCodePoints(0, length)).trimEnd()
+}
+
 /** Protein grams of one product, with one decimal at most: "10,5", "23". */
 fun formatProtein(grams: Double, locale: Locale): String =
     DecimalFormat("#,##0.#", DecimalFormatSymbols.getInstance(locale)).format(grams)

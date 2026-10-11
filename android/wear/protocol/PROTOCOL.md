@@ -100,7 +100,7 @@ the state of the day, even when the phone app is closed.
 
 Request of the watch, answered by the phone once the additions are made, even
 when the phone app is closed. A tap on a product adds one portion of it on the
-watch at once: the watch keeps it, with a random id, until the phone answers
+watch at once, as does a free entry of protein grams typed on the watch: the watch keeps it, with a random id, until the phone answers
 for it, and sends it again each time the phone is nearby, oldest first, 50 at
 most at once.
 
@@ -122,16 +122,17 @@ most at once.
 | Field | Meaning |
 |---|---|
 | `id` | Random id of the addition, 64 characters at most, the same each time it is sent. |
-| `productId` | Id of the product on the phone. |
-| `name`, `protein` | Name and protein grams of one portion, as the watch showed them. |
+| `productId` | Id of the product on the phone, or `null` for a free entry. |
+| `name`, `protein` | Name and protein grams of one portion, as the watch showed them; for a free entry, those typed, the name `null` if none was given. A product always has a name. |
 | `addedAt` | When it was added on the watch, in milliseconds since the epoch. |
 
 The phone adds each one at its time (its app day and part of the day follow
 from it), or at the current time if it says later:
 
 - a portion of the product of that id, if it still has that name;
-- otherwise (product deleted, or ids changed by a backup restored), an entry
-  with the name and protein the watch showed: the addition is never lost.
+- otherwise (a free entry, product deleted, or ids changed by a backup
+  restored), an entry with the name and protein the watch showed: the
+  addition is never lost.
 
 It saves the id with the entry, at once: an addition sent again, its answer
 lost, is not made twice. Ids are kept 60 days.

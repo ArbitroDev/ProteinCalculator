@@ -15,6 +15,7 @@ protolayout = "1.4.2"
 serialization = "1.9.0"
 tiles = "1.6.2"
 wear-compose = "1.6.2"
+wear-input = "1.2.0"
 work = "2.11.2"
 
 [libraries]
@@ -35,4 +36,5 @@ tiles = { module = "androidx.wear.tiles:tiles", version.ref = "tiles" }
 wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wear-compose" }
 wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wear-compose" }
 wear-compose-navigation = { module = "androidx.wear.compose:compose-navigation", version.ref = "wear-compose" }
+wear-input = { module = "androidx.wear:wear-input", version.ref = "wear-input" }
 work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }

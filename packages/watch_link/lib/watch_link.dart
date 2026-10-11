@@ -23,8 +23,9 @@ Future<void> sendWatchState(Map<String, Object?> state) =>
 
 /// Answers the requests of the watch: [readState] returns a state as
 /// [sendWatchState] takes it; [addPortions] makes the additions of the watch,
-/// maps of `id`, `productId`, `name`, `protein` and `addedAt` (milliseconds
-/// since the epoch), and returns their `results` (`id` and `status`:
+/// maps of `id`, `productId` (null for a free entry), `name` (null for a
+/// free entry without name), `protein` and `addedAt` (milliseconds since the
+/// epoch), and returns their `results` (`id` and `status`:
 /// `added`, `duplicate` or `invalid`) and the new `state`; [deleteEntries]
 /// makes the deletions of the watch, maps of `id`, `entryId` and `time`
 /// (milliseconds since the epoch), and returns their `results` (`id` and

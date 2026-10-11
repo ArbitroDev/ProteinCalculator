@@ -198,6 +198,20 @@ class WatchMessagesTest {
     }
 
     @Test
+    fun `a free entry has no product, and a name or none`() {
+        val free = addition.copy(productId = null, name = null)
+        val named = addition.copy(productId = null, name = "Oeufs")
+
+        assertEquals(true, free.isValid())
+        assertEquals(true, named.isValid())
+        assertEquals(false, named.copy(name = " ").isValid())
+        // A product always has its name, to be found again on the phone.
+        assertEquals(false, addition.copy(name = null).isValid())
+        val read = WatchMessages.decodeAddRequest(WatchMessages.encodeAddRequest(listOf(free, named))).value()
+        assertEquals(AddRequest(listOf(free, named)), read)
+    }
+
+    @Test
     fun `an answer is read as it was written, its statuses in lowercase`() {
         val reply = AddReply(
             results = listOf(
