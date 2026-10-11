@@ -46,7 +46,9 @@ updates:
       default-days: 7
     ignore:
       - dependency-name: "com.android.*"
-      - dependency-name: "org.jetbrains.kotlin*"
+      # Kotlin and its plugins, not the kotlinx libraries.
+      - dependency-name: "org.jetbrains.kotlin:*"
+      - dependency-name: "org.jetbrains.kotlin.*"
       - dependency-name: "dev.flutter*"
     groups:
       gradle:
