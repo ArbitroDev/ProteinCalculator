@@ -91,9 +91,9 @@ class GoalChanges extends Table {
   Set<Column<Object>> get primaryKey => {dayKey};
 }
 
-/// Additions of the watch already made, by the id the watch gave them: one
-/// sent again, its answer lost, is not added twice. Kept 60 days, specific
-/// to the phone: not in the backups.
+/// Additions and deletions of the watch already made, by the id the watch
+/// gave them: one sent again, its answer lost, is not made twice. Kept 60
+/// days, specific to the phone: not in the backups.
 class WatchRequests extends Table {
   TextColumn get id => text()();
   DateTimeColumn get handledAt => dateTime()();

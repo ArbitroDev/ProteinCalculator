@@ -44,7 +44,7 @@ data class DayEntry(
     val time: Long,
     /** Whether it was added on the watch. */
     val fromWatch: Boolean,
-    /** Whether the phone has not made it yet: added on the watch out of its range. */
+    /** Whether the phone has not made it yet: added on the watch, out of its range or being sent. */
     val pending: Boolean,
 ) {
     /** Tells the entries of a list apart. */

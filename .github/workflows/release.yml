@@ -105,8 +105,9 @@ jobs:
 
       # The dedicated closed testing track of Wear OS, in the same Google
       # Play app. If this upload fails after the one of the phone, upload the
-      # bundle of the workflow artifacts by hand: running the workflow again
-      # would send the phone bundle twice, which Google Play refuses.
+      # bundle of the workflow artifacts by hand, then create the tag and the
+      # release by hand, as the steps below do not run: running the workflow
+      # again would send the phone bundle twice, which Google Play refuses.
       - name: Upload the watch app to Google Play (closed testing, Wear OS)
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:

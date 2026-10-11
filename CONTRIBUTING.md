@@ -109,15 +109,16 @@ database code (`*.g.dart`).
 ## Wear OS watch app
 
 The watch app is a companion of the phone app, written in Kotlin with
-Compose for Wear OS: the phone holds the data, the watch shows the day and
-adds portions of the saved products. It lives in the same repository:
+Compose for Wear OS: the phone holds the data, the watch shows the day,
+adds portions of the saved products or free entries of protein grams, and
+deletes entries of the day. It lives in the same repository:
 
 | Path | Content |
 |---|---|
 | `android/wear` | The watch app: screens, tile, complication (Gradle module `:wear`) |
 | `android/wear/protocol` | The messages exchanged with the phone, used by both apps: see [PROTOCOL.md](android/wear/protocol/PROTOCOL.md) |
 | `packages/watch_link` | Local Flutter plugin of the phone app: sends the day to the watch and answers it, even when the app is closed |
-| `lib/core/watch` | Dart side of the phone app: the state of the day, the additions of the watch |
+| `lib/core/watch` | Dart side of the phone app: the state of the day, the additions and deletions of the watch |
 
 The two apps only talk to each other when the devices are nearby
 (Bluetooth or the same Wi-Fi network), through the `MessageClient` of the
@@ -140,12 +141,17 @@ Then, from `android/`:
 
 ```bash
 ./gradlew :wear:compileDebugKotlin :wear:lintDebug
-./gradlew :wear:installDebug
+ANDROID_SERIAL=<watch> ./gradlew :wear:installDebug
 ```
 
+The watch app has the application id of the phone app: without
+`ANDROID_SERIAL`, `installDebug` also installs it on a connected phone,
+over the phone app, whose next `flutter run` then uninstalls it and loses
+its data.
+
 The watch app takes the version of `pubspec.yaml`; its version code is the
-one of the phone app plus `wear.versionCodeOffset` (`android/gradle.properties`),
-as Google Play needs a different one for each app bundle. Both apps must be
+one of the phone app plus `wear.versionCodeOffset`
+(`android/gradle.properties`), as Google Play needs a different one for each app bundle. Both apps must be
 signed with the same key, or Google Play services do not link them: debug
 builds of the same computer are.
 
@@ -162,9 +168,9 @@ The phone and the watch must be paired:
 3. After the emulators restart, link them again:
    `adb -s <phone> forward tcp:5601 tcp:5601`.
 
-Run the phone app with `flutter run` and install the watch app with
-`./gradlew :wear:installDebug`. To try the watch out of range, turn on
-airplane mode on the watch emulator.
+Run the phone app with `flutter run -d <phone>` and install the watch app
+with `ANDROID_SERIAL=<watch> ./gradlew :wear:installDebug`. To try the watch
+out of range, turn on airplane mode on the watch emulator.
 
 ### Changing the messages
 
@@ -172,8 +178,8 @@ Any change of the messages between the two apps goes into
 `android/wear/protocol`, with a new version in `WatchProtocol.VERSION` and
 in [PROTOCOL.md](android/wear/protocol/PROTOCOL.md): a phone and a watch of
 different versions must never read a message the wrong way. The phone keeps
-reading the additions of every earlier version, so none waiting on a watch
-is ever lost.
+reading the additions and deletions of every earlier version, so none
+waiting on a watch is ever lost.
 
 ## Crash reports
 

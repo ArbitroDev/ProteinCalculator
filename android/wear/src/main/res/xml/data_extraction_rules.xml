@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Nothing leaves the watch: the phone holds the data, and the watch keeps
-     a copy of the day and the additions not sent yet. -->
+     a copy of the day and the additions and deletions not sent yet. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="root" />

@@ -18,8 +18,8 @@ import com.google.android.gms.wearable.WearableListenerService
 /**
  * Answers the watch app, even when the app is closed: Google Play services
  * start this service when a request arrives (the state of the day,
- * additions or deletions), or when a watch having the app comes nearby. The data is read
- * and written by [WatchEngine].
+ * additions or deletions), or when a watch having the app comes nearby. The
+ * data is read and written by [WatchEngine].
  */
 class PhoneListenerService : WearableListenerService() {
     override fun onRequest(nodeId: String, path: String, request: ByteArray): Task<ByteArray>? {

@@ -16,8 +16,8 @@ const _channel = MethodChannel('protein_calculator/watch');
 /// (`goal`), the entries of the day, the most recent first (`entries`: `id`,
 /// `name` or null, `protein`, `time` in milliseconds since the epoch,
 /// `fromWatch`), the products (`products`: `id`, `name`, `protein` of one
-/// portion, `favorite`), the favorite first, and the ids of the additions of
-/// and deletions of the watch made lately (`handled`).
+/// portion, `favorite`), the favorite first, and the ids of the additions and
+/// deletions of the watch made lately (`handled`).
 Future<void> sendWatchState(Map<String, Object?> state) =>
     _channel.invokeMethod<void>('sendState', state);
 

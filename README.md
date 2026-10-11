@@ -8,8 +8,9 @@ A Flutter application to calculate protein intake.
 
 - **Android**: target platform, to be published on Google Play.
 - **Wear OS**: companion app for the watch, written in Kotlin (Compose for
-  Wear OS): the day and its entries, a tile, a complication, and quick
-  additions of saved products. The phone stays the only source of truth.
+  Wear OS): the day and its entries, a tile, a complication, quick
+  additions of saved products or of protein grams, and deletions of
+  entries. The phone stays the only source of truth.
 - **Web**: used for development and debugging only.
 
 ## Getting started

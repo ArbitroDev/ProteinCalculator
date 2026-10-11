@@ -45,8 +45,8 @@ class _AndroidWatchLink implements WatchLink {
 /// Link with the watch, opened in `startApp`.
 final watchLinkProvider = Provider<WatchLink>((ref) => const WatchLink.none());
 
-/// Ids of the additions of the watch made since the start of the app day
-/// before [dayKey], see `handledSince`.
+/// Ids of the additions and deletions of the watch made since the start of
+/// the app day before [dayKey], see `handledSince`.
 final watchHandledProvider = StreamProvider.family<List<String>, int>(
   (ref, dayKey) => ref
       .watch(databaseProvider)

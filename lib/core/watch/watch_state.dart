@@ -6,8 +6,9 @@ import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/day_progress.dart';
 
 /// What the watch app shows: the protein total, the goal and the entries of
-/// the current app day, and the products it adds. The plugin `watch_link` writes it in
-/// the format of the watch messages, see `android/wear/protocol/PROTOCOL.md`.
+/// the current app day, and the products it adds. The plugin `watch_link`
+/// writes it in the format of the watch messages, see
+/// `android/wear/protocol/PROTOCOL.md`.
 @immutable
 class WatchState {
   const WatchState({
@@ -212,8 +213,8 @@ Future<WatchState> readWatchState(AppDatabase db, DateTime now) async {
   );
 }
 
-/// Start of the app day before [dayKey]: the state tells the additions of
-/// the watch made from then on.
+/// Start of the app day before [dayKey]: the state tells the additions and
+/// deletions of the watch made from then on.
 DateTime handledSince(int dayKey) {
   final date = dateOfDayKey(dayKey);
   return DateTime(date.year, date.month, date.day - 1, appDayStartHour);

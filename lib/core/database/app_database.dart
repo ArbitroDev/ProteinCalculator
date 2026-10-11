@@ -33,8 +33,9 @@ class AppDatabase extends _$AppDatabase {
       // can be set aside when it cannot be opened.
       native: DriftNativeOptions(
         databasePath: databasePath,
-        // The buttons of the notifications write to the data apart from the
-        // app: one waits for the other rather than failing.
+        // The buttons of the notifications and the requests of the watch
+        // write to the data apart from the app: one waits for the other
+        // rather than failing.
         setup: (db) => db.execute('PRAGMA busy_timeout = 5000'),
       ),
       web: DriftWebOptions(

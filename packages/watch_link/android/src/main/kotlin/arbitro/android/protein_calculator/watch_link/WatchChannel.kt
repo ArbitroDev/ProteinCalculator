@@ -21,7 +21,7 @@ import io.flutter.plugin.common.MethodChannel
  *
  * The Dart code sends the state of the day each time it changes. In the
  * engine started for the watch, [WatchEngine], it also reads it when the
- * watch asks.
+ * watch asks, and makes the additions and deletions of the watch.
  */
 class WatchChannel(context: Context, messenger: BinaryMessenger) {
     private val context = context.applicationContext

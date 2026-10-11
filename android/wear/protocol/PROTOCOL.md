@@ -25,6 +25,8 @@ the messages it belongs to, an integer, currently **1**.
   `{"unsupported": [1]}`, the versions the app reads. This answer never
   changes, whatever the version. The watch then tells the user which app to
   update.
+- The phone keeps reading the additions and deletions of every earlier
+  version, so none waiting on a watch is ever lost.
 
 ## Finding the other device
 
@@ -56,7 +58,7 @@ the answers to `/protein_calculator/add` and `/protein_calculator/delete`.
   "total": 87.5,
   "goal": 140.0,
   "entries": [
-    { "id": 42, "name": "Skyr", "protein": 25.0, "time": 1791637440000, "fromWatch": true }
+    { "id": 42, "name": "Skyr", "protein": 25.0, "time": 1791464640000, "fromWatch": true }
   ],
   "products": [
     { "id": 3, "name": "Skyr", "protein": 25.0, "favorite": true }
@@ -100,9 +102,9 @@ the state of the day, even when the phone app is closed.
 
 Request of the watch, answered by the phone once the additions are made, even
 when the phone app is closed. A tap on a product adds one portion of it on the
-watch at once, as does a free entry of protein grams typed on the watch: the watch keeps it, with a random id, until the phone answers
-for it, and sends it again each time the phone is nearby, oldest first, 50 at
-most at once.
+watch at once, as does a free entry of protein grams typed on the watch: the
+watch keeps it, with a random id, until the phone answers for it, and sends
+it again each time the phone is nearby, oldest first, 50 at most at once.
 
 ```json
 {
@@ -113,7 +115,7 @@ most at once.
       "productId": 3,
       "name": "Skyr",
       "protein": 25.0,
-      "addedAt": 1791637440000
+      "addedAt": 1791464640000
     }
   ]
 }
@@ -175,7 +177,7 @@ watch, after a few seconds to undo it:
     {
       "id": "6d3a1c2e-8f4b-4e7a-b1d2-0c9e8f7a6b5c",
       "entryId": 42,
-      "time": 1791637440000
+      "time": 1791464640000
     }
   ]
 }

@@ -443,7 +443,7 @@ private fun WatchGlyph(color: Color, modifier: Modifier) {
 }
 
 /**
- * Confirms a portion added on the watch, and tells when it waits for the
+ * Confirms an entry added on the watch, and tells when it waits for the
  * phone to be nearby.
  */
 @Composable

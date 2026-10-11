@@ -16,7 +16,7 @@ import kotlinx.serialization.json.jsonPrimitive
 /**
  * State of the current app day on the phone: what the watch shows.
  *
- * Values are exact: the watch rounds them as the phone app does.
+ * Values are exact: the watch truncates them as the phone app does.
  */
 @Serializable
 data class DayState(

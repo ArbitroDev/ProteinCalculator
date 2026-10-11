@@ -51,13 +51,16 @@ appareil, et ne sont ni enregistrées ni transmises.
 
 **Montre Wear OS (facultative).** Si tu installes l'application sur ta montre Wear OS, ton
 téléphone lui envoie le total, l'objectif et les entrées du jour ainsi que tes produits
-enregistrés, et ta montre lui envoie les portions que tu y ajoutes. Ces échanges se font
+enregistrés, et ta montre lui envoie les entrées que tu y ajoutes (une portion d'un produit, ou
+des grammes avec un nom facultatif) et celles que tu y supprimes. Ces échanges se font
 **directement entre ton téléphone et ta montre**, en Bluetooth ou sur le même réseau Wi-Fi, par
 les services Google Play de tes appareils : ils ne passent par **aucun serveur**, ni le nôtre ni
-celui de Google. Quand ta montre est hors de portée, rien n'est envoyé : les portions ajoutées
-attendent sur la montre que le téléphone revienne. La montre garde une copie de la journée et
-ces portions en attente ; elle n'a pas accès à Internet et ses données sont exclues des
-sauvegardes. Pour les supprimer, désinstalle l'application de la montre.
+celui de Google. Quand ta montre est hors de portée, rien n'est envoyé : ces ajouts et
+suppressions attendent sur la montre que le téléphone revienne. La montre garde une copie de la
+journée et de tes produits, et ce qui attend ; elle n'a pas accès à Internet et ses données sont
+exclues des sauvegardes. Pour les supprimer, désinstalle l'application de la montre. Le nom d'une
+entrée se tape ou se dicte avec le clavier ou la dictée de ta montre : l'application n'en reçoit
+que le texte.
 
 ## 2. Rapports d'erreur (facultatifs)
 
@@ -115,8 +118,8 @@ contient ni publicité, ni outil d'analyse d'audience.
 L'application ne demande ni la localisation, ni les contacts, ni l'appareil photo, ni le micro.
 
 L'application de la montre n'a pas l'autorisation Internet. Elle n'utilise que des autorisations
-techniques, accordées à l'installation, pour envoyer en arrière-plan les portions en attente,
-même après un redémarrage de la montre.
+techniques, accordées à l'installation, pour envoyer en arrière-plan les ajouts et suppressions
+en attente, même après un redémarrage de la montre.
 
 ## 5. Tes droits
 
@@ -188,12 +191,14 @@ and are neither stored nor sent.
 
 **Wear OS watch (optional).** If you install the app on your Wear OS watch, your phone sends it
 the total, the goal and the entries of the day and your saved products, and your watch sends it
-the portions you add there. These exchanges go **directly between your phone and your watch**,
+the entries you add there (a portion of a product, or grams with an optional name) and the ones
+you delete there. These exchanges go **directly between your phone and your watch**,
 over Bluetooth or the same Wi-Fi network, through the Google Play services of your devices: they
 go through **no server**, neither ours nor Google's. When your watch is out of range, nothing is
-sent: the portions you add wait on the watch for the phone to come back. The watch keeps a copy
-of the day and these waiting portions; it has no Internet access and its data is left out of
-backups. To delete it, uninstall the app from the watch.
+sent: these additions and deletions wait on the watch for the phone to come back. The watch keeps
+a copy of the day and of your products, and what waits; it has no Internet access and its data is
+left out of backups. To delete it, uninstall the app from the watch. The name of an entry is typed
+or dictated with the keyboard or the dictation of your watch: the app only gets its text.
 
 ## 2. Crash reports (optional)
 
@@ -245,7 +250,8 @@ no third party receives data from the app. The app contains no ads and no audien
 The app does not request location, contacts, camera or microphone access.
 
 The watch app has no Internet permission. It only uses technical permissions, granted on
-install, to send the waiting portions in the background, even after the watch restarts.
+install, to send the waiting additions and deletions in the background, even after the watch
+restarts.
 
 ## 5. Your rights
 
