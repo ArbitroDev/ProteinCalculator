@@ -114,7 +114,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: arbitro.android.protein_calculator
           releaseFiles: build/wear/outputs/bundle/release/wear-release.aab
-          track: wear:alpha
+          tracks: wear:alpha
           status: completed
           whatsNewDirectory: store/whatsnew
           mappingFile: build/wear/outputs/mapping/release/mapping.txt
