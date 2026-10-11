@@ -17,12 +17,12 @@ import androidx.wear.compose.material3.MaterialTheme
 
 /** Colors of the "Marine" theme of the phone app (lib/core/theme.dart). */
 object WatchColors {
-    val background = Color(0xFF0B1050)
-    val surface = Color(0xFF1A1E5A)
-    val surfaceRaised = Color(0xFF282D65)
+    val background = Color(0xFF10142E)
+    val surface = Color(0xFF1A1F3D)
+    val surfaceRaised = Color(0xFF272D50)
     val text = Color(0xFFFFFFFF)
-    val textSecondary = Color(0xFF9EA7F0)
-    val structure = Color(0xFF6F7CFF)
+    val textSecondary = Color(0xFFA6ADDD)
+    val structure = Color(0xFF7C86DE)
     val accent = Color(0xFFFF8A3D)
     val onAccent = Color(0xFF1B0E05)
 

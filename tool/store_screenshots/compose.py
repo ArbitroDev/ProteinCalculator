@@ -17,7 +17,7 @@ SAIRA = 'assets/fonts/SairaSemiCondensed-ExtraBold.ttf'
 OUTFIT = 'assets/fonts/Outfit-Medium.ttf'
 ICON = 'assets/branding/play-store-icon-512.png'
 COBALT = (45, 63, 224)
-MARINE = (11, 16, 80)
+MARINE = (16, 20, 46)
 ORANGE = (255, 138, 61)
 WHITE = (255, 255, 255)
 
