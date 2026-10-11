@@ -313,6 +313,69 @@ void main() {
     ]);
   });
 
+  group('time of the entry', () {
+    test('is now for a new entry, the time added for one edited', () async {
+      await open(const NewEntryArgs());
+      expect(stateOf(const NewEntryArgs()).time, isNull);
+
+      final id = await db.entriesDao.insertEntry(
+        amount: const DirectAmount(15),
+        createdAt: DateTime(2026, 10, 1, 8),
+      );
+      await open(EditEntryArgs(id));
+      expect(stateOf(EditEntryArgs(id)).time, DateTime(2026, 10, 1, 8));
+    });
+
+    test('adds a new entry afterwards, on its own day', () async {
+      const args = NewEntryArgs();
+      final form = await open(args);
+      form
+        ..setProtein('25')
+        ..setTime(DateTime(2026, 9, 30, 20));
+
+      expect(await form.submit(), isTrue);
+
+      expect(await todayEntries(), isEmpty);
+      final entry =
+          (await db.entriesDao.watchDayEntries(20260930).first).single;
+      expect(entry.createdAt, DateTime(2026, 9, 30, 20));
+    });
+
+    test('refuses a time yet to come, until it is changed', () async {
+      const args = NewEntryArgs();
+      final form = await open(args);
+      form
+        ..setProtein('25')
+        ..setTime(DateTime(2026, 10, 1, 10));
+      expect(stateOf(args).errors[EntryFormField.time], EntryFormError.future);
+
+      expect(await form.submit(), isFalse);
+      expect(await todayEntries(), isEmpty);
+
+      form.setTime(null);
+      expect(stateOf(args).errors, isEmpty);
+      expect(await form.submit(), isTrue);
+      expect((await todayEntries()).single.createdAt, now);
+    });
+
+    test('moves an edited entry to the time chosen', () async {
+      final id = await db.entriesDao.insertEntry(
+        amount: const DirectAmount(15),
+        createdAt: DateTime(2026, 10, 1, 8),
+      );
+      final args = EditEntryArgs(id);
+      final form = await open(args);
+
+      form.setTime(DateTime(2026, 9, 30, 19, 45));
+      expect(await form.submit(), isTrue);
+
+      expect(await todayEntries(), isEmpty);
+      final entry = (await db.entriesDao.getEntry(id))!;
+      expect(entry.createdAt, DateTime(2026, 9, 30, 19, 45));
+      expect(entry.dayKey, 20260930);
+    });
+  });
+
   group('product', () {
     test('creates a product only', () async {
       const args = NewProductArgs();

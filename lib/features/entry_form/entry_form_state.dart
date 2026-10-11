@@ -64,7 +64,14 @@ final class EditProductArgs extends EntryFormArgs {
   int get hashCode => Object.hash(EditProductArgs, productId);
 }
 
-enum EntryFormField { name, protein, consumed, proteinPerReference, reference }
+enum EntryFormField {
+  name,
+  protein,
+  consumed,
+  proteinPerReference,
+  reference,
+  time,
+}
 
 enum EntryFormError {
   /// A quantity is missing or is not a number.
@@ -81,6 +88,9 @@ enum EntryFormError {
 
   /// Another product already has this name.
   nameTaken,
+
+  /// The time of the entry has not come yet.
+  future,
 }
 
 /// Values typed in the entry form, kept as text while typing and parsed
@@ -100,6 +110,7 @@ class EntryFormState {
     this.updatesProduct = false,
     this.routine = DailyRoutine.none,
     this.routineMinutes = 8 * 60,
+    this.time,
     this.errors = const {},
     this.revision = 0,
   });
@@ -124,6 +135,10 @@ class EntryFormState {
   /// kept when the routine is turned off in case it is turned on again.
   final DailyRoutine routine;
   final int routineMinutes;
+
+  /// Moment of an entry: the one it was added at when edited, or the one
+  /// chosen to add it afterwards. Null for a new entry added now.
+  final DateTime? time;
   final Map<EntryFormField, EntryFormError> errors;
 
   /// Increases when the values are replaced as a whole (a product is
@@ -152,12 +167,19 @@ class EntryFormState {
     );
   }
 
-  /// Checks the quantities of the current mode and, if [nameRequired], the
-  /// name. Duplicate names are checked against the database separately.
-  Map<EntryFormField, EntryFormError> validate({required bool nameRequired}) {
+  /// Checks the quantities of the current mode, the [time] against [now]
+  /// and, if [nameRequired], the name. Duplicate names are checked against
+  /// the database separately.
+  Map<EntryFormField, EntryFormError> validate({
+    required bool nameRequired,
+    required DateTime now,
+  }) {
     final errors = <EntryFormField, EntryFormError>{};
     if (nameRequired && name.trim().isEmpty) {
       errors[EntryFormField.name] = EntryFormError.nameRequired;
+    }
+    if (time?.isAfter(now) ?? false) {
+      errors[EntryFormField.time] = EntryFormError.future;
     }
 
     void positive(EntryFormField field, String text) {
@@ -200,6 +222,8 @@ class EntryFormState {
     bool? updatesProduct,
     DailyRoutine? routine,
     int? routineMinutes,
+    DateTime? time,
+    bool clearTime = false,
     Map<EntryFormField, EntryFormError>? errors,
     int? revision,
   }) => EntryFormState(
@@ -214,6 +238,7 @@ class EntryFormState {
     updatesProduct: updatesProduct ?? this.updatesProduct,
     routine: routine ?? this.routine,
     routineMinutes: routineMinutes ?? this.routineMinutes,
+    time: clearTime ? null : time ?? this.time,
     errors: errors ?? this.errors,
     revision: revision ?? this.revision,
   );

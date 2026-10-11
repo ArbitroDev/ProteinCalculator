@@ -12,6 +12,7 @@ import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/formatting.dart';
+import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
@@ -222,6 +223,7 @@ class _FormViewState extends ConsumerState<_FormView> {
       EntryFormError.aboveReference => l10n.errorAboveReference,
       EntryFormError.nameRequired => l10n.errorNameRequired,
       EntryFormError.nameTaken => l10n.errorNameTaken,
+      EntryFormError.future => l10n.errorFutureTime,
     };
 
     final notifications = ref.watch(notificationStatusProvider).value;
@@ -349,6 +351,18 @@ class _FormViewState extends ConsumerState<_FormView> {
                     ),
                     const SizedBox(height: 14),
                     _Result(grams: form.amount?.proteinGrams, locale: locale),
+                  ],
+                  if (!args.isProduct) ...[
+                    _Label(l10n.formWhen),
+                    _EntryTime(
+                      time: form.time,
+                      now: ref.read(clockProvider)(),
+                      locale: locale,
+                      // An entry being edited keeps a time of its own.
+                      canReset: args is NewEntryArgs,
+                      errorText: error(EntryFormField.time),
+                      onChanged: _dismissing(_notifier.setTime),
+                    ),
                   ],
                   if (args is! EditEntryArgs) ...[
                     const SizedBox(height: 8),
@@ -617,6 +631,98 @@ class _RoutineTime extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Moment of an entry: now for a new one, until a day and a time are
+/// picked, to add afterwards what was forgotten.
+class _EntryTime extends StatelessWidget {
+  const _EntryTime({
+    required this.time,
+    required this.now,
+    required this.locale,
+    required this.canReset,
+    required this.errorText,
+    required this.onChanged,
+  });
+
+  final DateTime? time;
+  final DateTime now;
+  final String locale;
+
+  /// Whether a button sets the moment back to now.
+  final bool canReset;
+  final String? errorText;
+  final ValueChanged<DateTime?> onChanged;
+
+  Future<void> _pick(BuildContext context) async {
+    final current = time ?? now;
+    final initial = current.isAfter(now) ? now : current;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(min(2000, initial.year)),
+      lastDate: now,
+    );
+    if (date == null || !context.mounted) return;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (picked == null) return;
+    onChanged(
+      DateTime(date.year, date.month, date.day, picked.hour, picked.minute),
+    );
+  }
+
+  String _label(AppLocalizations l10n) {
+    final time = this.time;
+    if (time == null) return l10n.formNow;
+    final today = DateUtils.dateOnly(now);
+    final day = DateUtils.dateOnly(time);
+    final dayText = day == today
+        ? l10n.formToday
+        : day == DateTime(today.year, today.month, today.day - 1)
+        ? l10n.formYesterday
+        : formatShortDate(time, locale);
+    return l10n.formDayAt(dayText, formatTime(time, locale));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final error = errorText;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => _pick(context),
+              icon: const Icon(LucideIcons.clock, size: 18),
+              label: Text(_label(l10n)),
+            ),
+            if (canReset && time != null) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: () => onChanged(null),
+                child: Text(l10n.formNow),
+              ),
+            ],
+          ],
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 12),
+            child: Text(
+              error,
+              style: Theme.of(context).textTheme.bodySmall!
+                  .copyWith(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+      ],
     );
   }
 }

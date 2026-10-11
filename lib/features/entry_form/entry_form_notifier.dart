@@ -69,7 +69,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         final entry = await db.entriesDao.getEntry(entryId);
         if (entry == null) return const EntryFormState();
         return _withAmount(
-          EntryFormState(name: entry.name ?? ''),
+          EntryFormState(name: entry.name ?? '', time: entry.createdAt),
           entry.amount,
         );
       case EditProductArgs(:final productId):
@@ -204,6 +204,25 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
   void setRoutineMinutes(int value) =>
       _update((s) => s.copyWith(routineMinutes: value));
 
+  /// Sets the moment of the entry, or null for now; a moment yet to come is
+  /// refused at once.
+  void setTime(DateTime? value) {
+    final future = value?.isAfter(ref.read(clockProvider)()) ?? false;
+    _update((s) {
+      final next = s
+          .clearError(EntryFormField.time)
+          .copyWith(time: value, clearTime: value == null);
+      return future
+          ? next.copyWith(
+              errors: {
+                ...next.errors,
+                EntryFormField.time: EntryFormError.future,
+              },
+            )
+          : next;
+    });
+  }
+
   /// Fills the form with the values of a suggested product.
   void applyProduct(Product product) {
     _source = product;
@@ -219,7 +238,10 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         args.isProduct ||
         current.saveAsProduct ||
         current.routine != DailyRoutine.none;
-    final errors = current.validate(nameRequired: needsName);
+    final errors = current.validate(
+      nameRequired: needsName,
+      now: ref.read(clockProvider)(),
+    );
     if (needsName && !errors.containsKey(EntryFormField.name)) {
       final taken = await _db.productsDao.isNameTaken(
         current.name,
@@ -308,7 +330,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
           await db.entriesDao.insertEntry(
             name: name.isEmpty ? null : name,
             amount: amount,
-            createdAt: now,
+            createdAt: form.time ?? now,
           );
         });
       case EditEntryArgs(:final entryId):
@@ -318,6 +340,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
           entry
               .withAmount(amount)
               .copyWith(name: Value(name.isEmpty ? null : name)),
+          createdAt: form.time,
         );
       case NewProductArgs():
         await db.transaction(

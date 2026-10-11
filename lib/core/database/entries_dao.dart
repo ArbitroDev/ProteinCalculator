@@ -131,17 +131,24 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     fromWatch: fromWatch,
   );
 
-  /// Saves the edited values of an existing entry. Its time, app day and
-  /// part of the day are kept, and the uses of products follow a name change.
-  Future<void> updateEntry(Entry entry) {
+  /// Saves the edited values of an existing entry, and the uses of products
+  /// follow a name change. Its time, app day and part of the day are kept,
+  /// unless [createdAt] moves it to another minute, as times are picked:
+  /// they then follow it.
+  Future<void> updateEntry(Entry entry, {DateTime? createdAt}) {
     return transaction(() async {
       final previous = await getEntry(entry.id);
       if (previous == null) return;
+      final time =
+          createdAt != null && !_sameMinute(createdAt, previous.createdAt)
+          ? createdAt
+          : previous.createdAt;
+      final moved = time != previous.createdAt;
       final updated = entry.copyWith(
         nameKey: Value(entryNameKey(entry.name)),
-        createdAt: previous.createdAt,
-        dayKey: previous.dayKey,
-        slot: previous.slot,
+        createdAt: time,
+        dayKey: moved ? dayKeyOf(time) : previous.dayKey,
+        slot: moved ? DaySlot.of(time) : previous.slot,
       );
       await update(entries).replace(updated);
       await _refreshUses({previous.nameKey, updated.nameKey});
@@ -216,6 +223,13 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
       if (entry != null) await deleteEntry(entry.id);
     });
   }
+
+  static bool _sameMinute(DateTime a, DateTime b) =>
+      a.year == b.year &&
+      a.month == b.month &&
+      a.day == b.day &&
+      a.hour == b.hour &&
+      a.minute == b.minute;
 
   /// Computes again the uses of the products named by [nameKeys].
   Future<void> _refreshUses(Set<String?> nameKeys) async {

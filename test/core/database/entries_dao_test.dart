@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
@@ -145,6 +146,36 @@ void main() {
       expect(updated.createdAt, DateTime(2026, 9, 30, 8));
       expect(updated.dayKey, 20260930);
       expect(updated.slot, DaySlot.morning);
+    });
+
+    test('moves the entry to the time given, with its day and part', () async {
+      final id = await addEntry(15, DateTime(2026, 9, 30, 8), name: 'Skyr');
+      final entry = (await dao.getEntry(id))!;
+
+      await dao.updateEntry(entry, createdAt: DateTime(2026, 10, 1, 1, 30));
+
+      final updated = (await dao.getEntry(id))!;
+      expect(updated.createdAt, DateTime(2026, 10, 1, 1, 30));
+      // Before the start of the day: the evening of 30 September.
+      expect(updated.dayKey, 20260930);
+      expect(updated.slot, DaySlot.evening);
+    });
+
+    test('keeps everything when the time given is the same minute', () async {
+      // Added at 2:30:17 with days starting at 3 a.m.: the evening before.
+      final id = await addEntry(15, DateTime(2026, 10, 1, 2, 30, 17));
+      final entry = (await dao.getEntry(id))!;
+      expect(entry.dayKey, 20260930);
+      appDayStartHour = 0;
+      addTearDown(() => appDayStartHour = defaultAppDayStartHour);
+
+      // The same minute picked again, after the start hour changed.
+      await dao.updateEntry(entry, createdAt: DateTime(2026, 10, 1, 2, 30));
+
+      final updated = (await dao.getEntry(id))!;
+      expect(updated.createdAt, DateTime(2026, 10, 1, 2, 30, 17));
+      expect(updated.dayKey, 20260930);
+      expect(updated.slot, DaySlot.evening);
     });
   });
 
