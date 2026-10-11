@@ -10,8 +10,6 @@ sealed class EntryFormArgs {
   const EntryFormArgs();
 
   bool get isProduct => this is NewProductArgs || this is EditProductArgs;
-
-  bool get isNew => this is NewEntryArgs || this is NewProductArgs;
 }
 
 /// New entry, prefilled from the product [productId] if given.
