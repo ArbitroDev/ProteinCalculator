@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
@@ -11,19 +13,26 @@ import '../database/test_database.dart';
 /// Keeps the states sent to the watch.
 class _RecordingLink implements WatchLink {
   final sent = <WatchState>[];
+  final _sends = StreamController<WatchState>.broadcast();
+
+  /// The next state sent matching [test], to ask for before what sends it.
+  Future<WatchState> next([bool Function(WatchState state)? test]) => _sends
+      .stream
+      .firstWhere(test ?? (_) => true)
+      .timeout(const Duration(seconds: 5));
 
   @override
-  Future<void> send(WatchState state) async => sent.add(state);
+  Future<void> send(WatchState state) async {
+    sent.add(state);
+    _sends.add(state);
+  }
 }
 
 void main() {
   late AppDatabase db;
   late _RecordingLink link;
   late ProviderContainer container;
-
-  /// Lets the streams of the data and the providers run.
-  Future<void> settle() =>
-      Future<void>.delayed(const Duration(milliseconds: 300));
+  late Future<WatchState> first;
 
   setUp(() async {
     db = openTestDatabase();
@@ -37,39 +46,48 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    first = link.next();
     container.listen(watchSyncProvider, (_, _) {});
   });
 
-  test('sends the day once its data is read', () async {
-    await settle();
+  Future<void> addEntry(double grams, DateTime at) => db.entriesDao.insertEntry(
+    name: 'Skyr',
+    amount: DirectAmount(grams),
+    createdAt: at,
+  );
 
-    expect(link.sent, hasLength(1));
-    expect(link.sent.single.dayKey, 20261001);
-    expect(link.sent.single.goal, 140);
-    expect(link.sent.single.total, 0);
+  test('sends the day once its data is read', () async {
+    final state = await first;
+
+    expect(link.sent, [state]);
+    expect(state.dayKey, 20261001);
+    expect(state.goal, 140);
+    expect(state.total, 0);
   });
 
   test('sends the day again each time it changes, and only then', () async {
-    await settle();
-    await db.entriesDao.insertEntry(
-      name: 'Skyr',
-      amount: const DirectAmount(20),
-      createdAt: DateTime(2026, 10, 1, 8),
-    );
-    await settle();
+    await first;
+    final added = link.next();
+    await addEntry(20, DateTime(2026, 10, 1, 8));
 
-    expect(link.sent, hasLength(2));
-    expect(link.sent.last.total, 20);
-    expect(link.sent.last.entries.single.name, 'Skyr');
+    expect((await added).total, 20);
+    expect((await added).entries.single.name, 'Skyr');
 
-    // Reading the data again without change sends nothing.
+    // Reading the data again without change sends nothing: the next state
+    // sent is the one of the next change.
+    final next = link.next();
     db.markTablesUpdated([db.entries, db.products]);
-    await settle();
-    expect(link.sent, hasLength(2));
+    await addEntry(12, DateTime(2026, 10, 1, 9));
+
+    expect((await next).total, 32);
+    expect(link.sent, hasLength(3));
   });
 
   test('sends the products, the favorite first', () async {
-    await settle();
+    await first;
+    final sorted = link.next(
+      (state) => state.products.length == 2 && state.products.first.isFavorite,
+    );
     for (final name in ['Amandes', 'Whey']) {
       await db.productsDao.insertProduct(
         name: name,
@@ -79,12 +97,10 @@ void main() {
     }
     final whey = (await db.select(db.products).get()).last;
     await db.productsDao.setFavorite(whey.id, favorite: true);
-    await settle();
 
     expect(
-      [for (final product in link.sent.last.products) product.name],
+      [for (final product in (await sorted).products) product.name],
       ['Whey', 'Amandes'],
     );
-    expect(link.sent.last.products.first.isFavorite, isTrue);
   });
 }
