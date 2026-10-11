@@ -5,11 +5,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -137,7 +136,7 @@ fun TransformingLazyColumnItemScope.DayHero(day: WatchScreen.Day, viewportWidth:
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(formatGrams(day.total, locale), style = fonts.total, color = WatchColors.text)
                 Text(
-                    " g",
+                    " " + stringResource(R.string.grams_unit),
                     style = fonts.unit,
                     color = WatchColors.text,
                     modifier = Modifier.padding(bottom = 7.dp),

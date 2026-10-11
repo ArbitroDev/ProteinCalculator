@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.ui.graphics.toArgb
 import androidx.wear.protolayout.ActionBuilders.launchAction
 import androidx.wear.protolayout.DimensionBuilders.expand
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
@@ -146,11 +147,12 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
         /** Product just added from the tile, and until when the button says so. */
         private var confirmed: Pair<Long, Long>? = null
 
-        private const val TEXT = 0xFFFFFFFF.toInt()
-        private const val TEXT_SECONDARY = 0xFF9EA7F0.toInt()
-        private const val SURFACE = 0xFF1A1E5A.toInt()
-        private const val ACCENT = 0xFFFF8A3D.toInt()
-        private const val ON_ACCENT = 0xFF1B0E05.toInt()
+        // The colors of the app.
+        private val TEXT = WatchColors.text.toArgb()
+        private val TEXT_SECONDARY = WatchColors.textSecondary.toArgb()
+        private val SURFACE = WatchColors.surface.toArgb()
+        private val ACCENT = WatchColors.accent.toArgb()
+        private val ON_ACCENT = WatchColors.onAccent.toArgb()
 
         private val tileColors = ColorScheme(
             primary = LayoutColor(ACCENT),
@@ -158,7 +160,7 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
             onSurface = LayoutColor(TEXT),
             onSurfaceVariant = LayoutColor(TEXT_SECONDARY),
             surfaceContainer = LayoutColor(SURFACE),
-            background = LayoutColor(0xFF0B1050.toInt()),
+            background = LayoutColor(WatchColors.background.toArgb()),
         )
 
         /** Id of the favorite product whose button was tapped, if any. */

@@ -49,7 +49,7 @@ data class DayState(
             products.size <= WatchProtocol.MAX_PRODUCTS &&
             products.all { it.isValid() } &&
             products.count { it.favorite } <= 1 &&
-            handled.all(::isValidAdditionId)
+            handled.all(::isValidRequestId)
 
     companion object {
         const val MAX_DAY_START_HOUR = 7
@@ -109,7 +109,7 @@ data class WatchAddition(
 ) {
     /** Whether the phone can add it: otherwise, the watch drops it. */
     fun isValid(): Boolean =
-        isValidAdditionId(id) &&
+        isValidRequestId(id) &&
             (productId == null || (productId > 0 && name != null)) &&
             (name == null || name.isNotBlank()) &&
             protein.isFinite() && protein > 0 && addedAt > 0
@@ -129,7 +129,7 @@ data class WatchDeletion(
     val time: Long,
 ) {
     /** Whether the phone can delete it: otherwise, the watch drops it. */
-    fun isValid(): Boolean = isValidAdditionId(id) && entryId > 0 && time > 0
+    fun isValid(): Boolean = isValidRequestId(id) && entryId > 0 && time > 0
 }
 
 /** Additions of the watch, oldest first, see [WatchProtocol.ADD_PATH]. */
@@ -251,7 +251,7 @@ object WatchMessages {
 
     fun decodeAddReply(bytes: ByteArray): Received<AddReply> =
         decode(bytes, AddReply.serializer()).validated { reply ->
-            reply.state.isValid() && reply.results.all { isValidAdditionId(it.id) }
+            reply.state.isValid() && reply.results.all { isValidRequestId(it.id) }
         }
 
     /** Deletions of the watch, [WatchProtocol.MAX_DELETIONS] at most. */
@@ -273,7 +273,7 @@ object WatchMessages {
 
     fun decodeDeleteReply(bytes: ByteArray): Received<DeleteReply> =
         decode(bytes, DeleteReply.serializer()).validated { reply ->
-            reply.state.isValid() && reply.results.all { isValidAdditionId(it.id) }
+            reply.state.isValid() && reply.results.all { isValidRequestId(it.id) }
         }
 
     /** Request of the watch for the state of the day. */
@@ -330,8 +330,8 @@ object WatchMessages {
 @Serializable
 private data object SyncRequest
 
-/** Whether [id] can be the id of a [WatchAddition] or a [WatchDeletion]. */
-private fun isValidAdditionId(id: String): Boolean = id.length in 1..WatchProtocol.MAX_ID_LENGTH
+/** Whether [id] can be the id of a request of the watch: a [WatchAddition] or a [WatchDeletion]. */
+private fun isValidRequestId(id: String): Boolean = id.length in 1..WatchProtocol.MAX_ID_LENGTH
 
 /** Whether [day] is a `yyyymmdd` date of a real day: 20260931 is not. */
 private fun isValidDay(day: Int): Boolean {

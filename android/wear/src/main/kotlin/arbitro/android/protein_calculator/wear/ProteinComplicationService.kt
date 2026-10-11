@@ -83,7 +83,9 @@ class ProteinComplicationService : SuspendingTimelineComplicationDataSourceServi
                 val text = "$shownTotal/${formatGrams(goal, locale)}"
                 // A short text shows 7 characters at most.
                 ShortTextComplicationData.Builder(
-                    PlainComplicationText.Builder(if (text.length <= 7) text else "$shownTotal g").build(),
+                    PlainComplicationText.Builder(
+                        if (text.length <= 7) text else getString(R.string.grams, shownTotal),
+                    ).build(),
                     description,
                 )
                     .setMonochromaticImage(icon)

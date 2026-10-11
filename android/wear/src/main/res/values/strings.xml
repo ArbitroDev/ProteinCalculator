@@ -6,6 +6,8 @@
     <string name="complication_label">Protein of the day</string>
     <string name="complication_description">%1$s g of protein out of %2$s g</string>
     <string name="grams">%1$s g</string>
+    <!-- The unit alone, styled apart from the number. -->
+    <string name="grams_unit" translatable="false">g</string>
     <string name="goal_of">of %1$s g</string>
     <string name="remaining">%1$s g left to shake</string>
     <string name="goal_reached">Goal reached</string>

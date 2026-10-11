@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -38,7 +39,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.CompactButton
 import androidx.wear.compose.material3.Picker
@@ -65,7 +65,7 @@ fun FreeEntryRow(onClick: () -> Unit, modifier: Modifier) {
             .fillMaxWidth()
             .clip(shape)
             .background(WatchColors.surface, shape)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(role = Role.Button, onClickLabel = stringResource(R.string.free_entry), onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -98,11 +98,15 @@ fun FreeGramsScreen(grams: Int, onGramsChange: (Int) -> Unit, onType: () -> Unit
     }
     val description = stringResource(R.string.free_entry)
     val type = stringResource(R.string.type_grams)
+    val unit = stringResource(R.string.grams_unit)
+    val resources = LocalResources.current
     Box(Modifier.fillMaxSize().background(WatchColors.background), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Picker(
                 state = state,
-                contentDescription = { "$description, ${state.selectedOptionIndex + 1} g" },
+                contentDescription = {
+                    "$description, " + resources.getString(R.string.grams, (state.selectedOptionIndex + 1).toString())
+                },
                 modifier = Modifier.size(width = 140.dp, height = 104.dp),
                 onSelected = onType,
                 gradientColor = WatchColors.background,
@@ -130,7 +134,7 @@ fun FreeGramsScreen(grams: Int, onGramsChange: (Int) -> Unit, onType: () -> Unit
                             modifier = Modifier.alignByBaseline(),
                         )
                         if (selected) {
-                            Text(" g", style = fonts.unit, color = WatchColors.text, modifier = Modifier.alignByBaseline())
+                            Text(" $unit", style = fonts.unit, color = WatchColors.text, modifier = Modifier.alignByBaseline())
                         }
                     }
                 }
@@ -180,7 +184,7 @@ fun KeypadScreen(onDone: (Int) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Text(
-                if (typed.isEmpty()) "– g" else "$typed g",
+                stringResource(R.string.grams, typed.ifEmpty { "–" }),
                 style = fonts.unit,
                 color = if (typed.isEmpty()) WatchColors.textSecondary else WatchColors.text,
             )
@@ -267,7 +271,12 @@ fun FreeNameScreen(grams: Int, onAdd: (name: String?) -> Unit) {
                     color = WatchColors.text,
                     modifier = Modifier.alignByBaseline(),
                 )
-                Text(" g", style = fonts.unit, color = WatchColors.text, modifier = Modifier.alignByBaseline())
+                Text(
+                    " " + stringResource(R.string.grams_unit),
+                    style = fonts.unit,
+                    color = WatchColors.text,
+                    modifier = Modifier.alignByBaseline(),
+                )
             }
             Spacer(Modifier.height(6.dp))
             // The name, or the link to give one: a tap types it again.
