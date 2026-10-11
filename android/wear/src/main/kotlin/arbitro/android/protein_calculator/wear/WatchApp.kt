@@ -67,6 +67,7 @@ import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SwipeToReveal
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.TimeText
 import androidx.wear.compose.material3.lazy.TransformationSpec
 import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
@@ -84,6 +85,10 @@ private object Routes {
     const val FREE_NAME = "free-name"
 }
 
+/**
+ * The watch app. [timeText] shows the time at the top of the screen: the
+ * current one, or a fixed one in the store screenshots.
+ */
 @Composable
 fun WatchApp(
     screen: WatchScreen,
@@ -93,8 +98,9 @@ fun WatchApp(
     onDismissAdded: () -> Unit,
     onDelete: (DayEntry) -> Unit,
     onUndoDelete: (DayEntry) -> Unit,
+    timeText: @Composable () -> Unit = { TimeText() },
 ) {
-    AppScaffold {
+    AppScaffold(timeText = timeText) {
         val navController = rememberSwipeDismissableNavController()
         // The screens of the graph, built once, read the latest state.
         val current by rememberUpdatedState(screen)
