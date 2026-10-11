@@ -159,8 +159,7 @@ void main() {
       expect((await todayEntries()).single.name, 'Shaker whey');
     });
 
-    test('needs a free name to save as a product', () async {
-      await addProduct('Skyr');
+    test('needs a name to save as a product', () async {
       final form = await open(args);
       form
         ..setProtein('25')
@@ -171,14 +170,30 @@ void main() {
         stateOf(args).errors[EntryFormField.name],
         EntryFormError.nameRequired,
       );
-
-      form.setName('skyr');
-      expect(await form.submit(), isFalse);
-      expect(
-        stateOf(args).errors[EntryFormField.name],
-        EntryFormError.nameTaken,
-      );
       expect(await todayEntries(), isEmpty);
+    });
+
+    test('is not saved as a product under a taken name', () async {
+      await addProduct('Skyr');
+      final form = await open(args);
+      form
+        ..setProtein('25')
+        ..setSaveAsProduct(true)
+        ..setName('skyr');
+
+      // Another product has the name: the option goes off, and stays off.
+      expect(stateOf(args).nameTaken, isTrue);
+      expect(stateOf(args).saveAsProduct, isFalse);
+      form.setSaveAsProduct(true);
+      expect(stateOf(args).saveAsProduct, isFalse);
+
+      // The entry is added alone.
+      expect(await form.submit(), isTrue);
+      expect(await products(), hasLength(1));
+      expect((await todayEntries()).single.name, 'skyr');
+
+      form.setName('Skyr vanille');
+      expect(stateOf(args).nameTaken, isFalse);
     });
 
     test('starts from a product', () async {
@@ -191,6 +206,45 @@ void main() {
       expect(state.mode, EntryMode.perQuantity);
       expect(state.consumed, '150');
       expect(state.amount?.proteinGrams, 15);
+      expect(state.nameTaken, isTrue);
+      expect(state.saveAsProduct, isFalse);
+    });
+
+    test('adds an entry from a product, which stays as it was', () async {
+      final productId = await addProduct('Skyr');
+      await db.productsDao.setRoutine(
+        productId,
+        DailyRoutine.reminder,
+        minutes: 480,
+        now: DateTime(2026, 9, 20),
+      );
+      final productArgs = NewEntryArgs(productId: productId);
+      final form = await open(productArgs);
+      // The routine stays the one of the product.
+      expect(stateOf(productArgs).routine, DailyRoutine.none);
+
+      form.setConsumed('200');
+      expect(await form.submit(), isTrue);
+
+      expect((await todayEntries()).single.proteinGrams, 20);
+      final product = (await db.productsDao.getProduct(productId))!;
+      expect(product.consumedGrams, 150);
+      expect(product.routine, DailyRoutine.reminder);
+      expect(product.routineMinutes, 480);
+      expect(product.useCount, 1);
+    });
+
+    test('saves an entry from a product under a new name', () async {
+      final productId = await addProduct('Skyr');
+      final productArgs = NewEntryArgs(productId: productId);
+      final form = await open(productArgs);
+      form
+        ..setName('Skyr vanille')
+        ..setSaveAsProduct(true);
+
+      expect(await form.submit(), isTrue);
+
+      expect((await products()).map((p) => p.name), ['Skyr', 'Skyr vanille']);
     });
 
     test('fills the form with a picked product', () async {
@@ -201,6 +255,7 @@ void main() {
 
       expect(stateOf(args).name, 'Skyr');
       expect(stateOf(args).revision, 1);
+      expect(stateOf(args).nameTaken, isTrue);
     });
   });
 
@@ -214,17 +269,18 @@ void main() {
       expect(stateOf(args).routineMinutes, 9 * 60);
     });
 
-    test('saves the entry as a product, which cannot be unchecked', () async {
+    test('goes nowhere without a new product', () async {
       final form = await open(args);
-      form.setRoutine(DailyRoutine.reminder);
+      form
+        ..setName('Skyr')
+        ..setProtein('20')
+        ..setRoutine(DailyRoutine.reminder);
 
-      expect(stateOf(args).saveAsProduct, isTrue);
-      form.setSaveAsProduct(false);
-      expect(stateOf(args).saveAsProduct, isTrue);
-
-      form.setRoutine(DailyRoutine.none);
-      form.setSaveAsProduct(false);
       expect(stateOf(args).saveAsProduct, isFalse);
+      expect(await form.submit(), isTrue);
+
+      expect(await products(), isEmpty);
+      expect(await todayEntries(), hasLength(1));
     });
 
     test('is saved on the new product, from now', () async {
@@ -232,6 +288,7 @@ void main() {
       form
         ..setName('Skyr')
         ..setProtein('20')
+        ..setSaveAsProduct(true)
         ..setRoutine(DailyRoutine.autoAdd)
         ..setRoutineMinutes(7 * 60 + 30);
 
@@ -244,35 +301,7 @@ void main() {
       expect(await todayEntries(), hasLength(1));
     });
 
-    test('needs a name, like a product', () async {
-      final form = await open(args);
-      form
-        ..setProtein('20')
-        ..setRoutine(DailyRoutine.reminder);
-
-      expect(await form.submit(), isFalse);
-      expect(
-        stateOf(args).errors[EntryFormField.name],
-        EntryFormError.nameRequired,
-      );
-    });
-
-    test('goes on the unchanged product the entry starts from', () async {
-      final productId = await addProduct('Skyr');
-      final productArgs = NewEntryArgs(productId: productId);
-      final form = await open(productArgs);
-      form.setRoutine(DailyRoutine.reminder);
-
-      expect(stateOf(productArgs).saveAsProduct, isFalse);
-      expect(await form.submit(), isTrue);
-
-      expect(await products(), hasLength(1));
-      final product = (await db.productsDao.getProduct(productId))!;
-      expect(product.routine, DailyRoutine.reminder);
-      expect(product.routineMinutes, 9 * 60);
-    });
-
-    test('is kept as it was when the product keeps its routine', () async {
+    test('is kept as it was when an edited product keeps it', () async {
       final productId = await addProduct('Skyr');
       final since = DateTime(2026, 9, 20);
       await db.productsDao.setRoutine(
@@ -281,15 +310,17 @@ void main() {
         minutes: 480,
         now: since,
       );
-      final productArgs = NewEntryArgs(productId: productId);
+      final productArgs = EditProductArgs(productId);
       final form = await open(productArgs);
 
       expect(stateOf(productArgs).routine, DailyRoutine.autoAdd);
       expect(stateOf(productArgs).routineMinutes, 480);
+      form.setConsumed('200');
       expect(await form.submit(), isTrue);
 
       // Choosing it again would skip the additions due since.
       final product = (await db.productsDao.getProduct(productId))!;
+      expect(product.consumedGrams, 200);
       expect(product.routineCheckedAt, since);
     });
   });
@@ -311,6 +342,69 @@ void main() {
     expect(entries.map((e) => (e.id, e.proteinGrams, e.createdAt)), [
       (id, 20.0, DateTime(2026, 10, 1, 8)),
     ]);
+  });
+
+  group('time of the entry', () {
+    test('is now for a new entry, the time added for one edited', () async {
+      await open(const NewEntryArgs());
+      expect(stateOf(const NewEntryArgs()).time, isNull);
+
+      final id = await db.entriesDao.insertEntry(
+        amount: const DirectAmount(15),
+        createdAt: DateTime(2026, 10, 1, 8),
+      );
+      await open(EditEntryArgs(id));
+      expect(stateOf(EditEntryArgs(id)).time, DateTime(2026, 10, 1, 8));
+    });
+
+    test('adds a new entry afterwards, on its own day', () async {
+      const args = NewEntryArgs();
+      final form = await open(args);
+      form
+        ..setProtein('25')
+        ..setTime(DateTime(2026, 9, 30, 20));
+
+      expect(await form.submit(), isTrue);
+
+      expect(await todayEntries(), isEmpty);
+      final entry =
+          (await db.entriesDao.watchDayEntries(20260930).first).single;
+      expect(entry.createdAt, DateTime(2026, 9, 30, 20));
+    });
+
+    test('refuses a time yet to come, until it is changed', () async {
+      const args = NewEntryArgs();
+      final form = await open(args);
+      form
+        ..setProtein('25')
+        ..setTime(DateTime(2026, 10, 1, 10));
+      expect(stateOf(args).errors[EntryFormField.time], EntryFormError.future);
+
+      expect(await form.submit(), isFalse);
+      expect(await todayEntries(), isEmpty);
+
+      form.setTime(null);
+      expect(stateOf(args).errors, isEmpty);
+      expect(await form.submit(), isTrue);
+      expect((await todayEntries()).single.createdAt, now);
+    });
+
+    test('moves an edited entry to the time chosen', () async {
+      final id = await db.entriesDao.insertEntry(
+        amount: const DirectAmount(15),
+        createdAt: DateTime(2026, 10, 1, 8),
+      );
+      final args = EditEntryArgs(id);
+      final form = await open(args);
+
+      form.setTime(DateTime(2026, 9, 30, 19, 45));
+      expect(await form.submit(), isTrue);
+
+      expect(await todayEntries(), isEmpty);
+      final entry = (await db.entriesDao.getEntry(id))!;
+      expect(entry.createdAt, DateTime(2026, 9, 30, 19, 45));
+      expect(entry.dayKey, 20260930);
+    });
   });
 
   group('product', () {

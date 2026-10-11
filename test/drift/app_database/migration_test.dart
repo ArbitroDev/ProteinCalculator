@@ -13,6 +13,7 @@ import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
 import 'generated/schema_v7.dart' as v7;
 import 'generated/schema_v8.dart' as v8;
+import 'generated/schema_v9.dart' as v9;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -388,6 +389,41 @@ void main() {
           expect(entry.proteinGrams, 20);
           expect(entry.fromWatch, 0);
           expect(await newDb.select(newDb.watchRequests).get(), isEmpty);
+        },
+      );
+    },
+  );
+
+  test(
+    'migration from v8 to v9 keeps the settings, reminders turned off',
+    () async {
+      await verifier.testWithDataIntegrity(
+        oldVersion: 8,
+        newVersion: 9,
+        createOld: v8.DatabaseAtV8.new,
+        createNew: v9.DatabaseAtV9.new,
+        openTestedDatabase: AppDatabase.new,
+        createItems: (batch, oldDb) {
+          batch.insert(
+            oldDb.appSettings,
+            const v8.AppSettingsData(
+              id: 1,
+              dailyGoalGrams: 140,
+              productSort: 'mostUsed',
+              dayStartHour: 5,
+              historyView: 'calendar',
+              crashReports: 1,
+            ),
+          );
+        },
+        validateItems: (newDb) async {
+          final settings = await newDb.select(newDb.appSettings).getSingle();
+          expect(settings.dailyGoalGrams, 140);
+          expect(settings.productSort, 'mostUsed');
+          expect(settings.dayStartHour, 5);
+          expect(settings.historyView, 'calendar');
+          expect(settings.crashReports, 1);
+          expect(settings.slotReminders, 0);
         },
       );
     },

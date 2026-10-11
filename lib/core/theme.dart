@@ -48,7 +48,6 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Calendar days at half of their goal or more: a pale [accent], the full
   /// one marking the goal reached.
   static const progressHalf = Color(0xFFFFC59E);
-  static const cobalt = Color(0xFF2D3FE0);
 
   static const light = AppColors(
     background: Color(0xFFD9E3FF),
@@ -63,14 +62,14 @@ class AppColors extends ThemeExtension<AppColors> {
   );
 
   static const dark = AppColors(
-    background: Color(0xFF0B1050),
-    surface: Color(0xFF1A1E5A),
-    surfaceRaised: Color(0xFF282D65),
+    background: Color(0xFF10142E),
+    surface: Color(0xFF1A1F3D),
+    surfaceRaised: Color(0xFF272D50),
     text: Color(0xFFFFFFFF),
-    textSecondary: Color(0xFF9EA7F0),
-    divider: Color(0xFF282D65),
-    structure: Color(0xFF6F7CFF),
-    shakerInside: Color(0xFF1C215C),
+    textSecondary: Color(0xFFA6ADDD),
+    divider: Color(0xFF272D50),
+    structure: Color(0xFF7C86DE),
+    shakerInside: Color(0xFF1C2142),
     accentText: Color(0xFFFF8A3D),
   );
 

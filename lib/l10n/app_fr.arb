@@ -168,6 +168,34 @@
   "@formResult": {
     "description": "After the computed protein amount, as in '15 g of protein'."
   },
+  "formWhen": "Quand",
+  "@formWhen": {
+    "description": "Entry form label of the moment of the entry."
+  },
+  "formNow": "Maintenant",
+  "@formNow": {
+    "description": "Moment of a new entry added now, and button setting it back to now."
+  },
+  "formToday": "Aujourd'hui",
+  "@formToday": {
+    "description": "Day of an entry added today, as in 'Today at 14:30'."
+  },
+  "formYesterday": "Hier",
+  "@formYesterday": {
+    "description": "Day of an entry added yesterday, as in 'Yesterday at 14:30'."
+  },
+  "formDayAt": "{day} à {time}",
+  "@formDayAt": {
+    "description": "Moment of an entry: its day, then its time.",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "suggestionsTitle": "Produits enregistrés",
   "@suggestionsTitle": {
     "description": "Title of the product suggestions under the name field."
@@ -175,10 +203,6 @@
   "saveAsProduct": "Enregistrer comme produit",
   "@saveAsProduct": {
     "description": "Checkbox also saving the entry as a product."
-  },
-  "updateProduct": "Mettre à jour le produit",
-  "@updateProduct": {
-    "description": "Checkbox also saving the changed values to the product the entry starts from."
   },
   "save": "Enregistrer",
   "@save": {
@@ -203,6 +227,10 @@
   "errorNameTaken": "Un produit porte déjà ce nom.",
   "@errorNameTaken": {
     "description": "Error when another product has the same name."
+  },
+  "errorFutureTime": "Ce moment n'est pas encore passé.",
+  "@errorFutureTime": {
+    "description": "Error when the moment chosen for an entry is yet to come."
   },
   "productPerReference": "{protein} g / {reference} g",
   "@productPerReference": {
@@ -621,7 +649,7 @@
   "@exactAlarmsTitle": {
     "description": "Dialog title asking to allow exact alarms."
   },
-  "exactAlarmsBody": "Pour que tes routines te préviennent à l'heure, autorise « Alarmes et rappels » pour Protein Calculator dans la page qui va s'ouvrir. Sans ça, Android peut les retarder de plusieurs heures.",
+  "exactAlarmsBody": "Pour que tes notifications arrivent à l'heure, autorise « Alarmes et rappels » pour Protein Calculator dans la page qui va s'ouvrir. Sans ça, Android peut les retarder de plusieurs heures.",
   "@exactAlarmsBody": {
     "description": "Dialog body asking to allow exact alarms."
   },
@@ -672,5 +700,56 @@
   "dayStartSheetBody": "Ta journée et ta matinée commencent à cette heure : ce que tu ajoutes avant compte pour la veille au soir. Le changement vaut pour tes prochaines entrées.",
   "@dayStartSheetBody": {
     "description": "Bottom sheet explaining the start hour of the app day."
+  },
+  "menuSlotReminders": "Rappels d'oubli",
+  "@menuSlotReminders": {
+    "description": "Menu: switch of the reminders shown when a part of the day has no entry."
+  },
+  "menuSlotRemindersBody": "Une notification à {morning}, {afternoon} et {evening} si tu n'as rien noté le matin, l'après-midi ou le soir.",
+  "@menuSlotRemindersBody": {
+    "description": "Menu: explains the reminders of the parts of the day, with their times.",
+    "placeholders": {
+      "morning": {
+        "type": "String"
+      },
+      "afternoon": {
+        "type": "String"
+      },
+      "evening": {
+        "type": "String"
+      }
+    }
+  },
+  "slotRemindersNeedNotifications": "Les rappels d'oubli passent par des notifications : autorise-les pour les activer.",
+  "@slotRemindersNeedNotifications": {
+    "description": "Snack bar when the reminders of the parts of the day are turned on without notifications."
+  },
+  "notificationsOffSlotReminders": "Notifications désactivées : les rappels d'oubli ne s'afficheront pas.",
+  "@notificationsOffSlotReminders": {
+    "description": "Menu banner when the reminders of the parts of the day are on but notifications are off."
+  },
+  "slotRemindersMayBeLate": "Alarmes et rappels non autorisés : les rappels d'oubli peuvent arriver en retard.",
+  "@slotRemindersMayBeLate": {
+    "description": "Menu banner when the reminders of the parts of the day are on but exact alarms are not allowed."
+  },
+  "notificationChannelSlotReminders": "Rappels d'oubli",
+  "@notificationChannelSlotReminders": {
+    "description": "Android notification channel of the reminders of the parts of the day."
+  },
+  "slotReminderMorning": "Rien noté ce matin ?",
+  "@slotReminderMorning": {
+    "description": "Notification title when the morning has no entry."
+  },
+  "slotReminderAfternoon": "Rien noté cet après-midi ?",
+  "@slotReminderAfternoon": {
+    "description": "Notification title when the afternoon has no entry."
+  },
+  "slotReminderEvening": "Rien noté ce soir ?",
+  "@slotReminderEvening": {
+    "description": "Notification title when the evening has no entry."
+  },
+  "slotReminderBody": "Si tu as oublié, ajoute ce que tu as consommé.",
+  "@slotReminderBody": {
+    "description": "Notification body of the reminders of the parts of the day."
   }
 }

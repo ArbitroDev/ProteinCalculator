@@ -10,6 +10,8 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
+import 'package:protein_calculator/core/domain/day_slot.dart';
+import 'package:protein_calculator/core/domain/slot_reminder.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/watch/watch_sync.dart';
@@ -17,10 +19,12 @@ import 'package:protein_calculator/l10n/app_localizations.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
-/// Notifications of the daily routines of the products, see [DailyRoutine].
+/// Notifications of the daily routines of the products, see [DailyRoutine],
+/// and of the reminders of the parts of the day left empty, see
+/// [SlotReminder].
 ///
-/// Android shows them at the time of each routine, even when the app is
-/// closed: the app only plans them. Without notifications (web, tests),
+/// Android shows them at their time, even when the app is closed: the app
+/// only plans them. Without notifications (web, tests),
 /// [RoutineNotifications.none] plans nothing.
 abstract interface class RoutineNotifications {
   /// Does nothing.
@@ -29,6 +33,17 @@ abstract interface class RoutineNotifications {
   /// Plans the notifications of the [products] having a routine, in the
   /// language of [l10n], replacing those planned before.
   Future<void> schedule(List<Product> products, AppLocalizations l10n);
+
+  /// Plans the reminders [planned], in the language of [l10n], cancelling
+  /// the others planned before, and removes those of [outdated] if they
+  /// show. Those already planned are kept, unless [replace]: their texts, or
+  /// whether they show at their exact time, changed.
+  Future<void> scheduleSlotReminders(
+    List<SlotReminder> planned,
+    List<SlotReminder> outdated,
+    AppLocalizations l10n, {
+    required bool replace,
+  });
 
   /// Whether the notifications of each routine can show.
   Future<NotificationStatus> status();
@@ -47,12 +62,14 @@ abstract interface class RoutineNotifications {
 }
 
 /// Whether notifications can show: those of the app, and those of each
-/// routine, which the user can turn off one by one in Android.
+/// routine and of the reminders, which the user can turn off one by one in
+/// Android.
 @immutable
 class NotificationStatus {
   const NotificationStatus({
     required this.allowed,
     this.blocked = const {},
+    this.slotRemindersBlocked = false,
     this.exact = true,
   });
 
@@ -65,6 +82,9 @@ class NotificationStatus {
   /// Routines whose notifications are turned off.
   final Set<DailyRoutine> blocked;
 
+  /// Whether the reminders of the parts of the day are turned off.
+  final bool slotRemindersBlocked;
+
   /// Whether notifications show at their exact time. Otherwise, Android may
   /// delay them by hours.
   final bool exact;
@@ -72,20 +92,29 @@ class NotificationStatus {
   /// Whether the notifications of [routine] show.
   bool shows(DailyRoutine routine) => allowed && !blocked.contains(routine);
 
+  /// Whether the reminders of the parts of the day show.
+  bool get showsSlotReminders => allowed && !slotRemindersBlocked;
+
   @override
   bool operator ==(Object other) =>
       other is NotificationStatus &&
       other.allowed == allowed &&
       setEquals(other.blocked, blocked) &&
+      other.slotRemindersBlocked == slotRemindersBlocked &&
       other.exact == exact;
 
   @override
-  int get hashCode =>
-      Object.hash(allowed, Object.hashAllUnordered(blocked), exact);
+  int get hashCode => Object.hash(
+    allowed,
+    Object.hashAllUnordered(blocked),
+    slotRemindersBlocked,
+    exact,
+  );
 }
 
 const _remindersChannel = 'routine_reminders';
 const _autoAddsChannel = 'routine_auto_adds';
+const _slotRemindersChannel = 'slot_reminders';
 const _addAction = 'add';
 const _removeAction = 'remove';
 
@@ -137,6 +166,7 @@ Future<void> onNotificationAction(NotificationResponse response) async {
       final product = await db.productsDao.getProduct(productId);
       if (product != null) {
         await db.entriesDao.addPortion(product, createdAt: now);
+        await dismissFilledSlotReminders(db, now);
       }
     } else {
       await db.entriesDao.removeRoutineEntry(productId, now);
@@ -148,11 +178,50 @@ Future<void> onNotificationAction(NotificationResponse response) async {
   notifyBackgroundChange();
 }
 
+/// Removes the reminders, planned or showing, of the parts of the day no
+/// longer empty, from the app day before the one of [now] (see
+/// [slotReminderDayKeys]), after an addition made apart from the app, which
+/// may be closed: when it runs, it plans them all again anyway. An addition
+/// from the watch keeps the time it was made on the watch, maybe the day
+/// before.
+///
+/// Only reports a failure: the addition is made.
+Future<void> dismissFilledSlotReminders(AppDatabase db, DateTime now) async {
+  if (kIsWeb || !Platform.isAndroid) return;
+  try {
+    // Turned off, there are none: the app removed them.
+    if (!await db.settingsDao.getSlotReminders()) return;
+    final plugin = FlutterLocalNotificationsPlugin();
+    final filled = await db.entriesDao.filledSlotsFrom(
+      slotReminderDayKeys(now).first,
+    );
+    for (final (dayKey, slot) in filled) {
+      await plugin.cancel(id: SlotReminder(dayKey, slot).id);
+    }
+  } on Object catch (error, stack) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'notifications',
+      ),
+    );
+  }
+}
+
 class _NoNotifications implements RoutineNotifications {
   const _NoNotifications();
 
   @override
   Future<void> schedule(List<Product> products, AppLocalizations l10n) async {}
+
+  @override
+  Future<void> scheduleSlotReminders(
+    List<SlotReminder> planned,
+    List<SlotReminder> outdated,
+    AppLocalizations l10n, {
+    required bool replace,
+  }) async {}
 
   @override
   Future<NotificationStatus> status() async => NotificationStatus.all;
@@ -195,6 +264,7 @@ class _AndroidNotifications implements RoutineNotifications {
         if (off(_remindersChannel)) DailyRoutine.reminder,
         if (off(_autoAddsChannel)) DailyRoutine.autoAdd,
       },
+      slotRemindersBlocked: off(_slotRemindersChannel),
       exact: await android.canScheduleExactNotifications() ?? false,
     );
   }
@@ -220,24 +290,76 @@ class _AndroidNotifications implements RoutineNotifications {
     // Only those of products without a routine any more are cancelled: a
     // notification on screen stays until it is replaced.
     for (final pending in await _plugin.pendingNotificationRequests()) {
-      if (!routines.containsKey(pending.id)) {
+      if (!isSlotReminderId(pending.id) && !routines.containsKey(pending.id)) {
         await _plugin.cancel(id: pending.id);
       }
     }
-    // At their exact time when allowed. Otherwise Android may delay them
-    // by up to three quarters of the time left: hours for a time set the
-    // day before.
-    final exact = await _android?.canScheduleExactNotifications() ?? false;
+    final mode = await _scheduleMode();
     for (final product in routines.values) {
-      await _schedule(
-        product,
-        l10n,
-        exact
-            ? AndroidScheduleMode.exactAllowWhileIdle
-            : AndroidScheduleMode.inexactAllowWhileIdle,
+      await _schedule(product, l10n, mode);
+    }
+  }
+
+  @override
+  Future<void> scheduleSlotReminders(
+    List<SlotReminder> planned,
+    List<SlotReminder> outdated,
+    AppLocalizations l10n, {
+    required bool replace,
+  }) async {
+    final ids = {for (final reminder in planned) reminder.id};
+    final kept = <int>{};
+    for (final pending in await _plugin.pendingNotificationRequests()) {
+      if (!isSlotReminderId(pending.id)) continue;
+      if (ids.contains(pending.id)) {
+        kept.add(pending.id);
+      } else {
+        await _plugin.cancel(id: pending.id);
+      }
+    }
+    for (final reminder in outdated) {
+      await _plugin.cancel(id: reminder.id);
+    }
+    final mode = await _scheduleMode();
+    for (final reminder in planned) {
+      if (!replace && kept.contains(reminder.id)) continue;
+      final time = reminder.time;
+      await _plugin.zonedSchedule(
+        id: reminder.id,
+        title: switch (reminder.slot) {
+          DaySlot.morning => l10n.slotReminderMorning,
+          DaySlot.afternoon => l10n.slotReminderAfternoon,
+          DaySlot.evening => l10n.slotReminderEvening,
+        },
+        body: l10n.slotReminderBody,
+        scheduledDate: tz.TZDateTime(
+          tz.local,
+          time.year,
+          time.month,
+          time.day,
+          time.hour,
+        ),
+        androidScheduleMode: mode,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _slotRemindersChannel,
+            l10n.notificationChannelSlotReminders,
+            icon: 'ic_notification',
+            color: AppColors.accent,
+            category: AndroidNotificationCategory.reminder,
+          ),
+        ),
       );
     }
   }
+
+  /// At their exact time when allowed. Otherwise Android may delay them by
+  /// up to three quarters of the time left: hours for a time set the day
+  /// before.
+  Future<AndroidScheduleMode> _scheduleMode() async =>
+      await _android?.canScheduleExactNotifications() ?? false
+      ? AndroidScheduleMode.exactAllowWhileIdle
+      : AndroidScheduleMode.inexactAllowWhileIdle;
 
   Future<void> _schedule(
     Product product,

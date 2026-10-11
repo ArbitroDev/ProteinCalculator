@@ -2,5 +2,5 @@
 <resources>
     <color name="ic_launcher_background">#2D3FE0</color>
     <!-- Background of the "Marine" theme of the phone app. -->
-    <color name="background">#0B1050</color>
+    <color name="background">#10142E</color>
 </resources>

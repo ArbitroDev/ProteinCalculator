@@ -5,7 +5,6 @@ import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
-import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/protein_calc.dart';
@@ -43,13 +42,13 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
 
   AppDatabase get _db => ref.read(databaseProvider);
 
-  /// Product a new entry starts from: opened from it or picked among the
-  /// suggestions.
-  Product? _source;
+  /// Normalized names of the other products, which the name cannot take.
+  Set<String> _takenNames = const {};
 
   @override
   Future<EntryFormState> build() async {
     final db = ref.read(databaseProvider);
+    _takenNames = await db.productsDao.getNameKeys();
     // A new routine is offered at the current time, by steps of 5 minutes.
     final now = ref.read(clockProvider)();
     final blank = EntryFormState(
@@ -58,37 +57,45 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
     );
     switch (args) {
       case NewEntryArgs(:final productId):
+        // From a product: a blank entry filled with its values, which never
+        // changes the product.
         if (productId == null) return blank;
         final product = await db.productsDao.getProduct(productId);
         if (product == null) return blank;
-        _source = product;
-        return _withSourceStatus(_fromProduct(blank, product));
+        return _withNameStatus(_fromProduct(blank, product, routine: false));
       case NewProductArgs():
         return blank;
       case EditEntryArgs(:final entryId):
         final entry = await db.entriesDao.getEntry(entryId);
         if (entry == null) return const EntryFormState();
         return _withAmount(
-          EntryFormState(name: entry.name ?? ''),
+          EntryFormState(name: entry.name ?? '', time: entry.createdAt),
           entry.amount,
         );
       case EditProductArgs(:final productId):
         final product = await db.productsDao.getProduct(productId);
-        return product == null ? blank : _fromProduct(blank, product);
+        if (product == null) return blank;
+        _takenNames = {..._takenNames}..remove(product.nameKey);
+        return _fromProduct(blank, product);
     }
   }
 
-  EntryFormState _fromProduct(EntryFormState base, Product product) =>
-      _withAmount(
-        base.copyWith(
-          name: product.name,
-          routine: product.routine,
-          routineMinutes: product.routineMinutes,
-          errors: const {},
-          revision: base.revision + 1,
-        ),
-        product.amount,
-      );
+  /// [base] filled with the name and the values of [product], and its
+  /// [routine] too: a new entry starting from a product does not take it.
+  EntryFormState _fromProduct(
+    EntryFormState base,
+    Product product, {
+    bool routine = true,
+  }) => _withAmount(
+    base.copyWith(
+      name: product.name,
+      routine: routine ? product.routine : null,
+      routineMinutes: routine ? product.routineMinutes : null,
+      errors: const {},
+      revision: base.revision + 1,
+    ),
+    product.amount,
+  );
 
   /// [form] showing [amount].
   static EntryFormState _withAmount(
@@ -123,35 +130,17 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
 
   void _update(EntryFormState Function(EntryFormState) change) {
     final current = state.value;
-    if (current != null) state = AsyncData(_withSourceStatus(change(current)));
+    if (current != null) state = AsyncData(_withNameStatus(change(current)));
   }
 
-  /// Allows saving as a product only once the values differ from the
-  /// product the entry starts from.
-  EntryFormState _withSourceStatus(EntryFormState form) {
-    final source = _source;
-    if (args is! NewEntryArgs || source == null) return form;
-    final changed = !_matches(form, source);
+  /// [form] knowing whether its name is taken: a new entry is then not
+  /// saved as a product, which needs a name of its own.
+  EntryFormState _withNameStatus(EntryFormState form) {
+    final taken = _takenNames.contains(productNameKey(form.name));
     return form.copyWith(
-      canSaveAsProduct: changed,
-      // A routine needs a product: once the values differ from the source,
-      // it goes with them.
-      saveAsProduct:
-          changed && (form.saveAsProduct || form.routine != DailyRoutine.none),
-      updatesProduct: productNameKey(form.name) == source.nameKey,
+      nameTaken: taken,
+      saveAsProduct: form.saveAsProduct && !taken,
     );
-  }
-
-  /// Whether [form] holds the same name and quantities as [product].
-  bool _matches(EntryFormState form, Product product) {
-    final saved = _fromProduct(const EntryFormState(), product);
-    bool same(String a, String b) => parseGrams(a) == parseGrams(b);
-    if (productNameKey(form.name) != product.nameKey) return false;
-    if (form.mode != saved.mode) return false;
-    if (form.mode == EntryMode.direct) return same(form.protein, saved.protein);
-    return same(form.consumed, saved.consumed) &&
-        same(form.proteinPerReference, saved.proteinPerReference) &&
-        same(form.reference, saved.reference);
   }
 
   void setName(String value) =>
@@ -180,52 +169,61 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         .copyWith(reference: value),
   );
 
-  /// Ignored while a routine is chosen: it needs the product, see
-  /// [setRoutine].
+  /// Turning it on is ignored while the name is taken, see
+  /// [EntryFormState.nameTaken].
   void setSaveAsProduct(bool value) => _update(
-    (s) => s.canSaveAsProduct && s.routine != DailyRoutine.none
+    (s) => value && s.nameTaken
         ? s
         : s.clearError(EntryFormField.name).copyWith(saveAsProduct: value),
   );
 
-  /// A routine belongs to a product: a new entry is saved as one, unless it
-  /// is the unchanged product it starts from.
-  void setRoutine(DailyRoutine value) => _update(
-    (s) => s.copyWith(
-      routine: value,
-      saveAsProduct:
-          args is NewEntryArgs &&
-              value != DailyRoutine.none &&
-              s.canSaveAsProduct ||
-          s.saveAsProduct,
-    ),
-  );
+  /// The routine of the product, or of the new product a new entry is saved
+  /// as.
+  void setRoutine(DailyRoutine value) =>
+      _update((s) => s.copyWith(routine: value));
 
   void setRoutineMinutes(int value) =>
       _update((s) => s.copyWith(routineMinutes: value));
 
-  /// Fills the form with the values of a suggested product.
-  void applyProduct(Product product) {
-    _source = product;
-    _update((s) => _fromProduct(s, product));
+  /// Sets the moment of the entry, or null for now; a moment yet to come is
+  /// refused at once.
+  void setTime(DateTime? value) {
+    final future = value?.isAfter(ref.read(clockProvider)()) ?? false;
+    _update((s) {
+      final next = s
+          .clearError(EntryFormField.time)
+          .copyWith(time: value, clearTime: value == null);
+      return future
+          ? next.copyWith(
+              errors: {
+                ...next.errors,
+                EntryFormField.time: EntryFormError.future,
+              },
+            )
+          : next;
+    });
   }
+
+  /// Fills the form with the values of a suggested product, which the entry
+  /// never changes.
+  void applyProduct(Product product) =>
+      _update((s) => _fromProduct(s, product, routine: false));
 
   /// Validates and saves the form. Returns whether it was saved.
   Future<bool> submit() async {
     final current = state.value;
     if (current == null) return false;
 
-    final needsName =
-        args.isProduct ||
-        current.saveAsProduct ||
-        current.routine != DailyRoutine.none;
-    final errors = current.validate(nameRequired: needsName);
+    final needsName = args.isProduct || current.saveAsProduct;
+    final errors = current.validate(
+      nameRequired: needsName,
+      now: ref.read(clockProvider)(),
+    );
     if (needsName && !errors.containsKey(EntryFormField.name)) {
       final taken = await _db.productsDao.isNameTaken(
         current.name,
         exceptId: switch (args) {
           EditProductArgs(:final productId) => productId,
-          NewEntryArgs() when current.updatesProduct => _source?.id,
           _ => null,
         },
       );
@@ -289,26 +287,13 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
     switch (args) {
       case NewEntryArgs():
         await db.transaction(() async {
-          // The product goes first so this entry counts as its first use.
-          if (form.saveAsProduct) {
-            final source = form.updatesProduct && _source != null
-                ? await db.productsDao.getProduct(_source!.id)
-                : null;
-            if (source != null) {
-              await updateProduct(source);
-              await setRoutine(source.id, source);
-            } else {
-              await setRoutine(await insertProduct(), null);
-            }
-          } else if (_source case final source?) {
-            // The unchanged product the entry starts from.
-            final product = await db.productsDao.getProduct(source.id);
-            if (product != null) await setRoutine(product.id, product);
-          }
+          // The new product goes first so this entry counts as its first
+          // use.
+          if (form.saveAsProduct) await setRoutine(await insertProduct(), null);
           await db.entriesDao.insertEntry(
             name: name.isEmpty ? null : name,
             amount: amount,
-            createdAt: now,
+            createdAt: form.time ?? now,
           );
         });
       case EditEntryArgs(:final entryId):
@@ -318,6 +303,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
           entry
               .withAmount(amount)
               .copyWith(name: Value(name.isEmpty ? null : name)),
+          createdAt: form.time,
         );
       case NewProductArgs():
         await db.transaction(
