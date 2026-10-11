@@ -13,8 +13,8 @@ import arbitro.android.protein_calculator.protocol.WatchDeletion
 import arbitro.android.protein_calculator.protocol.WatchEntry
 import arbitro.android.protein_calculator.protocol.WatchMessages
 import arbitro.android.protein_calculator.protocol.WatchProtocol
-import kotlinx.serialization.builtins.ListSerializer
 import kotlin.math.abs
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 /**
