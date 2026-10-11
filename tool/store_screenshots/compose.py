@@ -86,15 +86,17 @@ def screenshot(language, shot, theme, line1, line2, path):
 def feature_graphic(language, path):
     graphic = Image.new('RGB', (1024, 500), COBALT)
     draw = ImageDraw.Draw(graphic)
+    # The background of the icon is the cobalt of the graphic: only the
+    # shaker shows, as large as the height allows.
     icon = rounded(
-        Image.open(ICON).convert('RGBA').resize((300, 300), Image.LANCZOS), 66
+        Image.open(ICON).convert('RGBA').resize((440, 440), Image.LANCZOS), 97
     )
-    graphic.paste(icon, (80, 100), icon)
-    name = ImageFont.truetype(SAIRA, 74)
-    tagline = ImageFont.truetype(OUTFIT, 34)
-    draw.text((420, 150), 'Protein', font=name, fill=WHITE)
-    draw.text((420, 225), 'Calculator', font=name, fill=WHITE)
-    draw.text((424, 325), TAGLINES[language], font=tagline, fill=ORANGE)
+    graphic.paste(icon, (0, 30), icon)
+    name = ImageFont.truetype(SAIRA, 112)
+    tagline = ImageFont.truetype(OUTFIT, 42)
+    draw.text((390, 88), 'Protein', font=name, fill=WHITE)
+    draw.text((390, 188), 'Calculator', font=name, fill=WHITE)
+    draw.text((394, 342), TAGLINES[language], font=tagline, fill=ORANGE)
     stamp(graphic, VERSION).save(path, optimize=True)
 
 
