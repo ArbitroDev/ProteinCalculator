@@ -89,15 +89,10 @@ class WatchStore(context: Context) {
      * now or once it is nearby. Returns whether the phone has to be told.
      */
     suspend fun delete(entry: DayEntry): Boolean {
-        val additionId = entry.additionId
-        if (additionId != null) {
-            edit { it.removePending(additionId) }
-            return false
-        }
-        val entryId = entry.entryId ?: return false
-        val deletion = WatchDeletion(id = UUID.randomUUID().toString(), entryId = entryId, time = entry.time)
-        edit { it.addDeletion(deletion) }
-        return true
+        var tell = false
+        // At once, as the phone may answer for the addition meanwhile.
+        edit { tell = it.delete(entry, deletionId = UUID.randomUUID().toString()) }
+        return tell
     }
 
     /**

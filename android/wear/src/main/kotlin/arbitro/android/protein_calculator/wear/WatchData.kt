@@ -10,9 +10,11 @@ import arbitro.android.protein_calculator.protocol.DeleteReply
 import arbitro.android.protein_calculator.protocol.Received
 import arbitro.android.protein_calculator.protocol.WatchAddition
 import arbitro.android.protein_calculator.protocol.WatchDeletion
+import arbitro.android.protein_calculator.protocol.WatchEntry
 import arbitro.android.protein_calculator.protocol.WatchMessages
 import arbitro.android.protein_calculator.protocol.WatchProtocol
 import kotlinx.serialization.builtins.ListSerializer
+import kotlin.math.abs
 import kotlinx.serialization.json.Json
 
 /**
@@ -33,9 +35,7 @@ private val deletionsSerializer = ListSerializer(WatchDeletion.serializer())
 
 /** What the watch keeps, read from its stored preferences. */
 internal fun Preferences.toSaved() = Saved(
-    state = this[WatchKeys.STATE]?.let { stored ->
-        (WatchMessages.decodeState(stored.encodeToByteArray()) as? Received.Message)?.value
-    },
+    state = state,
     receivedAt = this[WatchKeys.RECEIVED_AT],
     incompatibility = this[WatchKeys.INCOMPATIBILITY]?.let { name ->
         Incompatibility.entries.firstOrNull { it.name == name }
@@ -43,6 +43,12 @@ internal fun Preferences.toSaved() = Saved(
     pending = pending,
     deletions = deletions,
 )
+
+/** Last state of the day received from the phone. */
+private val Preferences.state: DayState?
+    get() = this[WatchKeys.STATE]?.let { stored ->
+        (WatchMessages.decodeState(stored.encodeToByteArray()) as? Received.Message)?.value
+    }
 
 /** Additions waiting for the phone, oldest first. */
 internal val Preferences.pending: List<WatchAddition>
@@ -74,6 +80,51 @@ private fun MutablePreferences.setDeletions(deletions: List<WatchDeletion>) {
 internal fun MutablePreferences.addDeletion(deletion: WatchDeletion) {
     if (deletions.none { it.entryId == deletion.entryId }) setDeletions(deletions + deletion)
 }
+
+/**
+ * Deletes [entry]: an addition still waiting for the phone is dropped;
+ * otherwise the entry the phone made is kept to be deleted by the phone,
+ * under [deletionId]. Returns whether the phone has to be told.
+ *
+ * The phone may have made an addition shown as waiting while its deletion
+ * could be undone: the entry it made of it is deleted instead.
+ */
+internal fun MutablePreferences.delete(entry: DayEntry, deletionId: String): Boolean {
+    val additionId = entry.additionId
+    if (additionId != null && pending.any { it.id == additionId }) {
+        removePending(additionId)
+        return false
+    }
+    val (entryId, time) = entry.entryId?.let { it to entry.time }
+        ?: madeFrom(entry)?.let { it.id to it.time }
+        // Refused by the phone, or of another day: nothing to delete.
+        ?: return false
+    addDeletion(WatchDeletion(id = deletionId, entryId = entryId, time = time))
+    return true
+}
+
+/**
+ * The entry the phone made of the addition shown as [entry], not deleted
+ * yet: added on the watch at the same second, the phone keeping seconds
+ * only, or else of the same name and grams a little earlier, when the
+ * watch clock ran ahead and the phone took its own time.
+ */
+private fun Preferences.madeFrom(entry: DayEntry): WatchEntry? {
+    val deleted = deletions.map { it.entryId }.toSet()
+    val made = state?.entries.orEmpty().filter { it.fromWatch && it.id !in deleted }
+    val second = entry.time - Math.floorMod(entry.time, 1_000L)
+    fun alike(made: WatchEntry) = made.name == entry.name && abs(made.protein - entry.protein) < PROTEIN_MARGIN
+    return made.firstOrNull { it.time == second && alike(it) }
+        ?: made.firstOrNull { it.time == second }
+        ?: made.filter { alike(it) && it.time <= entry.time && entry.time - it.time <= CLOCK_MARGIN_MS }
+            .maxByOrNull { it.time }
+}
+
+/** Gap between protein grams told apart, the phone keeping one decimal. */
+private const val PROTEIN_MARGIN = 0.05
+
+/** How far ahead of the phone the clock of the watch may run. */
+private const val CLOCK_MARGIN_MS = 5 * 60_000L
 
 /**
  * Keeps [state], received at [receivedAt], and drops the additions and

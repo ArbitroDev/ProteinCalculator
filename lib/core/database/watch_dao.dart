@@ -48,7 +48,7 @@ class WatchDao extends DatabaseAccessor<AppDatabase> with _$WatchDaoMixin {
         // Its id may name another product after a backup was restored.
         await attachedDatabase.entriesDao.insertEntry(
           name: name,
-          amount: DirectAmount((addition.protein * 10).round() / 10),
+          amount: DirectAmount(addition.roundedProtein),
           createdAt: createdAt,
           fromWatch: true,
         );

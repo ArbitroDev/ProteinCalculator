@@ -26,7 +26,8 @@ import kotlinx.coroutines.flow.first
 /**
  * Progress of the day for the watch faces: a ranged value from zero to the
  * goal, or a short text "87/140". A tap opens the app. At the start of the
- * next app day, it starts again from zero without waiting for the phone.
+ * next app day, it starts again from zero without waiting for the phone,
+ * and stays there the days after.
  */
 class ProteinComplicationService : SuspendingTimelineComplicationDataSourceService() {
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationDataTimeline? {
@@ -40,13 +41,14 @@ class ProteinComplicationService : SuspendingTimelineComplicationDataSourceServi
         val today = data(request.complicationType, screen.total, screen.goal) ?: return null
         val dayStartHour = saved.state?.dayStartHour ?: return ComplicationDataTimeline(today, emptyList())
         val time = LocalDateTime.ofInstant(Instant.ofEpochMilli(now), zone)
-        val next = nextDayStart(time, dayStartHour)
-        val nextDay = TimeInterval(
-            next.atZone(zone).toInstant(),
-            nextDayStart(next, dayStartHour).atZone(zone).toInstant(),
+        val dayEnd = nextDayStart(time, dayStartHour).atZone(zone).toInstant()
+        // The total until the day ends, then zero, however long the phone
+        // stays away: no other request may come meanwhile.
+        val empty = data(request.complicationType, 0.0, screen.goal) ?: return null
+        return ComplicationDataTimeline(
+            empty,
+            listOf(TimelineEntry(TimeInterval(Instant.ofEpochMilli(now), dayEnd), today)),
         )
-        val tomorrow = data(request.complicationType, 0.0, screen.goal) ?: return null
-        return ComplicationDataTimeline(today, listOf(TimelineEntry(nextDay, tomorrow)))
     }
 
     override fun getPreviewData(type: ComplicationType): ComplicationData? = data(type, 87.0, 140.0)

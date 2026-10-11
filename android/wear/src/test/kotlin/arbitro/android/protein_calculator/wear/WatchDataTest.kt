@@ -11,10 +11,13 @@ import arbitro.android.protein_calculator.protocol.DeleteResult
 import arbitro.android.protein_calculator.protocol.DeleteStatus
 import arbitro.android.protein_calculator.protocol.WatchAddition
 import arbitro.android.protein_calculator.protocol.WatchDeletion
+import arbitro.android.protein_calculator.protocol.WatchEntry
 import arbitro.android.protein_calculator.protocol.WatchProtocol
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class WatchDataTest {
     private val state = DayState(
@@ -177,5 +180,83 @@ class WatchDataTest {
         val preferences = mutablePreferencesOf(WatchKeys.STATE to """{"v":2}""")
 
         assertNull(preferences.toSaved().state)
+    }
+
+    /** The addition [id] as the watch lists it while it waits, tapped at [time]. */
+    private fun waitingEntry(id: String, time: Long = 1_790_000_000_123) =
+        DayEntry(null, id, "Skyr", 15.0, time, fromWatch = true, pending = true)
+
+    /** An entry of the phone, at [time]. */
+    private fun made(id: Long, time: Long = 1_790_000_000_000, name: String = "Skyr", fromWatch: Boolean = true) =
+        WatchEntry(id = id, name = name, protein = 15.0, time = time, fromWatch = fromWatch)
+
+    @Test
+    fun `deleting an addition still waiting drops it, with nothing to tell the phone`() {
+        val preferences = waiting("a1", "a2")
+
+        assertFalse(preferences.delete(waitingEntry("a1"), deletionId = "d1"))
+
+        assertEquals(listOf("a2"), preferences.ids)
+        assertEquals(emptyList(), preferences.deletions)
+    }
+
+    @Test
+    fun `deleting an entry of the phone keeps its deletion`() {
+        val preferences = mutablePreferencesOf()
+        val entry = DayEntry(42, null, "Skyr", 15.0, 1_790_000_000_000, fromWatch = false, pending = false)
+
+        assertTrue(preferences.delete(entry, deletionId = "d1"))
+
+        assertEquals(listOf(WatchDeletion("d1", 42, 1_790_000_000_000)), preferences.deletions)
+    }
+
+    @Test
+    fun `an addition the phone made while its deletion could be undone is deleted as the entry it made`() {
+        val preferences = waiting("a1")
+        // The phone answers: it made the entry 42, at the second of the tap.
+        val reply = AddReply(
+            results = listOf(AddResult("a1", AddStatus.ADDED)),
+            state = state.copy(entries = listOf(made(42), made(7, time = 1_789_990_000_000))),
+        )
+        preferences.keepReply(reply, receivedAt = 1)
+
+        assertTrue(preferences.delete(waitingEntry("a1"), deletionId = "d1"))
+
+        assertEquals(listOf(WatchDeletion("d1", 42, 1_790_000_000_000)), preferences.deletions)
+    }
+
+    @Test
+    fun `two additions made at the same second are deleted as two entries`() {
+        val preferences = mutablePreferencesOf()
+        preferences.keepState(state.copy(entries = listOf(made(42), made(43))), receivedAt = 1)
+
+        preferences.delete(waitingEntry("a1"), deletionId = "d1")
+        preferences.delete(waitingEntry("a2", time = 1_790_000_000_456), deletionId = "d2")
+
+        assertEquals(setOf(42L, 43L), preferences.deletions.map { it.entryId }.toSet())
+    }
+
+    @Test
+    fun `an addition made at the time of the phone, the watch running ahead, is found by its name`() {
+        val preferences = mutablePreferencesOf()
+        preferences.keepState(state.copy(entries = listOf(made(42, time = 1_789_999_950_000))), receivedAt = 1)
+
+        assertTrue(preferences.delete(waitingEntry("a1"), deletionId = "d1"))
+
+        assertEquals(listOf(42L), preferences.deletions.map { it.entryId })
+    }
+
+    @Test
+    fun `an addition the phone refused deletes no other entry`() {
+        val preferences = mutablePreferencesOf()
+        // Of the morning, or not added on the watch.
+        preferences.keepState(
+            state.copy(entries = listOf(made(7, time = 1_789_990_000_000), made(8, fromWatch = false))),
+            receivedAt = 1,
+        )
+
+        assertFalse(preferences.delete(waitingEntry("a1"), deletionId = "d1"))
+
+        assertEquals(emptyList(), preferences.deletions)
     }
 }

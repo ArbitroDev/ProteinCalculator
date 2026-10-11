@@ -72,10 +72,13 @@ object WatchEngine {
         val source = TaskCompletionSource<T>()
         handler.post {
             start()
+            // The engine this request waits for.
+            var awaited: FlutterEngine? = null
             val timeout = Runnable {
                 if (source.trySetException(TimeoutException("No answer of the Dart code"))) {
-                    // An engine that never got ready is started again next time.
-                    if (!ready) destroy()
+                    // An engine that never got ready is started again next
+                    // time, unless another request already did.
+                    if (!ready && awaited != null && engine === awaited) destroy()
                 }
             }
             handler.postDelayed(timeout, TIMEOUT_MS)
@@ -89,6 +92,7 @@ object WatchEngine {
                     }
                 }
             }
+            awaited = engine
         }
         source.task.addOnCompleteListener(mainThread) { finish() }
         return source.task

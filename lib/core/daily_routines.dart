@@ -113,7 +113,8 @@ class _RoutineRunner {
   /// The buttons of the notifications and the watch change the data apart
   /// from the app, maybe while it was in the background: the screens read
   /// it again.
-  void _reloadData() => db.markTablesUpdated([db.entries, db.products]);
+  void _reloadData() =>
+      db.markTablesUpdated([db.entries, db.products, db.watchRequests]);
 
   Future<void> _onResume() async {
     _reloadData();

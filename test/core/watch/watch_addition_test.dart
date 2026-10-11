@@ -60,6 +60,7 @@ void main() {
       expect(addition().isValid, isTrue);
       expect(addition(name: ' Skyr ').isValid, isTrue);
       expect(addition(protein: 0.1).isValid, isTrue);
+      expect(addition(protein: 9999.94).isValid, isTrue);
       expect(addition(name: 'a' * 40).isValid, isTrue);
       expect(addition(productId: null).isValid, isTrue);
       expect(addition(productId: null, name: null).isValid, isTrue);
@@ -75,6 +76,9 @@ void main() {
       expect(addition(protein: -1).isValid, isFalse);
       expect(addition(protein: double.infinity).isValid, isFalse);
       expect(addition(protein: 10000).isValid, isFalse);
+      // Kept with one decimal: 0 g, and above the most the form accepts.
+      expect(addition(protein: 0.04).isValid, isFalse);
+      expect(addition(protein: 9999.96).isValid, isFalse);
     });
   });
 }

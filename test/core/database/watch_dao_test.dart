@@ -150,6 +150,8 @@ void main() {
       addition(protein: 0),
       addition(protein: double.nan),
       addition(protein: 10000),
+      addition(productId: null, protein: 0.04),
+      addition(productId: null, protein: 9999.96),
       addition(id: ''),
     ]) {
       expect(await dao.add(invalid, now), WatchAdditionStatus.invalid);

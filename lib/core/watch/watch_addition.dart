@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 
 /// An entry added on the watch, maybe while out of range of the phone, for
@@ -49,14 +50,17 @@ class WatchAddition {
   /// When it was added on the watch: the time of the entry.
   final DateTime addedAt;
 
+  /// [protein] with one decimal, as the form keeps it: the grams of the
+  /// entry made without the product.
+  double get roundedProtein => (protein * 10).round() / 10;
+
   /// Whether the values can make an entry, as the form would accept them.
   bool get isValid =>
       id.isNotEmpty &&
       (productId == null || name != null) &&
       (name == null || isValidName(name!.trim())) &&
       protein.isFinite &&
-      protein > 0 &&
-      protein < 10000;
+      isValidProteinGrams(roundedProtein);
 }
 
 /// What the phone made of a [WatchAddition], see `AddStatus` in
