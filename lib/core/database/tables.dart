@@ -124,6 +124,11 @@ class AppSettings extends Table {
   /// Whether crash reports are sent; off until the user agrees.
   BoolColumn get crashReports => boolean().withDefault(const Constant(false))();
 
+  /// Whether a notification reminds the user to add entries in a part of the
+  /// day left empty, see `SlotReminder`; off until the user turns it on.
+  BoolColumn get slotReminders =>
+      boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

@@ -621,7 +621,7 @@
   "@exactAlarmsTitle": {
     "description": "Dialog title asking to allow exact alarms."
   },
-  "exactAlarmsBody": "Pour que tes routines te préviennent à l'heure, autorise « Alarmes et rappels » pour Protein Calculator dans la page qui va s'ouvrir. Sans ça, Android peut les retarder de plusieurs heures.",
+  "exactAlarmsBody": "Pour que tes notifications arrivent à l'heure, autorise « Alarmes et rappels » pour Protein Calculator dans la page qui va s'ouvrir. Sans ça, Android peut les retarder de plusieurs heures.",
   "@exactAlarmsBody": {
     "description": "Dialog body asking to allow exact alarms."
   },
@@ -672,5 +672,56 @@
   "dayStartSheetBody": "Ta journée et ta matinée commencent à cette heure : ce que tu ajoutes avant compte pour la veille au soir. Le changement vaut pour tes prochaines entrées.",
   "@dayStartSheetBody": {
     "description": "Bottom sheet explaining the start hour of the app day."
+  },
+  "menuSlotReminders": "Rappels d'oubli",
+  "@menuSlotReminders": {
+    "description": "Menu: switch of the reminders shown when a part of the day has no entry."
+  },
+  "menuSlotRemindersBody": "Une notification à {morning}, {afternoon} et {evening} si tu n'as rien noté le matin, l'après-midi ou le soir.",
+  "@menuSlotRemindersBody": {
+    "description": "Menu: explains the reminders of the parts of the day, with their times.",
+    "placeholders": {
+      "morning": {
+        "type": "String"
+      },
+      "afternoon": {
+        "type": "String"
+      },
+      "evening": {
+        "type": "String"
+      }
+    }
+  },
+  "slotRemindersNeedNotifications": "Les rappels d'oubli passent par des notifications : autorise-les pour les activer.",
+  "@slotRemindersNeedNotifications": {
+    "description": "Snack bar when the reminders of the parts of the day are turned on without notifications."
+  },
+  "notificationsOffSlotReminders": "Notifications désactivées : les rappels d'oubli ne s'afficheront pas.",
+  "@notificationsOffSlotReminders": {
+    "description": "Menu banner when the reminders of the parts of the day are on but notifications are off."
+  },
+  "slotRemindersMayBeLate": "Alarmes et rappels non autorisés : les rappels d'oubli peuvent arriver en retard.",
+  "@slotRemindersMayBeLate": {
+    "description": "Menu banner when the reminders of the parts of the day are on but exact alarms are not allowed."
+  },
+  "notificationChannelSlotReminders": "Rappels d'oubli",
+  "@notificationChannelSlotReminders": {
+    "description": "Android notification channel of the reminders of the parts of the day."
+  },
+  "slotReminderMorning": "Rien noté ce matin ?",
+  "@slotReminderMorning": {
+    "description": "Notification title when the morning has no entry."
+  },
+  "slotReminderAfternoon": "Rien noté cet après-midi ?",
+  "@slotReminderAfternoon": {
+    "description": "Notification title when the afternoon has no entry."
+  },
+  "slotReminderEvening": "Rien noté ce soir ?",
+  "@slotReminderEvening": {
+    "description": "Notification title when the evening has no entry."
+  },
+  "slotReminderBody": "Si tu as oublié, ajoute ce que tu as consommé.",
+  "@slotReminderBody": {
+    "description": "Notification body of the reminders of the parts of the day."
   }
 }

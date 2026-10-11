@@ -126,7 +126,7 @@
   "notificationsOffBanner": "Notifications are off: your routines can't notify you.",
   "openSettings": "Settings",
   "exactAlarmsTitle": "Right on time",
-  "exactAlarmsBody": "So your routines notify you on time, allow “Alarms & reminders” for Protein Calculator on the page that opens. Without it, Android may delay them by hours.",
+  "exactAlarmsBody": "So your notifications arrive on time, allow “Alarms & reminders” for Protein Calculator on the page that opens. Without it, Android may delay them by hours.",
   "exactAlarmsAllow": "Allow",
   "exactAlarmsLater": "Later",
   "routineMayBeLate": "Alarms & reminders not allowed: the notification may arrive late.",
@@ -138,5 +138,15 @@
   "calendarHalf": "50% or more",
   "calendarReached": "Goal reached",
   "menuDayStart": "Start of the day",
-  "dayStartSheetBody": "Your day and your morning start at this time: what you add before counts for the evening before. The change applies to your next entries."
+  "dayStartSheetBody": "Your day and your morning start at this time: what you add before counts for the evening before. The change applies to your next entries.",
+  "menuSlotReminders": "Missed entry reminders",
+  "menuSlotRemindersBody": "A notification at {morning}, {afternoon} and {evening} if you logged nothing in the morning, afternoon or evening.",
+  "slotRemindersNeedNotifications": "Missed entry reminders are notifications: allow them to turn the reminders on.",
+  "notificationsOffSlotReminders": "Notifications off: missed entry reminders won't show.",
+  "slotRemindersMayBeLate": "Alarms & reminders not allowed: missed entry reminders may arrive late.",
+  "notificationChannelSlotReminders": "Missed entry reminders",
+  "slotReminderMorning": "Nothing logged this morning?",
+  "slotReminderAfternoon": "Nothing logged this afternoon?",
+  "slotReminderEvening": "Nothing logged this evening?",
+  "slotReminderBody": "If you forgot, add what you consumed."
 }

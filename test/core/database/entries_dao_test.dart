@@ -148,6 +148,25 @@ void main() {
     });
   });
 
+  group('filledSlotsFrom', () {
+    test('lists the parts of the days having entries, from a day', () async {
+      await addEntry(15, DateTime(2026, 9, 30, 20));
+      await addEntry(15, DateTime(2026, 10, 1, 8));
+      await addEntry(10, DateTime(2026, 10, 1, 9));
+      await addEntry(10, DateTime(2026, 10, 1, 19));
+
+      expect(await dao.filledSlotsFrom(20261001), {
+        (20261001, DaySlot.morning),
+        (20261001, DaySlot.evening),
+      });
+      expect(
+        await dao.filledSlotsFrom(20260930),
+        contains((20260930, DaySlot.evening)),
+      );
+      expect(await dao.filledSlotsFrom(20261002), isEmpty);
+    });
+  });
+
   group('deleteEntry and restoreEntry', () {
     test('delete returns the entry and restore puts it back', () async {
       final id = await addEntry(15, DateTime(2026, 9, 30, 8), name: 'Skyr');

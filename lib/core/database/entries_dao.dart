@@ -75,6 +75,18 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     return query.watch();
   }
 
+  /// Parts of the days from [dayKey] onwards having at least one entry, as
+  /// `(dayKey, slot)`.
+  Future<Set<(int, DaySlot)>> filledSlotsFrom(int dayKey) async {
+    final query = selectOnly(entries, distinct: true)
+      ..addColumns([entries.dayKey, entries.slot])
+      ..where(entries.dayKey.isBiggerOrEqualValue(dayKey));
+    return {
+      for (final row in await query.get())
+        (row.read(entries.dayKey)!, row.readWithConverter(entries.slot)!),
+    };
+  }
+
   Future<Entry?> getEntry(int id) =>
       (select(entries)..where((e) => e.id.equals(id))).getSingleOrNull();
 
@@ -161,9 +173,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   /// of the days the app was not opened.
   Future<void> addRoutineEntries(DateTime now) {
     return transaction(() async {
-      final routines = await (select(
-        products,
-      )..where((p) => p.routine.equalsValue(DailyRoutine.autoAdd))).get();
+      final routines = await attachedDatabase.productsDao.getAutoAdds();
       for (final product in routines) {
         final minutes = product.routineMinutes;
         if (minutes == null) continue;

@@ -123,6 +123,12 @@ final crashReportsProvider = StreamProvider<bool>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchCrashReports(),
 );
 
+/// Whether the reminders of the parts of the day left empty are on, see
+/// `SlotReminder`.
+final slotRemindersProvider = StreamProvider<bool>(
+  (ref) => ref.watch(databaseProvider).settingsDao.watchSlotReminders(),
+);
+
 /// Sort order chosen in the products tab, remembered between launches.
 final productSortProvider = StreamProvider<ProductSort>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchProductSort(),

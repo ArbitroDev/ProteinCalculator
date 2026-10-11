@@ -75,4 +75,13 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> setCrashReports(bool enabled) =>
       _write(AppSettingsCompanion(crashReports: Value(enabled)));
+
+  Future<bool> getSlotReminders() async =>
+      (await _row.getSingle()).slotReminders;
+
+  Stream<bool> watchSlotReminders() =>
+      _row.watchSingle().map((settings) => settings.slotReminders);
+
+  Future<void> setSlotReminders(bool enabled) =>
+      _write(AppSettingsCompanion(slotReminders: Value(enabled)));
 }

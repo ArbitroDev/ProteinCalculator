@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/core/background_changes.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/notifications.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/watch/watch_addition.dart';
 import 'package:protein_calculator/core/watch/watch_deletion.dart';
@@ -115,6 +116,7 @@ Future<void> watchBackgroundMain() async {
             },
           },
       ];
+      await dismissFilledSlotReminders(db, now);
       return {
         'results': results,
         'state': (await readWatchState(db, now)).toChannel(),

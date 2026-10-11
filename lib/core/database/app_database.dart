@@ -46,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -82,6 +82,9 @@ class AppDatabase extends _$AppDatabase {
       from7To8: (m, schema) async {
         await m.create(schema.watchRequests);
         await m.addColumn(schema.entries, schema.entries.fromWatch);
+      },
+      from8To9: (m, schema) async {
+        await m.addColumn(schema.appSettings, schema.appSettings.slotReminders);
       },
     ),
     beforeOpen: (details) async {

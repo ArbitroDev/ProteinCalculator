@@ -190,36 +190,7 @@ class _FormViewState extends ConsumerState<_FormView> {
       return;
     }
     if (reminder && !shows) _notifier.setRoutine(routine);
-    await _askExactAlarms();
-  }
-
-  /// Explains why exact times matter, then opens their page in Android.
-  Future<void> _askExactAlarms() async {
-    if (!mounted ||
-        ref.read(notificationStatusProvider).value?.exact != false) {
-      return;
-    }
-    final l10n = AppLocalizations.of(context);
-    final allow = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.exactAlarmsTitle),
-        content: Text(l10n.exactAlarmsBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.exactAlarmsLater),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.exactAlarmsAllow),
-          ),
-        ],
-      ),
-    );
-    if (allow ?? false) {
-      await ref.read(notificationStatusProvider.notifier).requestExactAlarms();
-    }
+    if (mounted) await askExactAlarms(context, ref);
   }
 
   Future<void> _submit() async {

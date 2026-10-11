@@ -7,6 +7,33 @@ import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
+/// If notifications may come late, explains why exact times matter, then
+/// opens their page in Android.
+Future<void> askExactAlarms(BuildContext context, WidgetRef ref) async {
+  if (ref.read(notificationStatusProvider).value?.exact != false) return;
+  final l10n = AppLocalizations.of(context);
+  final allow = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.exactAlarmsTitle),
+      content: Text(l10n.exactAlarmsBody),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(l10n.exactAlarmsLater),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(l10n.exactAlarmsAllow),
+        ),
+      ],
+    ),
+  );
+  if (allow ?? false) {
+    await ref.read(notificationStatusProvider.notifier).requestExactAlarms();
+  }
+}
+
 /// Tells that notifications of the daily routines are turned off, or late
 /// without the permission of exact times ([late]), with a button opening
 /// their settings in Android.

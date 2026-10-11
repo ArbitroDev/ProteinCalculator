@@ -30,6 +30,11 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
   Future<Product?> getProduct(int id) =>
       (select(products)..where((p) => p.id.equals(id))).getSingleOrNull();
 
+  /// Products adding themselves every day, see [DailyRoutine.autoAdd].
+  Future<List<Product>> getAutoAdds() => (select(
+    products,
+  )..where((p) => p.routine.equalsValue(DailyRoutine.autoAdd))).get();
+
   /// Whether [name] is already used by a product other than [exceptId].
   Future<bool> isNameTaken(String name, {int? exceptId}) async {
     final query = select(products)
