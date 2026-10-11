@@ -17,8 +17,8 @@ class WatchMessagesTest {
         total = 32.5,
         goal = 140.0,
         entries = listOf(
-            WatchEntry(name = null, protein = 12.5, time = 1_790_000_000_000, fromWatch = true),
-            WatchEntry(name = "Oeufs", protein = 20.0, time = 1_789_990_000_000, fromWatch = false),
+            WatchEntry(id = 8, name = null, protein = 12.5, time = 1_790_000_000_000, fromWatch = true),
+            WatchEntry(id = 5, name = "Oeufs", protein = 20.0, time = 1_789_990_000_000, fromWatch = false),
         ),
         products = listOf(
             WatchProduct(id = 4, name = "Skyr", protein = 15.0, favorite = true),
@@ -34,6 +34,8 @@ class WatchMessagesTest {
         protein = 15.0,
         addedAt = 1_790_000_100_000,
     )
+
+    private val deletion = WatchDeletion(id = "d1", entryId = 8, time = 1_790_000_000_000)
 
     private fun ByteArray.fields(): JsonObject = Json.parseToJsonElement(decodeToString()).jsonObject
 
@@ -122,6 +124,7 @@ class WatchMessagesTest {
             state.copy(dayStartHour = -1),
             state.copy(total = -1.0),
             state.copy(goal = 0.0),
+            state.copy(entries = listOf(entry.copy(id = 0))),
             state.copy(entries = listOf(entry.copy(name = " "))),
             state.copy(entries = listOf(entry.copy(protein = 0.0))),
             state.copy(entries = listOf(entry.copy(time = 0))),
@@ -235,6 +238,67 @@ class WatchMessagesTest {
             .encodeToByteArray()
 
         assertEquals(Received.Malformed, WatchMessages.decodeAddReply(message))
+    }
+
+    @Test
+    fun `deletions are read as they were written`() {
+        val deletions = listOf(deletion, deletion.copy(id = "d2", entryId = 5))
+
+        val read = WatchMessages.decodeDeleteRequest(WatchMessages.encodeDeleteRequest(deletions)).value()
+
+        assertEquals(DeleteRequest(deletions), read)
+    }
+
+    @Test
+    fun `a request of no deletion or of too many is malformed`() {
+        val tooMany = List(WatchProtocol.MAX_DELETIONS + 1) { deletion.copy(id = "d$it") }
+
+        assertEquals(Received.Malformed, WatchMessages.decodeDeleteRequest(WatchMessages.encodeDeleteRequest(emptyList())))
+        assertEquals(Received.Malformed, WatchMessages.decodeDeleteRequest(WatchMessages.encodeDeleteRequest(tooMany)))
+    }
+
+    @Test
+    fun `a deletion is valid with the id and time of an entry only`() {
+        assertEquals(true, deletion.isValid())
+        for (invalid in listOf(
+            deletion.copy(id = ""),
+            deletion.copy(id = "a".repeat(WatchProtocol.MAX_ID_LENGTH + 1)),
+            deletion.copy(entryId = 0),
+            deletion.copy(time = 0),
+        )) {
+            assertEquals(false, invalid.isValid(), "$invalid")
+        }
+    }
+
+    @Test
+    fun `a deletion is not read as an addition`() {
+        val message = WatchMessages.encodeDeleteRequest(listOf(deletion))
+
+        assertEquals(Received.Malformed, WatchMessages.decodeAddRequest(message))
+    }
+
+    @Test
+    fun `an answer to deletions is read as it was written, its statuses in lowercase`() {
+        val reply = DeleteReply(
+            results = listOf(
+                DeleteResult("d1", DeleteStatus.DELETED),
+                DeleteResult("d2", DeleteStatus.DUPLICATE),
+                DeleteResult("d3", DeleteStatus.MISSING),
+                DeleteResult("d4", DeleteStatus.INVALID),
+            ),
+            state = state,
+        )
+        val message = WatchMessages.encodeDeleteReply(reply)
+
+        assertEquals(reply, WatchMessages.decodeDeleteReply(message).value())
+        assertEquals(
+            listOf("deleted", "duplicate", "missing", "invalid"),
+            message.decodeToString().let { Regex(""""status":"(\w+)"""").findAll(it).map { match -> match.groupValues[1] }.toList() },
+        )
+        assertEquals(
+            Received.Malformed,
+            WatchMessages.decodeDeleteReply(WatchMessages.encodeDeleteReply(reply.copy(state = state.copy(day = 0)))),
+        )
     }
 
     @Test

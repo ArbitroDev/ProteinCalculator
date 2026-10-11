@@ -69,7 +69,7 @@ class PhoneLink(context: Context) {
         return true
     }
 
-    /** What became of the additions waiting for the phone. */
+    /** What became of the additions and deletions waiting for the phone. */
     enum class Sending {
         /** The phone made them all. */
         DONE,
@@ -82,25 +82,53 @@ class PhoneLink(context: Context) {
     }
 
     /**
-     * Sends the additions waiting in [store] to the nearby phone, oldest
-     * first, by batches. Each stays until the phone answers for it: one
-     * sent again is not added twice by the phone.
+     * Sends the additions, then the deletions, waiting in [store] to the
+     * nearby phone, oldest first, by batches. Each stays until the phone
+     * answers for it: one sent again is not made twice by the phone.
      */
     suspend fun sendPending(store: WatchStore): Sending {
+        val additions = send(
+            waiting = { store.pending().map { it.id to it } },
+            most = WatchProtocol.MAX_ADDITIONS,
+            path = WatchProtocol.ADD_PATH,
+            encode = WatchMessages::encodeAddRequest,
+            receive = store::receiveAddReply,
+        )
+        if (additions != Sending.DONE) return additions
+        return send(
+            waiting = { store.deletions().map { it.id to it } },
+            most = WatchProtocol.MAX_DELETIONS,
+            path = WatchProtocol.DELETE_PATH,
+            encode = WatchMessages::encodeDeleteRequest,
+            receive = store::receiveDeleteReply,
+        )
+    }
+
+    /**
+     * Sends the requests [waiting] returns, by id, [most] at once on [path],
+     * until none waits: [receive] keeps each answer and says whether the
+     * phone answered.
+     */
+    private suspend fun <T> send(
+        waiting: suspend () -> List<Pair<String, T>>,
+        most: Int,
+        path: String,
+        encode: (List<T>) -> ByteArray,
+        receive: suspend (ByteArray, Long) -> Boolean,
+    ): Sending {
         while (true) {
-            val pending = store.pending()
-            if (pending.isEmpty()) return Sending.DONE
+            val requests = waiting()
+            if (requests.isEmpty()) return Sending.DONE
             val phone = nearbyPhone() ?: return Sending.PHONE_AWAY
-            val batch = pending.take(WatchProtocol.MAX_ADDITIONS)
+            val batch = requests.take(most)
             val reply = try {
-                messages.sendRequest(phone.id, WatchProtocol.ADD_PATH, WatchMessages.encodeAddRequest(batch))
-                    .await()
+                messages.sendRequest(phone.id, path, encode(batch.map { it.second })).await()
             } catch (_: ApiException) {
                 return Sending.FAILED
             }
-            if (!store.receiveAddReply(reply, System.currentTimeMillis())) return Sending.FAILED
-            // An answer leaving the oldest addition waiting would loop forever.
-            if (store.pending().any { it.id == batch.first().id }) return Sending.FAILED
+            if (!receive(reply, System.currentTimeMillis())) return Sending.FAILED
+            // An answer leaving the oldest request waiting would loop forever.
+            if (waiting().any { it.first == batch.first().first }) return Sending.FAILED
         }
     }
 }

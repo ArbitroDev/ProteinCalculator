@@ -3,6 +3,9 @@ package arbitro.android.protein_calculator.watch_link
 import arbitro.android.protein_calculator.protocol.AddReply
 import arbitro.android.protein_calculator.protocol.AddResult
 import arbitro.android.protein_calculator.protocol.AddStatus
+import arbitro.android.protein_calculator.protocol.DeleteReply
+import arbitro.android.protein_calculator.protocol.DeleteResult
+import arbitro.android.protein_calculator.protocol.DeleteStatus
 import arbitro.android.protein_calculator.protocol.Received
 import arbitro.android.protein_calculator.protocol.WatchMessages
 import arbitro.android.protein_calculator.protocol.WatchProtocol
@@ -14,8 +17,8 @@ import com.google.android.gms.wearable.WearableListenerService
 
 /**
  * Answers the watch app, even when the app is closed: Google Play services
- * start this service when a request arrives (the state of the day, or
- * additions), or when a watch having the app comes nearby. The data is read
+ * start this service when a request arrives (the state of the day,
+ * additions or deletions), or when a watch having the app comes nearby. The data is read
  * and written by [WatchEngine].
  */
 class PhoneListenerService : WearableListenerService() {
@@ -23,6 +26,7 @@ class PhoneListenerService : WearableListenerService() {
         val answer: () -> Task<ByteArray> = when (path) {
             WatchProtocol.SYNC_PATH -> { { sync(request) } }
             WatchProtocol.ADD_PATH -> { { add(request) } }
+            WatchProtocol.DELETE_PATH -> { { delete(request) } }
             else -> return null
         }
         return isNearby(nodeId).onSuccessTask { nearby ->
@@ -55,6 +59,27 @@ class PhoneListenerService : WearableListenerService() {
                     WatchEngine.addPortions(this, valid).onSuccessTask { reply ->
                         val results = reply.results + invalidResults
                         Tasks.forResult(WatchMessages.encodeAddReply(reply.copy(results = results)))
+                    }
+                }
+            }
+            is Received.OtherVersion -> Tasks.forResult(WatchMessages.encodeUnsupported())
+            else -> Tasks.forException(IllegalArgumentException("Malformed request"))
+        }
+
+    /** Makes the valid deletions, and tells the watch to drop the others. */
+    private fun delete(request: ByteArray): Task<ByteArray> =
+        when (val received = WatchMessages.decodeDeleteRequest(request)) {
+            is Received.Message -> {
+                val (valid, invalid) = received.value.requests.partition { it.isValid() }
+                val invalidResults = invalid.map { DeleteResult(it.id, DeleteStatus.INVALID) }
+                if (valid.isEmpty()) {
+                    WatchEngine.readState(this).onSuccessTask { state ->
+                        Tasks.forResult(WatchMessages.encodeDeleteReply(DeleteReply(invalidResults, state)))
+                    }
+                } else {
+                    WatchEngine.deleteEntries(this, valid).onSuccessTask { reply ->
+                        val results = reply.results + invalidResults
+                        Tasks.forResult(WatchMessages.encodeDeleteReply(reply.copy(results = results)))
                     }
                 }
             }

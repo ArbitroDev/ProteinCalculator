@@ -12,9 +12,10 @@ import androidx.work.WorkerParameters
 import java.util.concurrent.TimeUnit
 
 /**
- * Sends the additions waiting on the watch to the phone, even once the
- * watch app is closed. Run after each addition, when the phone shows up, and
- * every 15 minutes while some wait, in case the phone came nearby unseen.
+ * Sends the additions and deletions waiting on the watch to the phone, even
+ * once the watch app is closed. Run after each of them, when the phone shows
+ * up, and every 15 minutes while some wait, in case the phone came nearby
+ * unseen.
  */
 class SendWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
@@ -36,7 +37,7 @@ class SendWorker(context: Context, parameters: WorkerParameters) : CoroutineWork
         private const val NOW = "send"
         private const val PERIODIC = "send-periodic"
 
-        /** Sends the waiting additions now, and every 15 minutes until they are all sent. */
+        /** Sends the waiting additions and deletions now, and every 15 minutes until they are all sent. */
         fun schedule(context: Context) {
             val work = WorkManager.getInstance(context)
             work.enqueueUniqueWork(

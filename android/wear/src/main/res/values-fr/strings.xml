@@ -20,6 +20,8 @@
     <string name="unnamed">Sans nom</string>
     <string name="entry_waiting">en attente</string>
     <string name="from_watch">Ajoutée depuis la montre</string>
+    <string name="delete">Supprimer</string>
+    <string name="undo">Annuler</string>
     <string name="products">Produits</string>
     <string name="no_products">Enregistre des produits sur ton téléphone pour les ajouter d\'ici.</string>
     <string name="favorite">Favori</string>

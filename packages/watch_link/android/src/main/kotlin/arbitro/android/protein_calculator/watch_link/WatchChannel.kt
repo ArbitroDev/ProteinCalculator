@@ -5,7 +5,11 @@ import arbitro.android.protein_calculator.protocol.AddReply
 import arbitro.android.protein_calculator.protocol.AddResult
 import arbitro.android.protein_calculator.protocol.AddStatus
 import arbitro.android.protein_calculator.protocol.DayState
+import arbitro.android.protein_calculator.protocol.DeleteReply
+import arbitro.android.protein_calculator.protocol.DeleteResult
+import arbitro.android.protein_calculator.protocol.DeleteStatus
 import arbitro.android.protein_calculator.protocol.WatchAddition
+import arbitro.android.protein_calculator.protocol.WatchDeletion
 import arbitro.android.protein_calculator.protocol.WatchEntry
 import arbitro.android.protein_calculator.protocol.WatchProduct
 import io.flutter.plugin.common.BinaryMessenger
@@ -69,6 +73,17 @@ class WatchChannel(context: Context, messenger: BinaryMessenger) {
         call("addPortions", arguments) { callback(addReplyOf(it)) }
     }
 
+    /**
+     * Asks the Dart code to make [deletions], all valid: [callback] gets the
+     * results and the new state of the day, or null if it fails.
+     */
+    fun deleteEntries(deletions: List<WatchDeletion>, callback: (DeleteReply?) -> Unit) {
+        val arguments = deletions.map {
+            mapOf("id" to it.id, "entryId" to it.entryId, "time" to it.time)
+        }
+        call("deleteEntries", arguments) { callback(deleteReplyOf(it)) }
+    }
+
     private fun call(method: String, arguments: Any?, callback: (Any?) -> Unit) {
         channel.invokeMethod(
             method,
@@ -89,21 +104,38 @@ class WatchChannel(context: Context, messenger: BinaryMessenger) {
 }
 
 /** Results of the additions and new state sent by the Dart code as a map. */
-private fun addReplyOf(arguments: Any?): AddReply? {
+private fun addReplyOf(arguments: Any?): AddReply? = replyOf(arguments) { results, state ->
+    AddReply(
+        results = results.map { (id, status) ->
+            AddResult(id, AddStatus.entries.first { it.name.equals(status, ignoreCase = true) })
+        },
+        state = state,
+    )
+}
+
+/** Results of the deletions and new state sent by the Dart code as a map. */
+private fun deleteReplyOf(arguments: Any?): DeleteReply? = replyOf(arguments) { results, state ->
+    DeleteReply(
+        results = results.map { (id, status) ->
+            DeleteResult(id, DeleteStatus.entries.first { it.name.equals(status, ignoreCase = true) })
+        },
+        state = state,
+    )
+}
+
+/**
+ * Reply sent by the Dart code as a map of `results` (`id` and `status` of
+ * each request) and `state`, made by [reply].
+ */
+private fun <T> replyOf(arguments: Any?, reply: (List<Pair<String, String>>, DayState) -> T): T? {
     val map = arguments as? Map<*, *> ?: return null
     val state = dayStateOf(map["state"]) ?: return null
     return try {
-        AddReply(
-            results = (map["results"] as List<*>).map { result ->
-                result as Map<*, *>
-                val status = result["status"] as String
-                AddResult(
-                    id = result["id"] as String,
-                    status = AddStatus.entries.first { it.name.equals(status, ignoreCase = true) },
-                )
-            },
-            state = state,
-        )
+        val results = (map["results"] as List<*>).map { result ->
+            result as Map<*, *>
+            result["id"] as String to result["status"] as String
+        }
+        reply(results, state)
     } catch (_: RuntimeException) {
         // A value missing or of another type.
         null
@@ -122,6 +154,7 @@ private fun dayStateOf(arguments: Any?): DayState? {
             entries = (map["entries"] as List<*>).map { entry ->
                 entry as Map<*, *>
                 WatchEntry(
+                    id = (entry["id"] as Number).toLong(),
                     name = entry["name"] as String?,
                     protein = (entry["protein"] as Number).toDouble(),
                     time = (entry["time"] as Number).toLong(),

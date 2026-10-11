@@ -10,18 +10,18 @@ import kotlinx.coroutines.runBlocking
  * Receives the state of the day the phone sends when it changes, and learns
  * when the phone comes nearby, even when the watch app is closed: Google
  * Play services start this service. Either way, the phone can get the
- * additions waiting on the watch.
+ * additions and deletions waiting on the watch.
  */
 class WatchListenerService : WearableListenerService() {
     override fun onMessageReceived(event: MessageEvent) {
         if (event.path != WatchProtocol.STATE_PATH) return
         // Called apart from the main thread: it may wait for the storage.
         val store = WatchStore(this)
-        val pending = runBlocking {
+        val waiting = runBlocking {
             store.receiveState(event.data, System.currentTimeMillis())
-            store.pending()
+            store.hasWaiting()
         }
-        if (pending.isNotEmpty()) SendWorker.schedule(this)
+        if (waiting) SendWorker.schedule(this)
     }
 
     override fun onCapabilityChanged(info: CapabilityInfo) {

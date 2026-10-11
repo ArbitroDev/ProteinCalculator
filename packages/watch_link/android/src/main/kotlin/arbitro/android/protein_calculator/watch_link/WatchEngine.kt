@@ -6,7 +6,9 @@ import android.os.Handler
 import android.os.Looper
 import arbitro.android.protein_calculator.protocol.AddReply
 import arbitro.android.protein_calculator.protocol.DayState
+import arbitro.android.protein_calculator.protocol.DeleteReply
 import arbitro.android.protein_calculator.protocol.WatchAddition
+import arbitro.android.protein_calculator.protocol.WatchDeletion
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.TaskCompletionSource
 import io.flutter.FlutterInjector
@@ -57,6 +59,10 @@ object WatchEngine {
     /** Makes [additions] of the watch, all valid, and reads the new state of the day. */
     fun addPortions(context: Context, additions: List<WatchAddition>): Task<AddReply> =
         request(context) { channel, answer -> channel.addPortions(additions, answer) }
+
+    /** Makes [deletions] of the watch, all valid, and reads the new state of the day. */
+    fun deleteEntries(context: Context, deletions: List<WatchDeletion>): Task<DeleteReply> =
+        request(context) { channel, answer -> channel.deleteEntries(deletions, answer) }
 
     /** Runs [ask] once the Dart code answers: its answer completes the task, null fails it. */
     private fun <T : Any> request(

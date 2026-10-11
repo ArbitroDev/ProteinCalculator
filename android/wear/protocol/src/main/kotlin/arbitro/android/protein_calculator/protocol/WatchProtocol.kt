@@ -29,6 +29,13 @@ object WatchProtocol {
     const val ADD_PATH = "/protein_calculator/add"
 
     /**
+     * Deletions of entries of the day made on the watch, answered by the
+     * phone once made, see [WatchMessages.encodeDeleteRequest] and
+     * [DeleteReply].
+     */
+    const val DELETE_PATH = "/protein_calculator/delete"
+
+    /**
      * Capability of the phones having the app, declared in its resources:
      * tells the watch the phone app comes nearby.
      */
@@ -50,6 +57,9 @@ object WatchProtocol {
     /** Most additions sent at once. */
     const val MAX_ADDITIONS = 50
 
-    /** Longest id of an addition. */
+    /** Most deletions sent at once. */
+    const val MAX_DELETIONS = 50
+
+    /** Longest id of an addition or a deletion. */
     const val MAX_ID_LENGTH = 64
 }

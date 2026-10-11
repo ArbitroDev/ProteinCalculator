@@ -63,6 +63,7 @@ import androidx.wear.compose.material3.ConfirmationDialog
 import androidx.wear.compose.material3.ConfirmationDialogDefaults
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SwipeToReveal
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.lazy.TransformationSpec
 import androidx.wear.compose.material3.lazy.rememberTransformationSpec
@@ -84,6 +85,8 @@ fun WatchApp(
     added: WatchViewModel.Added?,
     onAdd: (WatchProduct) -> Unit,
     onDismissAdded: () -> Unit,
+    onDelete: (DayEntry) -> Unit,
+    onUndoDelete: (DayEntry) -> Unit,
 ) {
     AppScaffold {
         val navController = rememberSwipeDismissableNavController()
@@ -91,7 +94,12 @@ fun WatchApp(
         val current by rememberUpdatedState(screen)
         SwipeDismissableNavHost(navController, startDestination = Routes.DAY) {
             composable(Routes.DAY) {
-                DayScreen(current, onOpenProducts = { navController.navigate(Routes.PRODUCTS) })
+                DayScreen(
+                    current,
+                    onOpenProducts = { navController.navigate(Routes.PRODUCTS) },
+                    onDelete = onDelete,
+                    onUndoDelete = onUndoDelete,
+                )
             }
             composable(Routes.PRODUCTS) {
                 ProductsScreen(
@@ -107,9 +115,14 @@ fun WatchApp(
     }
 }
 
-/** The day: its summary, the button to add a product, then its entries. */
+/** The day: its summary, its entries, deleted by a swipe, then the button to add a product. */
 @Composable
-private fun DayScreen(screen: WatchScreen, onOpenProducts: () -> Unit) {
+private fun DayScreen(
+    screen: WatchScreen,
+    onOpenProducts: () -> Unit,
+    onDelete: (DayEntry) -> Unit,
+    onUndoDelete: (DayEntry) -> Unit,
+) {
     val listState = rememberTransformingLazyColumnState()
     // Items shrink near the round edges of the screen instead of being cut.
     val transformation = rememberTransformationSpec()
@@ -151,8 +164,8 @@ private fun DayScreen(screen: WatchScreen, onOpenProducts: () -> Unit) {
                         if (screen.entries.isEmpty()) {
                             item { Hint(stringResource(R.string.no_entries)) }
                         }
-                        items(screen.entries) {
-                            EntryRow(it, Modifier.transformed(this, transformation))
+                        items(screen.entries, key = { it.key }) {
+                            DeletableEntry(it, onDelete, onUndoDelete, Modifier.transformed(this, transformation))
                         }
                         // Last, in the space below the entries, near the bottom edge.
                         item(key = "add") { AddButton(onOpenProducts) }
@@ -297,6 +310,68 @@ private fun EntryRow(entry: DayEntry, modifier: Modifier) {
             stringResource(R.string.grams, formatProtein(entry.protein, locale)),
             style = fonts.value,
             color = WatchColors.text,
+        )
+    }
+}
+
+/**
+ * An [EntryRow] a swipe to the left deletes, after showing the button to
+ * delete it; the deletion can be undone for a few seconds.
+ */
+@Composable
+private fun DeletableEntry(
+    entry: DayEntry,
+    onDelete: (DayEntry) -> Unit,
+    onUndoDelete: (DayEntry) -> Unit,
+    modifier: Modifier,
+) {
+    val fonts = LocalWatchFonts.current
+    SwipeToReveal(
+        primaryAction = {
+            PrimaryActionButton(
+                onClick = { onDelete(entry) },
+                icon = { TrashGlyph(WatchColors.background, Modifier.size(width = 16.dp, height = 18.dp)) },
+                text = { Text(stringResource(R.string.delete), style = fonts.button) },
+                containerColor = WatchColors.danger,
+                contentColor = WatchColors.background,
+            )
+        },
+        onSwipePrimaryAction = { onDelete(entry) },
+        undoPrimaryAction = {
+            UndoActionButton(
+                onClick = { onUndoDelete(entry) },
+                text = { Text(stringResource(R.string.undo), style = fonts.button) },
+                containerColor = WatchColors.surfaceRaised,
+                contentColor = WatchColors.text,
+            )
+        },
+        modifier = modifier,
+    ) {
+        EntryRow(entry, Modifier)
+    }
+}
+
+/** A bin: its lid and its body. */
+@Composable
+private fun TrashGlyph(color: Color, modifier: Modifier) {
+    Canvas(modifier) {
+        val stroke = size.width * 0.13f
+        val lid = size.height * 0.2f
+        // Handle, then lid.
+        drawLine(
+            color,
+            Offset(size.width * 0.35f, stroke / 2),
+            Offset(size.width * 0.65f, stroke / 2),
+            stroke,
+            StrokeCap.Round,
+        )
+        drawLine(color, Offset(stroke / 2, lid), Offset(size.width - stroke / 2, lid), stroke, StrokeCap.Round)
+        drawRoundRect(
+            color,
+            topLeft = Offset(size.width * 0.15f, lid + stroke),
+            size = Size(size.width * 0.7f, size.height - lid - stroke * 1.5f),
+            cornerRadius = CornerRadius(stroke),
+            style = Stroke(stroke),
         )
     }
 }

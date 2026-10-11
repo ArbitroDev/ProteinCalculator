@@ -5,6 +5,7 @@ import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/watch/watch_addition.dart';
+import 'package:protein_calculator/core/watch/watch_deletion.dart';
 
 import 'test_database.dart';
 
@@ -154,6 +155,82 @@ void main() {
       for (final row in await db.select(db.watchRequests).get()) row.id,
     ];
     expect(ids, ['new']);
+  });
+
+  group('deleteEntry', () {
+    final time = DateTime(2026, 10, 1, 8, 30);
+
+    Future<int> addEntry() => db.entriesDao.insertEntry(
+      name: 'Skyr',
+      amount: const DirectAmount(15),
+      createdAt: time,
+    );
+
+    WatchDeletion deletion(int entryId, {String id = 'd1', DateTime? at}) =>
+        WatchDeletion(id: id, entryId: entryId, time: at ?? time);
+
+    test('deletes the entry of that id and time', () async {
+      final id = await addEntry();
+
+      expect(
+        await dao.deleteEntry(deletion(id), now),
+        WatchDeletionStatus.deleted,
+      );
+      expect(await entries(), isEmpty);
+    });
+
+    test('deletes a deletion sent again only once', () async {
+      final id = await addEntry();
+      await dao.deleteEntry(deletion(id), now);
+      // Put back on the phone meanwhile, with the same id.
+      final restored = await addEntry();
+
+      expect(
+        await dao.deleteEntry(deletion(restored), now),
+        WatchDeletionStatus.duplicate,
+      );
+      expect(await entries(), hasLength(1));
+    });
+
+    test('leaves an entry of the same id but another time', () async {
+      // A backup restored meanwhile gave the id to another entry.
+      final id = await addEntry();
+
+      expect(
+        await dao.deleteEntry(
+          deletion(id, at: time.add(const Duration(minutes: 1))),
+          now,
+        ),
+        WatchDeletionStatus.missing,
+      );
+      expect(
+        await dao.deleteEntry(deletion(id + 1, id: 'd2'), now),
+        WatchDeletionStatus.missing,
+      );
+      expect(await entries(), hasLength(1));
+    });
+
+    test('refuses a deletion without id', () async {
+      final id = await addEntry();
+
+      expect(
+        await dao.deleteEntry(deletion(id, id: ''), now),
+        WatchDeletionStatus.invalid,
+      );
+      expect(await entries(), hasLength(1));
+      expect(await db.select(db.watchRequests).get(), isEmpty);
+    });
+
+    test('lists its id with those of the additions', () async {
+      final id = await addEntry();
+      await dao.add(addition(id: 'a1'), now);
+      await dao.deleteEntry(deletion(id), now);
+
+      expect(await dao.watchHandledSince(DateTime(2026, 10, 1, 3)).first, [
+        'a1',
+        'd1',
+      ]);
+    });
   });
 
   test('lists the ids of the additions made from a time on', () async {

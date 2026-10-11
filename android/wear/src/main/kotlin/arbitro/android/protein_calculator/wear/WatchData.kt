@@ -6,8 +6,10 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import arbitro.android.protein_calculator.protocol.AddReply
 import arbitro.android.protein_calculator.protocol.DayState
+import arbitro.android.protein_calculator.protocol.DeleteReply
 import arbitro.android.protein_calculator.protocol.Received
 import arbitro.android.protein_calculator.protocol.WatchAddition
+import arbitro.android.protein_calculator.protocol.WatchDeletion
 import arbitro.android.protein_calculator.protocol.WatchMessages
 import arbitro.android.protein_calculator.protocol.WatchProtocol
 import kotlinx.serialization.builtins.ListSerializer
@@ -16,16 +18,18 @@ import kotlinx.serialization.json.Json
 /**
  * How the data of the watch is stored, apart from [WatchStore] so it can be
  * checked without a watch: the last state of the day, when it came, and the
- * additions waiting for the phone.
+ * additions and deletions waiting for the phone.
  */
 internal object WatchKeys {
     val STATE: Preferences.Key<String> = stringPreferencesKey("state")
     val RECEIVED_AT: Preferences.Key<Long> = longPreferencesKey("receivedAt")
     val INCOMPATIBILITY: Preferences.Key<String> = stringPreferencesKey("incompatibility")
     val PENDING: Preferences.Key<String> = stringPreferencesKey("pending")
+    val DELETIONS: Preferences.Key<String> = stringPreferencesKey("deletions")
 }
 
 private val pendingSerializer = ListSerializer(WatchAddition.serializer())
+private val deletionsSerializer = ListSerializer(WatchDeletion.serializer())
 
 /** What the watch keeps, read from its stored preferences. */
 internal fun Preferences.toSaved() = Saved(
@@ -37,6 +41,7 @@ internal fun Preferences.toSaved() = Saved(
         Incompatibility.entries.firstOrNull { it.name == name }
     },
     pending = pending,
+    deletions = deletions,
 )
 
 /** Additions waiting for the phone, oldest first. */
@@ -52,9 +57,27 @@ internal fun MutablePreferences.addPending(addition: WatchAddition) {
     setPending(pending + addition)
 }
 
+/** Drops the addition [id] before the phone makes it: deleted on the watch. */
+internal fun MutablePreferences.removePending(id: String) {
+    setPending(pending.filterNot { it.id == id })
+}
+
+/** Deletions waiting for the phone, oldest first. */
+internal val Preferences.deletions: List<WatchDeletion>
+    get() = this[WatchKeys.DELETIONS]?.let { Json.decodeFromString(deletionsSerializer, it) } ?: emptyList()
+
+private fun MutablePreferences.setDeletions(deletions: List<WatchDeletion>) {
+    this[WatchKeys.DELETIONS] = Json.encodeToString(deletionsSerializer, deletions)
+}
+
+/** Adds [deletion] after the ones waiting already, once per entry. */
+internal fun MutablePreferences.addDeletion(deletion: WatchDeletion) {
+    if (deletions.none { it.entryId == deletion.entryId }) setDeletions(deletions + deletion)
+}
+
 /**
- * Keeps [state], received at [receivedAt], and drops the additions it says
- * the phone made: their answer was lost.
+ * Keeps [state], received at [receivedAt], and drops the additions and
+ * deletions it says the phone made: their answer was lost.
  */
 internal fun MutablePreferences.keepState(state: DayState, receivedAt: Long) {
     // Kept as the phone writes it, read again by the protocol.
@@ -63,12 +86,20 @@ internal fun MutablePreferences.keepState(state: DayState, receivedAt: Long) {
     remove(WatchKeys.INCOMPATIBILITY)
     val handled = state.handled.toSet()
     setPending(pending.filterNot { it.id in handled })
+    setDeletions(deletions.filterNot { it.id in handled })
 }
 
 /** Drops the additions [reply] answers for, and keeps its state of the day. */
 internal fun MutablePreferences.keepReply(reply: AddReply, receivedAt: Long) {
     val answered = reply.results.map { it.id }.toSet()
     setPending(pending.filterNot { it.id in answered })
+    keepState(reply.state, receivedAt)
+}
+
+/** Drops the deletions [reply] answers for, and keeps its state of the day. */
+internal fun MutablePreferences.keepReply(reply: DeleteReply, receivedAt: Long) {
+    val answered = reply.results.map { it.id }.toSet()
+    setDeletions(deletions.filterNot { it.id in answered })
     keepState(reply.state, receivedAt)
 }
 

@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import arbitro.android.protein_calculator.protocol.WatchProduct
 import java.time.ZoneId
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,11 +44,11 @@ class WatchViewModel(application: Application) : AndroidViewModel(application) {
     private val _added = MutableStateFlow<Added?>(null)
     val added: StateFlow<Added?> = _added.asStateFlow()
 
-    /** Asks the phone for the state of the day, if it is nearby, and sends it the waiting additions. */
+    /** Asks the phone for the state of the day, if it is nearby, and sends it the waiting changes. */
     fun refresh() {
         viewModelScope.launch {
             phone.sync(store)
-            if (store.pending().isNotEmpty()) SendWorker.schedule(getApplication())
+            if (store.hasWaiting()) SendWorker.schedule(getApplication())
         }
     }
 
@@ -65,5 +67,34 @@ class WatchViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissAdded() {
         _added.value = null
+    }
+
+    /** Deletions waiting for their undo delay, by [DayEntry.key]. */
+    private val deleting = mutableMapOf<String, Job>()
+
+    /**
+     * Deletes [entry] once [UNDO_DELAY_MS] passed without [undoDelete]: kept
+     * on the watch then, and sent to the phone, now or once it is nearby.
+     * Made even if the app closes meanwhile.
+     */
+    fun delete(entry: DayEntry) {
+        if (entry.key in deleting) return
+        deleting[entry.key] = deletions.launch {
+            delay(UNDO_DELAY_MS)
+            deleting.remove(entry.key)
+            if (store.delete(entry)) SendWorker.schedule(getApplication())
+        }
+    }
+
+    fun undoDelete(entry: DayEntry) {
+        deleting.remove(entry.key)?.cancel()
+    }
+
+    private companion object {
+        /** How long a deletion can be undone. */
+        const val UNDO_DELAY_MS = 4_000L
+
+        /** Runs the deletions, which outlive the screen asking them. */
+        val deletions = MainScope()
     }
 }

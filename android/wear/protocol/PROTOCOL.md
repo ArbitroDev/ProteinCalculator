@@ -46,7 +46,7 @@ while to sync them, so they are not needed to send.
 Sent by the phone to the watch when the day changes (an entry, the goal, the
 products, the start of a new day), when the phone app starts, and when the
 watch comes nearby. Also the answer to `/protein_calculator/sync`, and part of
-the answer to `/protein_calculator/add`.
+the answers to `/protein_calculator/add` and `/protein_calculator/delete`.
 
 ```json
 {
@@ -56,7 +56,7 @@ the answer to `/protein_calculator/add`.
   "total": 87.5,
   "goal": 140.0,
   "entries": [
-    { "name": "Skyr", "protein": 25.0, "time": 1791637440000, "fromWatch": true }
+    { "id": 42, "name": "Skyr", "protein": 25.0, "time": 1791637440000, "fromWatch": true }
   ],
   "products": [
     { "id": 3, "name": "Skyr", "protein": 25.0, "favorite": true }
@@ -72,6 +72,7 @@ the answer to `/protein_calculator/add`.
 | `total` | Protein grams of the entries of `day`, exact. The watch truncates it to the unit, as the phone app does. |
 | `goal` | Goal of `day` in grams, or `null` until the first launch of the phone app is done. |
 | `entries` | Entries of `day`, the most recent first, 100 at most. |
+| `entries[].id` | Id of the entry on the phone. |
 | `entries[].name` | Name of the entry, or `null` for an entry without a name. |
 | `entries[].protein` | Protein grams of the entry. |
 | `entries[].time` | When it was added, in milliseconds since the epoch. |
@@ -81,7 +82,7 @@ the answer to `/protein_calculator/add`.
 | `products[].name` | Name of the product. |
 | `products[].protein` | Protein grams of one portion. |
 | `products[].favorite` | Whether it is the favorite product; one at most. |
-| `handled` | Ids of the additions of the watch the phone made since the start of the previous app day (see below). |
+| `handled` | Ids of the additions and deletions of the watch the phone made since the start of the previous app day (see below). |
 
 A state whose values are out of range (a date that does not exist, a negative
 total...) is ignored.
@@ -152,4 +153,60 @@ lost, is not made twice. Ids are kept 60 days.
 | `invalid` | Values the phone cannot add (a blank name, a protein out of range...): the watch drops it. |
 
 The watch drops the additions the answer gives a status for, and those listed
+in `handled` of any state it receives.
+
+### Deletions: `/protein_calculator/delete`
+
+Request of the watch, answered by the phone once the deletions are made, even
+when the phone app is closed. Swiping an entry of the day deletes it on the
+watch, after a few seconds to undo it:
+
+- an entry the phone has not made yet, waiting on the watch, is dropped
+  there: nothing is sent;
+- otherwise the watch hides the entry and keeps the deletion, with a random
+  id, until the phone answers for it, and sends it again each time the phone
+  is nearby, oldest first, 50 at most at once, after the waiting additions.
+
+```json
+{
+  "v": 1,
+  "requests": [
+    {
+      "id": "6d3a1c2e-8f4b-4e7a-b1d2-0c9e8f7a6b5c",
+      "entryId": 42,
+      "time": 1791637440000
+    }
+  ]
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | Random id of the deletion, 64 characters at most, the same each time it is sent. |
+| `entryId` | Id of the entry on the phone, from the state of the day. |
+| `time` | Time of the entry, from the state of the day. |
+
+The phone deletes the entry of that id only if it still has that time: after
+a backup is restored, the id may name another entry. It saves the id of the
+deletion at once, as for the additions: a deletion sent again, its answer
+lost, is not made twice.
+
+```json
+{
+  "v": 1,
+  "results": [
+    { "id": "6d3a1c2e-8f4b-4e7a-b1d2-0c9e8f7a6b5c", "status": "deleted" }
+  ],
+  "state": { "day": 20261008, "dayStartHour": 3, "total": 87.5, "goal": 140.0, "entries": [], "products": [], "handled": [] }
+}
+```
+
+| `status` | Meaning |
+|---|---|
+| `deleted` | Made now. |
+| `duplicate` | Already made from an earlier sending. |
+| `missing` | No entry of that id and time: already deleted on the phone, or changed by a backup restored. |
+| `invalid` | Values the phone cannot read: the watch drops it. |
+
+The watch drops the deletions the answer gives a status for, and those listed
 in `handled` of any state it receives.

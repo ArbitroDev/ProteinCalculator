@@ -18,6 +18,8 @@ class MainActivity : ComponentActivity() {
                     added = viewModel.added.collectAsStateWithLifecycle().value,
                     onAdd = viewModel::add,
                     onDismissAdded = viewModel::dismissAdded,
+                    onDelete = viewModel::delete,
+                    onUndoDelete = viewModel::undoDelete,
                 )
             }
         }

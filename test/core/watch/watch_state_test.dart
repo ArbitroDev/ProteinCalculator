@@ -41,10 +41,11 @@ void main() {
         final products = await db.select(db.products).get();
         await db.productsDao.setFavorite(products.single.id, favorite: true);
 
+        final entries = await db.entriesDao.watchDayEntries(20261001).first;
         final state = WatchState.of(
           dayKey: 20261001,
           dayStartHour: 3,
-          entries: await db.entriesDao.watchDayEntries(20261001).first,
+          entries: entries,
           goal: 140,
           products: await db.select(db.products).get(),
           handled: const ['a1'],
@@ -58,12 +59,14 @@ void main() {
           'goal': 140.0,
           'entries': [
             {
+              'id': entries.last.id,
               'name': null,
               'protein': 12.5,
               'time': DateTime(2026, 10, 1, 12).millisecondsSinceEpoch,
               'fromWatch': false,
             },
             {
+              'id': entries.first.id,
               'name': 'Oeufs',
               'protein': 20.0,
               'time': DateTime(2026, 10, 1, 8).millisecondsSinceEpoch,
@@ -92,6 +95,7 @@ void main() {
             goal: 140,
             entries: [
               WatchEntry(
+                id: 1,
                 name: 'Skyr',
                 protein: 20,
                 time: DateTime(2026, 10, 1, 8),

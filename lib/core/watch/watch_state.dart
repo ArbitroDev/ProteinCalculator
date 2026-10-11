@@ -37,6 +37,7 @@ class WatchState {
     entries: [
       for (final entry in entries.toList().reversed)
         WatchEntry(
+          id: entry.id,
           name: entry.name,
           protein: entry.proteinGrams,
           time: entry.createdAt,
@@ -71,8 +72,9 @@ class WatchState {
 
   final List<WatchProduct> products;
 
-  /// Ids of the additions of the watch made since [handledSince]: the watch
-  /// stops sending those whose answer it did not get.
+  /// Ids of the additions and deletions of the watch made since
+  /// [handledSince]: the watch stops sending those whose answer it did not
+  /// get.
   final List<String> handled;
 
   /// Values taken by `sendWatchState` of the plugin `watch_link`.
@@ -84,6 +86,7 @@ class WatchState {
     'entries': [
       for (final entry in entries)
         {
+          'id': entry.id,
           'name': entry.name,
           'protein': entry.protein,
           'time': entry.time.millisecondsSinceEpoch,
@@ -129,11 +132,14 @@ class WatchState {
 @immutable
 class WatchEntry {
   const WatchEntry({
+    required this.id,
     required this.name,
     required this.protein,
     required this.time,
     required this.fromWatch,
   });
+
+  final int id;
 
   /// Null for an entry without a name.
   final String? name;
@@ -146,13 +152,14 @@ class WatchEntry {
   @override
   bool operator ==(Object other) =>
       other is WatchEntry &&
+      other.id == id &&
       other.name == name &&
       other.protein == protein &&
       other.time == time &&
       other.fromWatch == fromWatch;
 
   @override
-  int get hashCode => Object.hash(name, protein, time, fromWatch);
+  int get hashCode => Object.hash(id, name, protein, time, fromWatch);
 }
 
 /// A product the watch adds one portion of.

@@ -26,6 +26,9 @@ object WatchColors {
     val accent = Color(0xFFFF8A3D)
     val onAccent = Color(0xFF1B0E05)
 
+    /** Deletions, as in the phone app. */
+    val danger = Color(0xFFFF5C7A)
+
     /** Lines of the shaker of the logo. */
     val shaker = Color(0xFFDCE3FF)
 }

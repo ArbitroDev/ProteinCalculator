@@ -21,6 +21,8 @@
     <string name="unnamed">Unnamed</string>
     <string name="entry_waiting">waiting</string>
     <string name="from_watch">Added on the watch</string>
+    <string name="delete">Delete</string>
+    <string name="undo">Undo</string>
     <string name="products">Products</string>
     <string name="no_products">Save products on your phone to add them from here.</string>
     <string name="favorite">Favorite</string>

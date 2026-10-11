@@ -33,8 +33,9 @@ data class DayState(
     /** Saved products, the favorite first, in the order of the phone app. */
     val products: List<WatchProduct>,
     /**
-     * Ids of the additions of the watch the phone made since the start of the
-     * previous app day: those whose answer was lost are made too.
+     * Ids of the additions and deletions of the watch the phone made since
+     * the start of the previous app day: those whose answer was lost are made
+     * too.
      */
     val handled: List<String>,
 ) {
@@ -58,6 +59,8 @@ data class DayState(
 /** An entry of the day. */
 @Serializable
 data class WatchEntry(
+    /** Id of the entry on the phone. */
+    val id: Long,
     /** Its name, null for an entry without a name. */
     val name: String?,
     /** Protein grams. */
@@ -68,7 +71,7 @@ data class WatchEntry(
     val fromWatch: Boolean,
 ) {
     internal fun isValid(): Boolean =
-        (name == null || name.isNotBlank()) && protein.isFinite() && protein > 0 && time > 0
+        id > 0 && (name == null || name.isNotBlank()) && protein.isFinite() && protein > 0 && time > 0
 }
 
 /** A saved product, which the watch adds one portion of. */
@@ -104,6 +107,23 @@ data class WatchAddition(
             protein.isFinite() && protein > 0 && addedAt > 0
 }
 
+/** An entry of the day deleted on the watch, for the phone to delete. */
+@Serializable
+data class WatchDeletion(
+    /** Random id given by the watch, the same each time it is sent. */
+    val id: String,
+    /** Id of the entry on the phone. */
+    val entryId: Long,
+    /**
+     * When the entry was added, as the phone sent it: the phone deletes the
+     * entry of that id only if it has that time.
+     */
+    val time: Long,
+) {
+    /** Whether the phone can delete it: otherwise, the watch drops it. */
+    fun isValid(): Boolean = isValidAdditionId(id) && entryId > 0 && time > 0
+}
+
 /** Additions of the watch, oldest first, see [WatchProtocol.ADD_PATH]. */
 @Serializable
 data class AddRequest(val requests: List<WatchAddition>)
@@ -130,6 +150,37 @@ data class AddResult(val id: String, val status: AddStatus)
 /** Answer of the phone to an [AddRequest]: each addition, then the new day. */
 @Serializable
 data class AddReply(val results: List<AddResult>, val state: DayState)
+
+/** Deletions of the watch, oldest first, see [WatchProtocol.DELETE_PATH]. */
+@Serializable
+data class DeleteRequest(val requests: List<WatchDeletion>)
+
+/** What the phone made of a deletion. */
+@Serializable
+enum class DeleteStatus {
+    /** Deleted now. */
+    @SerialName("deleted")
+    DELETED,
+
+    /** Already made from an earlier sending. */
+    @SerialName("duplicate")
+    DUPLICATE,
+
+    /** No entry of that id and time: already deleted on the phone, or changed by a backup restored. */
+    @SerialName("missing")
+    MISSING,
+
+    /** Values the phone cannot read. */
+    @SerialName("invalid")
+    INVALID,
+}
+
+@Serializable
+data class DeleteResult(val id: String, val status: DeleteStatus)
+
+/** Answer of the phone to a [DeleteRequest]: each deletion, then the new day. */
+@Serializable
+data class DeleteReply(val results: List<DeleteResult>, val state: DayState)
 
 /** A message read by [WatchMessages]. */
 sealed interface Received<out T> {
@@ -195,6 +246,28 @@ object WatchMessages {
             reply.state.isValid() && reply.results.all { isValidAdditionId(it.id) }
         }
 
+    /** Deletions of the watch, [WatchProtocol.MAX_DELETIONS] at most. */
+    fun encodeDeleteRequest(deletions: List<WatchDeletion>): ByteArray =
+        encode(DeleteRequest.serializer(), DeleteRequest(deletions))
+
+    /**
+     * Reads the deletions of the watch. The values of each are checked apart,
+     * see [WatchDeletion.isValid]: an invalid one does not stop the others.
+     */
+    fun decodeDeleteRequest(bytes: ByteArray): Received<DeleteRequest> =
+        decode(bytes, DeleteRequest.serializer()).validated {
+            it.requests.size in 1..WatchProtocol.MAX_DELETIONS
+        }
+
+    /** Writes [reply], keeping the first entries and products of its state. */
+    fun encodeDeleteReply(reply: DeleteReply): ByteArray =
+        encode(DeleteReply.serializer(), reply.copy(state = reply.state.limited()))
+
+    fun decodeDeleteReply(bytes: ByteArray): Received<DeleteReply> =
+        decode(bytes, DeleteReply.serializer()).validated { reply ->
+            reply.state.isValid() && reply.results.all { isValidAdditionId(it.id) }
+        }
+
     /** Request of the watch for the state of the day. */
     fun encodeSyncRequest(): ByteArray = encode(SyncRequest.serializer(), SyncRequest)
 
@@ -249,7 +322,7 @@ object WatchMessages {
 @Serializable
 private data object SyncRequest
 
-/** Whether [id] can be the id of a [WatchAddition]. */
+/** Whether [id] can be the id of a [WatchAddition] or a [WatchDeletion]. */
 private fun isValidAdditionId(id: String): Boolean = id.length in 1..WatchProtocol.MAX_ID_LENGTH
 
 /** Whether [day] is a `yyyymmdd` date of a real day: 20260931 is not. */

@@ -2,6 +2,7 @@ package arbitro.android.protein_calculator.wear
 
 import arbitro.android.protein_calculator.protocol.DayState
 import arbitro.android.protein_calculator.protocol.WatchAddition
+import arbitro.android.protein_calculator.protocol.WatchDeletion
 import arbitro.android.protein_calculator.protocol.WatchEntry
 import arbitro.android.protein_calculator.protocol.WatchProduct
 import java.time.LocalDateTime
@@ -24,8 +25,8 @@ class WatchScreenTest {
         total = 32.5,
         goal = 140.0,
         entries = listOf(
-            WatchEntry(name = null, protein = 12.5, time = at(1, 12), fromWatch = true),
-            WatchEntry(name = "Oeufs", protein = 20.0, time = at(1, 8), fromWatch = false),
+            WatchEntry(id = 8, name = null, protein = 12.5, time = at(1, 12), fromWatch = true),
+            WatchEntry(id = 5, name = "Oeufs", protein = 20.0, time = at(1, 8), fromWatch = false),
         ),
         products = listOf(product),
         handled = emptyList(),
@@ -37,8 +38,15 @@ class WatchScreenTest {
     private fun saved(
         state: DayState? = this.state,
         pending: List<WatchAddition> = emptyList(),
+        deletions: List<WatchDeletion> = emptyList(),
         incompatibility: Incompatibility? = null,
-    ) = Saved(state = state, receivedAt = at(1, 12, 5), incompatibility = incompatibility, pending = pending)
+    ) = Saved(
+        state = state,
+        receivedAt = at(1, 12, 5),
+        incompatibility = incompatibility,
+        pending = pending,
+        deletions = deletions,
+    )
 
     private fun screen(saved: Saved, now: Long = at(1, 14), phoneNearby: Boolean = true) =
         watchScreenOf(saved, phoneNearby, now, zone)
@@ -51,8 +59,8 @@ class WatchScreenTest {
                 pending = 0.0,
                 goal = 140.0,
                 entries = listOf(
-                    DayEntry(null, 12.5, at(1, 12), fromWatch = true, pending = false),
-                    DayEntry("Oeufs", 20.0, at(1, 8), fromWatch = false, pending = false),
+                    DayEntry(8, null, null, 12.5, at(1, 12), fromWatch = true, pending = false),
+                    DayEntry(5, null, "Oeufs", 20.0, at(1, 8), fromWatch = false, pending = false),
                 ),
                 products = listOf(product),
                 updatedAt = at(1, 12, 5),
@@ -82,7 +90,7 @@ class WatchScreenTest {
 
         assertEquals(47.5, day.total)
         assertEquals(15.0, day.pending)
-        assertEquals(DayEntry("Skyr", 15.0, at(1, 13), fromWatch = true, pending = true), day.entries.first())
+        assertEquals(DayEntry(null, "a1", "Skyr", 15.0, at(1, 13), fromWatch = true, pending = true), day.entries.first())
         assertEquals(3, day.entries.size)
     }
 
@@ -100,6 +108,23 @@ class WatchScreenTest {
         assertEquals(15.0, day.pending)
         assertEquals(listOf(at(2, 8)), day.entries.map { it.time })
         assertEquals(140.0, day.goal)
+    }
+
+    @Test
+    fun `hides the entries deleted on the watch, waiting for the phone`() {
+        val day = assertIs<WatchScreen.Day>(
+            screen(saved(deletions = listOf(WatchDeletion(id = "d1", entryId = 5, time = at(1, 8))))),
+        )
+
+        assertEquals(12.5, day.total)
+        assertEquals(listOf(8L), day.entries.map { it.entryId })
+    }
+
+    @Test
+    fun `tells the entries apart, sent or waiting`() {
+        val day = assertIs<WatchScreen.Day>(screen(saved(pending = listOf(addition("a1", at(1, 13))))))
+
+        assertEquals(listOf("addition a1", "entry 8", "entry 5"), day.entries.map { it.key })
     }
 
     @Test

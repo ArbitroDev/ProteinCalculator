@@ -6,7 +6,11 @@ import arbitro.android.protein_calculator.protocol.AddReply
 import arbitro.android.protein_calculator.protocol.AddResult
 import arbitro.android.protein_calculator.protocol.AddStatus
 import arbitro.android.protein_calculator.protocol.DayState
+import arbitro.android.protein_calculator.protocol.DeleteReply
+import arbitro.android.protein_calculator.protocol.DeleteResult
+import arbitro.android.protein_calculator.protocol.DeleteStatus
 import arbitro.android.protein_calculator.protocol.WatchAddition
+import arbitro.android.protein_calculator.protocol.WatchDeletion
 import arbitro.android.protein_calculator.protocol.WatchProtocol
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -32,10 +36,14 @@ class WatchDataTest {
 
     private val MutablePreferences.ids get() = pending.map { it.id }
 
+    private fun deletion(id: String, entryId: Long = 5) = WatchDeletion(id = id, entryId = entryId, time = 1_790_000_000_000)
+
+    private val MutablePreferences.deletionIds get() = deletions.map { it.id }
+
     @Test
     fun `nothing is saved at first`() {
         assertEquals(
-            Saved(state = null, receivedAt = null, incompatibility = null, pending = emptyList()),
+            Saved(state = null, receivedAt = null, incompatibility = null, pending = emptyList(), deletions = emptyList()),
             mutablePreferencesOf().toSaved(),
         )
     }
@@ -95,6 +103,58 @@ class WatchDataTest {
         preferences.keepReply(AddReply(listOf(AddResult("a1", AddStatus.ADDED)), state), receivedAt = 1)
 
         assertEquals(listOf("a2"), preferences.ids)
+    }
+
+    @Test
+    fun `an addition deleted before the phone made it is dropped`() {
+        val preferences = waiting("a1", "a2")
+
+        preferences.removePending("a1")
+
+        assertEquals(listOf("a2"), preferences.ids)
+    }
+
+    @Test
+    fun `deletions wait in the order they were made, once per entry`() {
+        val preferences = mutablePreferencesOf()
+
+        preferences.addDeletion(deletion("d1", entryId = 5))
+        preferences.addDeletion(deletion("d2", entryId = 8))
+        preferences.addDeletion(deletion("d3", entryId = 5))
+
+        assertEquals(listOf("d1", "d2"), preferences.deletionIds)
+        assertEquals(preferences.deletions, preferences.toSaved().deletions)
+    }
+
+    @Test
+    fun `a state drops the deletions the phone made`() {
+        val preferences = mutablePreferencesOf().apply {
+            addDeletion(deletion("d1", entryId = 5))
+            addDeletion(deletion("d2", entryId = 8))
+        }
+
+        preferences.keepState(state.copy(handled = listOf("d1")), receivedAt = 1)
+
+        assertEquals(listOf("d2"), preferences.deletionIds)
+    }
+
+    @Test
+    fun `an answer to deletions drops those it answers for only`() {
+        val preferences = waiting("a1").apply {
+            addDeletion(deletion("d1", entryId = 5))
+            addDeletion(deletion("d2", entryId = 8))
+            addDeletion(deletion("d3", entryId = 9))
+        }
+        val reply = DeleteReply(
+            results = listOf(DeleteResult("d1", DeleteStatus.DELETED), DeleteResult("d2", DeleteStatus.MISSING)),
+            state = state,
+        )
+
+        preferences.keepReply(reply, receivedAt = 1)
+
+        assertEquals(listOf("d3"), preferences.deletionIds)
+        assertEquals(listOf("a1"), preferences.ids)
+        assertEquals(state, preferences.toSaved().state)
     }
 
     @Test

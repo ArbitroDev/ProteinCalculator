@@ -9,6 +9,7 @@ import 'package:protein_calculator/core/background_changes.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/watch/watch_addition.dart';
+import 'package:protein_calculator/core/watch/watch_deletion.dart';
 import 'package:protein_calculator/core/watch/watch_state.dart';
 import 'package:watch_link/watch_link.dart';
 
@@ -111,6 +112,25 @@ Future<void> watchBackgroundMain() async {
             'status': switch (WatchAddition.fromChannel(value)) {
               final addition? => (await db.watchDao.add(addition, now)).name,
               null => WatchAdditionStatus.invalid.name,
+            },
+          },
+      ];
+      return {
+        'results': results,
+        'state': (await readWatchState(db, now)).toChannel(),
+      };
+    }),
+    deleteEntries: (deletions) => _withData((db, now) async {
+      final results = [
+        for (final value in deletions)
+          {
+            'id': (value as Map?)?['id'],
+            'status': switch (WatchDeletion.fromChannel(value)) {
+              final deletion? => (await db.watchDao.deleteEntry(
+                deletion,
+                now,
+              )).name,
+              null => WatchDeletionStatus.invalid.name,
             },
           },
       ];

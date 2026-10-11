@@ -72,8 +72,13 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
     private fun MaterialScope.layout(screen: WatchScreen, addedId: Long?): LayoutElement {
         val open = clickable(launchAction(ComponentName(context, MainActivity::class.java)), OPEN)
         if (screen !is WatchScreen.Day) {
+            val message = when ((screen as? WatchScreen.Incompatible)?.incompatibility) {
+                Incompatibility.UPDATE_WATCH -> R.string.update_watch
+                Incompatibility.UPDATE_PHONE -> R.string.update_phone
+                null -> R.string.open_phone
+            }
             return primaryLayout(
-                mainSlot = { text(LayoutString(context.getString(R.string.open_phone)), maxLines = 3) },
+                mainSlot = { text(LayoutString(context.getString(message)), maxLines = 3) },
                 onClick = open,
             )
         }
