@@ -1,7 +1,8 @@
 name: Release
 
-# Publishing flow: every merge into main builds the signed app bundle,
-# sends it to the closed testing track of Google Play and tags the version.
+# Publishing flow: every merge into main builds the signed app bundles of
+# the phone and of the watch, sends them to their closed testing tracks of
+# Google Play and tags the version.
 on:
   push:
     branches: [main]
@@ -81,6 +82,13 @@ jobs:
       - name: Build the app bundle
         run: flutter build appbundle --release --dart-define-from-file=sentry.json
 
+      # Same signing key and version as the phone app, see android/wear. The
+      # Flutter tool leaves it out of its builds: Gradle builds it. Built
+      # before any upload, so that a failure stops the release first.
+      - name: Build the app bundle of the watch app
+        working-directory: android
+        run: ./gradlew --no-daemon :wear:bundleRelease
+
       - name: Upload to Google Play (closed testing)
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
@@ -94,6 +102,31 @@ jobs:
           # Lets Google Play read the stack traces of the Android code,
           # shrunk by R8 in release builds.
           mappingFile: build/app/outputs/mapping/release/mapping.txt
+
+      # The dedicated closed testing track of Wear OS, in the same Google
+      # Play app. If this upload fails after the one of the phone, upload the
+      # bundle of the workflow artifacts by hand, then create the tag and the
+      # release by hand, as the steps below do not run: running the workflow
+      # again would send the phone bundle twice, which Google Play refuses.
+      - name: Upload the watch app to Google Play (closed testing, Wear OS)
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: arbitro.android.protein_calculator
+          releaseFiles: build/wear/outputs/bundle/release/wear-release.aab
+          tracks: wear:alpha
+          status: completed
+          whatsNewDirectory: store/whatsnew
+          mappingFile: build/wear/outputs/mapping/release/mapping.txt
+
+      - name: Keep the bundle of the watch app
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wear-release
+          path: build/wear/outputs/bundle/release/wear-release.aab
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Tag the version with its changelog
         env:

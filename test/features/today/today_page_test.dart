@@ -1,4 +1,6 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 
@@ -51,6 +53,28 @@ void main() {
     expect(find.text('12.5 g'), findsOneWidget);
     expect(find.text('30.8 g'), findsOneWidget);
     expect(find.text('2 entries · 97 g left to shake'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('marks the entries added on the watch', (tester) async {
+    await db.entriesDao.insertEntry(
+      name: 'Skyr',
+      amount: const DirectAmount(15),
+      createdAt: DateTime(2026, 10, 1, 8),
+      fromWatch: true,
+    );
+    await addEntry(20, DateTime(2026, 10, 1, 9));
+    await pumpApp(tester, db);
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Icon &&
+            widget.icon == LucideIcons.watch &&
+            widget.semanticLabel == 'Added on the watch',
+      ),
+      findsOneWidget,
+    );
     await disposeApp(tester, db);
   });
 

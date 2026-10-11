@@ -24,7 +24,8 @@ const backupFormat = 'protein-calculator';
 /// 3: products hold their daily routine.
 /// 4: the goals set over time, how the history shows the days and the
 /// start hour of the day.
-const backupVersion = 4;
+/// 5: entries tell whether they were added on the watch.
+const backupVersion = 5;
 
 /// Thrown when a file is not a valid Protein Calculator backup.
 class InvalidBackupException implements Exception {
@@ -98,6 +99,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'createdAt': e.createdAt.toUtc().toIso8601String(),
           'dayKey': e.dayKey,
           'slot': e.slot.name,
+          'fromWatch': e.fromWatch,
         },
     ],
     'products': [
@@ -297,6 +299,7 @@ EntriesCompanion _entry(Map<String, dynamic> e, int version) {
           ? DaySlot.of(createdAt)
           : DaySlot.values.byName(e['slot'] as String),
     ),
+    fromWatch: Value(version < 5 ? false : e['fromWatch'] as bool),
   );
 }
 

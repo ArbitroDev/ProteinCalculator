@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
@@ -147,6 +148,27 @@ void main() {
       expect(find.text('Afternoon'), findsOneWidget);
       expect(find.text('Evening'), findsOneWidget);
       expect(find.textContaining('Unnamed'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('marks the entries added on the watch', (tester) async {
+      await db.entriesDao.insertEntry(
+        name: 'Oeufs',
+        amount: const DirectAmount(12),
+        createdAt: DateTime(2026, 10, 1, 9),
+        fromWatch: true,
+      );
+      await openDay(tester);
+
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Icon &&
+              widget.icon == LucideIcons.watch &&
+              widget.semanticLabel == 'Added on the watch',
+        ),
+        findsOneWidget,
+      );
       await disposeApp(tester, db);
     });
 

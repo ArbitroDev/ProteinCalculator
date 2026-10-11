@@ -24,7 +24,8 @@ request.
    template.
 
 Every pull request runs the automated checks (formatting, analysis, tests,
-commit messages). A pull request can only be merged once all checks pass.
+commit messages, and the lint, tests and build of the watch app). A pull
+request can only be merged once all checks pass.
 
 ### Branches and releases
 
@@ -33,9 +34,12 @@ commit messages). A pull request can only be merged once all checks pass.
   `develop` alone, opened by the maintainer when a version is ready.
 - Every merge into `main` runs the release workflow: it runs the automated
   checks again on the merged commit and, only if they pass, builds the
-  signed app bundle, sends it to the closed testing track of Google Play
-  and tags the version (`v1.2.3`). The version in `pubspec.yaml` must therefore be
-  increased in `develop` before each release.
+  signed app bundles of the phone and of the watch, sends them to their
+  closed testing tracks of Google Play (`alpha` and `wear:alpha`) and tags
+  the version (`v1.2.3`). The version in `pubspec.yaml` must therefore be
+  increased in `develop` before each release; its build number must stay
+  below `wear.versionCodeOffset`, which the version code of the watch app
+  adds to it.
 - The publishing job uses the `release` environment of the repository: its
   secrets (signing key, Google Play service account, Sentry address) are
   stored there only, and each release waits for the maintainer's approval.
@@ -62,7 +66,9 @@ merging one, the maintainer:
 Dependabot does the same for the Dart and Flutter packages of
 `pubspec.yaml`, in a separate weekly pull request: the maintainer reads the
 changelog of each package before merging, and the automated checks run on
-the updated packages.
+the updated packages. A third weekly pull request updates the libraries of
+the watch app (`android/gradle/libs.versions.toml`), under the same rules;
+the Gradle plugins follow the versions set by Flutter.
 
 ## Commit messages
 
@@ -86,7 +92,8 @@ Examples: `feat(today): show daily protein total`,
 ## Development setup
 
 - Flutter 3.47.5 (stable channel), the version used by the automated checks
-- Android SDK for Android builds
+- Android SDK for Android builds, and JDK 17 for the Gradle build of the
+  watch app
 - Chrome for web debugging: `flutter run -d chrome`
 
 Generated files are not committed. After cloning or pulling, run:
@@ -98,6 +105,81 @@ dart run build_runner build
 
 `flutter pub get` generates the localizations, `build_runner` generates the
 database code (`*.g.dart`).
+
+## Wear OS watch app
+
+The watch app is a companion of the phone app, written in Kotlin with
+Compose for Wear OS: the phone holds the data, the watch shows the day,
+adds portions of the saved products or free entries of protein grams, and
+deletes entries of the day. It lives in the same repository:
+
+| Path | Content |
+|---|---|
+| `android/wear` | The watch app: screens, tile, complication (Gradle module `:wear`) |
+| `android/wear/protocol` | The messages exchanged with the phone, used by both apps: see [PROTOCOL.md](android/wear/protocol/PROTOCOL.md) |
+| `packages/watch_link` | Local Flutter plugin of the phone app: sends the day to the watch and answers it, even when the app is closed |
+| `lib/core/watch` | Dart side of the phone app: the state of the day, the additions and deletions of the watch |
+
+The two apps only talk to each other when the devices are nearby
+(Bluetooth or the same Wi-Fi network), through the `MessageClient` of the
+Wearable Data Layer. Never use the `DataClient`, which may sync through
+Google servers, and never give the watch app the Internet permission.
+
+### Building and checking
+
+The watch app shares the Gradle build of the phone app, in `android/`. The
+Flutter tool leaves it out of its own builds (`flutter run`,
+`flutter build`): build it with its own Gradle tasks. After cloning, let
+Flutter set up the Gradle files once (no app is built):
+
+```bash
+flutter pub get
+flutter build apk --config-only
+```
+
+Then, from `android/`:
+
+```bash
+./gradlew :wear:compileDebugKotlin :wear:lintDebug
+ANDROID_SERIAL=<watch> ./gradlew :wear:installDebug
+```
+
+The watch app has the application id of the phone app: without
+`ANDROID_SERIAL`, `installDebug` also installs it on a connected phone,
+over the phone app, whose next `flutter run` then uninstalls it and loses
+its data.
+
+The watch app takes the version of `pubspec.yaml`; its version code is the
+one of the phone app plus `wear.versionCodeOffset`
+(`android/gradle.properties`), as Google Play needs a different one for each app bundle. Both apps must be
+signed with the same key, or Google Play services do not link them: debug
+builds of the same computer are.
+
+### Testing on emulators
+
+The phone and the watch must be paired:
+
+1. Create a phone emulator with a **Google Play** system image (the Wear OS
+   companion app needs the Play Store) and sign in to a Google account, and a
+   Wear OS emulator.
+2. In Android Studio, open **Device Manager**, then **Pair Wearable** on the
+   watch, and follow the companion app on the phone until the watch shows as
+   connected.
+3. After the emulators restart, link them again:
+   `adb -s <phone> forward tcp:5601 tcp:5601`.
+
+Run the phone app with `flutter run -d <phone>` and install the watch app
+with `ANDROID_SERIAL=<watch> ./gradlew :wear:installDebug`. To try the watch
+out of range, turn on airplane mode on the watch emulator.
+
+### Changing the messages
+
+Any change of the messages between the two apps goes into
+`android/wear/protocol`, with a new version in `WatchProtocol.VERSION` and
+in [PROTOCOL.md](android/wear/protocol/PROTOCOL.md): a phone and a watch of
+different versions must never read a message the wrong way. The phone keeps
+reading the additions and deletions of every earlier version, so none
+waiting on a watch is ever lost.
 
 ## Crash reports
 
@@ -169,3 +251,6 @@ rows of a list with undo goes through `SwipeToDelete` and `UndoableDeletion`
 The app is available in French and English. User-facing text lives in
 `lib/l10n/app_fr.arb` (reference file) and `lib/l10n/app_en.arb`: every key
 must exist in both files. Never hard-code user-facing text in widgets.
+
+The texts of the watch app live in `android/wear/src/main/res/values/strings.xml`
+(English) and `values-fr/strings.xml` (French), with the same rule.

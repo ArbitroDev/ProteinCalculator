@@ -30,6 +30,9 @@ dependencies:
   sentry_flutter: 9.30.1
   timezone: ^0.11.1
   url_launcher: ^6.3.3
+  # Link with the Wear OS watch app.
+  watch_link:
+    path: packages/watch_link
 
 dev_dependencies:
   flutter_test:

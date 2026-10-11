@@ -2,7 +2,7 @@
 
 *[English version below](#privacy-policy--protein-calculator)*
 
-**Date d'entrée en vigueur : 7 octobre 2026**
+**Date d'entrée en vigueur : 11 octobre 2026**
 
 Cette politique explique quelles données l'application **Protein Calculator** (Android) traite,
 pourquoi, et quels sont tes droits. Elle s'applique à l'application publiée sur Google Play.
@@ -15,10 +15,12 @@ Contact : <arbitro.contact@gmail.com>.
 ## En résumé
 
 - Pas de compte, pas de publicité, pas de suivi publicitaire, pas de revente de données.
-- Ton suivi (entrées, produits, objectif, réglages) **reste sur ton téléphone**. Nous n'y avons
-  jamais accès.
+- Ton suivi (entrées, produits, objectif, réglages) **reste sur ton téléphone**, et sur ta
+  montre si tu en utilises une. Nous n'y avons jamais accès.
 - La seule donnée qui peut quitter ton téléphone est un **rapport d'erreur technique**, et
   **seulement si tu l'acceptes** (désactivé par défaut).
+- Si tu utilises l'application sur une montre Wear OS, ton téléphone et ta montre échangent ton
+  suivi **directement**, sans passer par un serveur.
 
 ## 1. Données stockées sur ton appareil
 
@@ -46,6 +48,19 @@ téléphone.
 **Capteurs.** L'accéléromètre sert uniquement à animer le shaker de l'écran principal (liquide
 qui reste à niveau, mélange quand tu secoues). Ses mesures sont traitées sur le moment, sur ton
 appareil, et ne sont ni enregistrées ni transmises.
+
+**Montre Wear OS (facultative).** Si tu installes l'application sur ta montre Wear OS, ton
+téléphone lui envoie le total, l'objectif et les entrées du jour ainsi que tes produits
+enregistrés, et ta montre lui envoie les entrées que tu y ajoutes (une portion d'un produit, ou
+des grammes avec un nom facultatif) et celles que tu y supprimes. Ces échanges se font
+**directement entre ton téléphone et ta montre**, en Bluetooth ou sur le même réseau Wi-Fi, par
+les services Google Play de tes appareils : ils ne passent par **aucun serveur**, ni le nôtre ni
+celui de Google. Quand ta montre est hors de portée, rien n'est envoyé : ces ajouts et
+suppressions attendent sur la montre que le téléphone revienne. La montre garde une copie de la
+journée et de tes produits, et ce qui attend ; elle n'a pas accès à Internet et ses données sont
+exclues des sauvegardes. Pour les supprimer, désinstalle l'application de la montre. Le nom d'une
+entrée se tape ou se dicte avec le clavier ou la dictée de ta montre : l'application n'en reçoit
+que le texte.
 
 ## 2. Rapports d'erreur (facultatifs)
 
@@ -102,6 +117,10 @@ contient ni publicité, ni outil d'analyse d'audience.
 
 L'application ne demande ni la localisation, ni les contacts, ni l'appareil photo, ni le micro.
 
+L'application de la montre n'a pas l'autorisation Internet. Elle n'utilise que des autorisations
+techniques, accordées à l'installation, pour envoyer en arrière-plan les ajouts et suppressions
+en attente, même après un redémarrage de la montre.
+
 ## 5. Tes droits
 
 Conformément au RGPD, tu disposes d'un droit d'accès, de rectification, d'effacement, de
@@ -126,7 +145,7 @@ demande de consentement dans l'application.
 
 # Privacy policy — Protein Calculator
 
-**Effective date: October 7, 2026**
+**Effective date: October 11, 2026**
 
 This policy explains what data the **Protein Calculator** Android app processes, why, and what
 your rights are. It applies to the app published on Google Play.
@@ -139,10 +158,12 @@ Contact: <arbitro.contact@gmail.com>.
 ## In short
 
 - No account, no ads, no ad tracking, no data sale.
-- Your tracking data (entries, products, goal, settings) **stays on your phone**. We never have
-  access to it.
+- Your tracking data (entries, products, goal, settings) **stays on your phone**, and on your
+  watch if you use one. We never have access to it.
 - The only data that may leave your phone is a **technical crash report**, and **only if you
   agree** (off by default).
+- If you use the app on a Wear OS watch, your phone and your watch exchange your tracking data
+  **directly**, without going through a server.
 
 ## 1. Data stored on your device
 
@@ -167,6 +188,17 @@ accessible to us. You can turn it off in your phone settings.
 **Sensors.** The accelerometer is only used to animate the shaker on the main screen (the liquid
 staying level, mixing when you shake). Its readings are processed on the fly, on your device,
 and are neither stored nor sent.
+
+**Wear OS watch (optional).** If you install the app on your Wear OS watch, your phone sends it
+the total, the goal and the entries of the day and your saved products, and your watch sends it
+the entries you add there (a portion of a product, or grams with an optional name) and the ones
+you delete there. These exchanges go **directly between your phone and your watch**,
+over Bluetooth or the same Wi-Fi network, through the Google Play services of your devices: they
+go through **no server**, neither ours nor Google's. When your watch is out of range, nothing is
+sent: these additions and deletions wait on the watch for the phone to come back. The watch keeps
+a copy of the day and of your products, and what waits; it has no Internet access and its data is
+left out of backups. To delete it, uninstall the app from the watch. The name of an entry is typed
+or dictated with the keyboard or the dictation of your watch: the app only gets its text.
 
 ## 2. Crash reports (optional)
 
@@ -216,6 +248,10 @@ no third party receives data from the app. The app contains no ads and no audien
   Android may delay them.
 
 The app does not request location, contacts, camera or microphone access.
+
+The watch app has no Internet permission. It only uses technical permissions, granted on
+install, to send the waiting additions and deletions in the background, even after the watch
+restarts.
 
 ## 5. Your rights
 

@@ -31,3 +31,27 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: build
+
+  # Libraries of the watch app and of its link with the phone app
+  # (android/gradle/libs.versions.toml), under the same rules. The Gradle
+  # plugins and the libraries of the phone app follow the versions set by
+  # Flutter: they are left out. The newest AndroidX versions may need a
+  # newer Android Gradle plugin: the automated checks tell.
+  - package-ecosystem: gradle
+    directory: /android
+    target-branch: develop
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: "com.android.*"
+      # Kotlin and its plugins, not the kotlinx libraries.
+      - dependency-name: "org.jetbrains.kotlin:*"
+      - dependency-name: "org.jetbrains.kotlin.*"
+      - dependency-name: "dev.flutter*"
+    groups:
+      gradle:
+        patterns: ["*"]
+    commit-message:
+      prefix: build

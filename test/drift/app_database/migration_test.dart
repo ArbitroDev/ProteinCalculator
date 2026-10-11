@@ -12,6 +12,7 @@ import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
 import 'generated/schema_v7.dart' as v7;
+import 'generated/schema_v8.dart' as v8;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -356,4 +357,39 @@ void main() {
       },
     );
   });
+
+  test(
+    'migration from v7 to v8 keeps the entries, none from the watch',
+    () async {
+      await verifier.testWithDataIntegrity(
+        oldVersion: 7,
+        newVersion: 8,
+        createOld: v7.DatabaseAtV7.new,
+        createNew: v8.DatabaseAtV8.new,
+        openTestedDatabase: AppDatabase.new,
+        createItems: (batch, oldDb) {
+          batch.insert(
+            oldDb.entries,
+            const v7.EntriesData(
+              id: 1,
+              name: 'Skyr',
+              nameKey: 'skyr',
+              mode: 'direct',
+              proteinGrams: 20,
+              createdAt: 1790000000,
+              dayKey: 20260921,
+              slot: 'morning',
+            ),
+          );
+        },
+        validateItems: (newDb) async {
+          final entry = await newDb.select(newDb.entries).getSingle();
+          expect(entry.name, 'Skyr');
+          expect(entry.proteinGrams, 20);
+          expect(entry.fromWatch, 0);
+          expect(await newDb.select(newDb.watchRequests).get(), isEmpty);
+        },
+      );
+    },
+  );
 }
