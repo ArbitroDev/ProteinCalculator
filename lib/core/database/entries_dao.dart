@@ -75,6 +75,18 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     return query.watch();
   }
 
+  /// Parts of the days from [dayKey] onwards having at least one entry, as
+  /// `(dayKey, slot)`.
+  Future<Set<(int, DaySlot)>> filledSlotsFrom(int dayKey) async {
+    final query = selectOnly(entries, distinct: true)
+      ..addColumns([entries.dayKey, entries.slot])
+      ..where(entries.dayKey.isBiggerOrEqualValue(dayKey));
+    return {
+      for (final row in await query.get())
+        (row.read(entries.dayKey)!, row.readWithConverter(entries.slot)!),
+    };
+  }
+
   Future<Entry?> getEntry(int id) =>
       (select(entries)..where((e) => e.id.equals(id))).getSingleOrNull();
 
@@ -83,6 +95,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     String? name,
     required ProteinAmount amount,
     required DateTime createdAt,
+    bool fromWatch = false,
   }) {
     final columns = amountColumns(amount);
     return transaction(() async {
@@ -98,6 +111,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
           createdAt: createdAt,
           dayKey: dayKeyOf(createdAt),
           slot: Value(DaySlot.of(createdAt)),
+          fromWatch: Value(fromWatch),
         ),
       );
       await attachedDatabase.refreshUses(entryNameKey(name));
@@ -106,24 +120,35 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   }
 
   /// Adds one portion of [product] at [createdAt], as the product says.
-  Future<int> addPortion(Product product, {required DateTime createdAt}) =>
-      insertEntry(
-        name: product.name,
-        amount: product.amount,
-        createdAt: createdAt,
-      );
+  Future<int> addPortion(
+    Product product, {
+    required DateTime createdAt,
+    bool fromWatch = false,
+  }) => insertEntry(
+    name: product.name,
+    amount: product.amount,
+    createdAt: createdAt,
+    fromWatch: fromWatch,
+  );
 
-  /// Saves the edited values of an existing entry. Its time, app day and
-  /// part of the day are kept, and the uses of products follow a name change.
-  Future<void> updateEntry(Entry entry) {
+  /// Saves the edited values of an existing entry, and the uses of products
+  /// follow a name change. Its time, app day and part of the day are kept,
+  /// unless [createdAt] moves it to another minute, as times are picked:
+  /// they then follow it.
+  Future<void> updateEntry(Entry entry, {DateTime? createdAt}) {
     return transaction(() async {
       final previous = await getEntry(entry.id);
       if (previous == null) return;
+      final time =
+          createdAt != null && !_sameMinute(createdAt, previous.createdAt)
+          ? createdAt
+          : previous.createdAt;
+      final moved = time != previous.createdAt;
       final updated = entry.copyWith(
         nameKey: Value(entryNameKey(entry.name)),
-        createdAt: previous.createdAt,
-        dayKey: previous.dayKey,
-        slot: previous.slot,
+        createdAt: time,
+        dayKey: moved ? dayKeyOf(time) : previous.dayKey,
+        slot: moved ? DaySlot.of(time) : previous.slot,
       );
       await update(entries).replace(updated);
       await _refreshUses({previous.nameKey, updated.nameKey});
@@ -155,9 +180,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   /// of the days the app was not opened.
   Future<void> addRoutineEntries(DateTime now) {
     return transaction(() async {
-      final routines = await (select(
-        products,
-      )..where((p) => p.routine.equalsValue(DailyRoutine.autoAdd))).get();
+      final routines = await attachedDatabase.productsDao.getAutoAdds();
       for (final product in routines) {
         final minutes = product.routineMinutes;
         if (minutes == null) continue;
@@ -200,6 +223,13 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
       if (entry != null) await deleteEntry(entry.id);
     });
   }
+
+  static bool _sameMinute(DateTime a, DateTime b) =>
+      a.year == b.year &&
+      a.month == b.month &&
+      a.day == b.day &&
+      a.hour == b.hour &&
+      a.minute == b.minute;
 
   /// Computes again the uses of the products named by [nameKeys].
   Future<void> _refreshUses(Set<String?> nameKeys) async {

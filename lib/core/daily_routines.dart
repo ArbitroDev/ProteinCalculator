@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:drift/drift.dart' show TableUpdateQuery;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/app.dart';
@@ -9,7 +10,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
-import 'package:protein_calculator/core/notification_changes.dart';
+import 'package:protein_calculator/core/domain/slot_reminder.dart';
 import 'package:protein_calculator/core/notifications.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -52,6 +53,14 @@ class NotificationStatusNotifier extends AsyncNotifier<NotificationStatus> {
     return state.value?.shows(routine) ?? false;
   }
 
+  /// Asks the user to allow notifications. Completes with whether the
+  /// reminders of the parts of the day show.
+  Future<bool> requestSlotReminders() async {
+    await _notifications.requestPermission();
+    await refresh();
+    return state.value?.showsSlotReminders ?? false;
+  }
+
   Future<void> openSettings() => _notifications.openSettings();
 
   /// Asks the user to let notifications show at their exact time. Completes
@@ -65,8 +74,9 @@ class NotificationStatusNotifier extends AsyncNotifier<NotificationStatus> {
 
 /// Keeps the daily routines of the products running while the app runs:
 /// plans their notifications, and adds the products added automatically at
-/// their time, when the app comes back to the foreground, and after a
-/// button of a notification changed the data.
+/// their time and when the app comes back to the foreground. Also plans the
+/// reminders of the parts of the day left empty, see [SlotReminder], each
+/// time the data changes.
 final dailyRoutinesProvider = Provider<void>((ref) {
   final runner = _RoutineRunner(
     db: ref.watch(databaseProvider),
@@ -87,14 +97,23 @@ class _RoutineRunner {
     required this.now,
   }) {
     _lifecycle = AppLifecycleListener(onResume: _onResume);
-    _stopListening = listenToNotificationChanges(_reloadData);
+    _dataChanges = db
+        .tableUpdates(
+          TableUpdateQuery.onAllTables([
+            db.entries,
+            db.products,
+            db.appSettings,
+          ]),
+        )
+        .listen((_) => _planSlots());
+    _planSlots();
   }
 
   final AppDatabase db;
   final RoutineNotifications notifications;
   final DateTime Function() now;
   late final AppLifecycleListener _lifecycle;
-  late final VoidCallback _stopListening;
+  late final StreamSubscription<void> _dataChanges;
 
   List<Product> _products = const [];
 
@@ -103,6 +122,15 @@ class _RoutineRunner {
   String? _planned;
   Timer? _timer;
 
+  /// What the planned reminders of the parts of the day are, like
+  /// [_planned], with their language and mode ([_slotsSetup]), and whether
+  /// they are being planned, again if [_slotsAgain].
+  String? _plannedSlots;
+  String? _slotsSetup;
+  bool _planningSlots = false;
+  bool _slotsAgain = false;
+  bool _disposed = false;
+
   void update(List<Product> products) {
     _products = products;
     _plan();
@@ -110,21 +138,25 @@ class _RoutineRunner {
   }
 
   void dispose() {
+    _disposed = true;
     _timer?.cancel();
     _lifecycle.dispose();
-    _stopListening();
+    unawaited(_dataChanges.cancel());
   }
 
-  /// The buttons of the notifications change the data apart from the app:
-  /// the screens read it again.
-  void _reloadData() => db.markTablesUpdated([db.entries, db.products]);
+  /// The buttons of the notifications and the watch change the data apart
+  /// from the app, maybe while it was in the background: the screens read
+  /// it again.
+  void _reloadData() =>
+      db.markTablesUpdated([db.entries, db.products, db.watchRequests]);
 
   Future<void> _onResume() async {
     _reloadData();
     await _addDue();
     // The language of the phone, or the permission of exact times, may have
-    // changed.
+    // changed, and the days to remind have moved on.
     _plan();
+    _planSlots();
   }
 
   Future<void> _addDue() =>
@@ -134,12 +166,7 @@ class _RoutineRunner {
 
   Future<void> _planNow() async {
     final exact = (await notifications.status()).exact;
-    final l10n = lookupAppLocalizations(
-      resolveLocale(
-        PlatformDispatcher.instance.locales,
-        AppLocalizations.supportedLocales,
-      ),
-    );
+    final l10n = _l10n();
     final planned = [
       l10n.localeName,
       exact,
@@ -152,6 +179,73 @@ class _RoutineRunner {
     _planned = planned;
     await notifications.schedule(_products, l10n);
   }
+
+  /// Plans the reminders of the parts of the day, once at a time: the data
+  /// often changes several times in a row.
+  void _planSlots() {
+    if (_planningSlots) {
+      _slotsAgain = true;
+      return;
+    }
+    _planningSlots = true;
+    unawaited(() async {
+      do {
+        _slotsAgain = false;
+        await _report(_planSlotsNow);
+      } while (_slotsAgain && !_disposed);
+      _planningSlots = false;
+    }());
+  }
+
+  Future<void> _planSlotsNow() async {
+    final current = now();
+    final enabled = await db.settingsDao.getSlotReminders();
+    final plan = planSlotReminders(
+      now: current,
+      enabled: enabled,
+      filledSlots: enabled
+          ? await db.entriesDao.filledSlotsFrom(
+              slotReminderDayKeys(current).first,
+            )
+          : const {},
+      autoAdds: [
+        if (enabled)
+          for (final product in await db.productsDao.getAutoAdds())
+            if (product.routineMinutes case final minutes?)
+              (minutes: minutes, checkedAt: product.routineCheckedAt),
+      ],
+    );
+    if (_disposed) return;
+    // The texts follow the language of the phone, and the reminders show
+    // late without exact times: when either changes, all are planned again.
+    final l10n = _l10n();
+    final exact = plan.planned.isEmpty || (await notifications.status()).exact;
+    final setup = '${l10n.localeName}|$exact';
+    final planned = [
+      setup,
+      for (final reminder in plan.planned) reminder.id,
+      '/',
+      for (final reminder in plan.outdated) reminder.id,
+    ].join('|');
+    if (planned == _plannedSlots) return;
+    await notifications.scheduleSlotReminders(
+      plan.planned,
+      plan.outdated,
+      l10n,
+      replace: setup != _slotsSetup,
+    );
+    // Only once planned: after a failure, the next change tries again.
+    _plannedSlots = planned;
+    _slotsSetup = setup;
+  }
+
+  /// Texts in the language of the phone, which the notifications show.
+  static AppLocalizations _l10n() => lookupAppLocalizations(
+    resolveLocale(
+      PlatformDispatcher.instance.locales,
+      AppLocalizations.supportedLocales,
+    ),
+  );
 
   /// Wakes up at the next time a product adds itself.
   void _arm() {

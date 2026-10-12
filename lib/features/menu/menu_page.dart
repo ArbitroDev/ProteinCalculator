@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
+import 'package:protein_calculator/core/domain/slot_reminder.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
@@ -11,10 +14,12 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/goal_field.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
+import 'package:protein_calculator/core/widgets/notifications_off.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// Menu tab: daily goal, privacy, licenses and about.
+/// Menu tab: daily goal, start of the day, reminders, privacy, licenses and
+/// about.
 class MenuPage extends ConsumerWidget {
   const MenuPage({super.key});
 
@@ -116,6 +121,8 @@ class MenuPage extends ConsumerWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 10),
+            const _SlotRemindersCard(),
             const SizedBox(height: 16),
             _MenuItem(
               icon: LucideIcons.shieldCheck,
@@ -170,6 +177,114 @@ Future<void> _editStartHour(BuildContext context, int hour) =>
       ),
       builder: (context) => _StartHourSheet(hour: hour),
     );
+
+/// Switch of the reminders of the parts of the day left empty, see
+/// `SlotReminder`, with a banner when their notifications are off or late.
+class _SlotRemindersCard extends ConsumerWidget {
+  const _SlotRemindersCard();
+
+  /// Turns the reminders on, asking to allow notifications first, as they
+  /// are nothing else, then for exact times; or turns them off.
+  Future<void> _set(BuildContext context, WidgetRef ref, bool enabled) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final settings = ref.read(databaseProvider).settingsDao;
+    final status = ref.read(notificationStatusProvider.notifier);
+    if (enabled && !await _shows(ref) && !await status.requestSlotReminders()) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.slotRemindersNeedNotifications),
+          action: SnackBarAction(
+            label: l10n.openSettings,
+            onPressed: status.openSettings,
+          ),
+        ),
+      );
+      return;
+    }
+    final saved = await runUserAction(messenger, l10n, () async {
+      await settings.setSlotReminders(enabled);
+      return true;
+    });
+    if (enabled && saved != null && context.mounted) {
+      await askExactAlarms(context, ref);
+    }
+  }
+
+  /// Whether the reminders can show, once known: a switch turned on before
+  /// would not ask for notifications. Assumed if it cannot be read.
+  static Future<bool> _shows(WidgetRef ref) async {
+    try {
+      return (await ref.read(notificationStatusProvider.future))
+          .showsSlotReminders;
+    } on Object {
+      return true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final locale = context.localeName;
+    final enabled = ref.watch(slotRemindersProvider).value;
+    final notifications = ref.watch(notificationStatusProvider).value;
+    String hour(DaySlot slot) =>
+        formatTime(DateTime(2000, 1, 1, slotReminderHour(slot)), locale);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(14),
+          child: SwitchListTile(
+            value: enabled ?? false,
+            onChanged: enabled == null
+                ? null
+                : (value) => _set(context, ref, value),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
+            title: Text(
+              l10n.menuSlotReminders,
+              style: textTheme.bodyLarge!.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              l10n.menuSlotRemindersBody(
+                hour(DaySlot.morning),
+                hour(DaySlot.afternoon),
+                hour(DaySlot.evening),
+              ),
+              style: textTheme.bodySmall!.copyWith(color: colors.textSecondary),
+            ),
+          ),
+        ),
+        if ((enabled ?? false) && notifications != null)
+          if (!notifications.showsSlotReminders)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: NotificationsOff(
+                message: l10n.notificationsOffSlotReminders,
+              ),
+            )
+          else if (!notifications.exact)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: NotificationsOff(
+                message: l10n.slotRemindersMayBeLate,
+                late: true,
+              ),
+            ),
+      ],
+    );
+  }
+}
 
 class _MenuItem extends StatelessWidget {
   const _MenuItem({

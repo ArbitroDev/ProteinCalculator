@@ -12,6 +12,7 @@ import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/formatting.dart';
+import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
@@ -190,36 +191,7 @@ class _FormViewState extends ConsumerState<_FormView> {
       return;
     }
     if (reminder && !shows) _notifier.setRoutine(routine);
-    await _askExactAlarms();
-  }
-
-  /// Explains why exact times matter, then opens their page in Android.
-  Future<void> _askExactAlarms() async {
-    if (!mounted ||
-        ref.read(notificationStatusProvider).value?.exact != false) {
-      return;
-    }
-    final l10n = AppLocalizations.of(context);
-    final allow = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.exactAlarmsTitle),
-        content: Text(l10n.exactAlarmsBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.exactAlarmsLater),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.exactAlarmsAllow),
-          ),
-        ],
-      ),
-    );
-    if (allow ?? false) {
-      await ref.read(notificationStatusProvider.notifier).requestExactAlarms();
-    }
+    if (mounted) await askExactAlarms(context, ref);
   }
 
   Future<void> _submit() async {
@@ -251,6 +223,7 @@ class _FormViewState extends ConsumerState<_FormView> {
       EntryFormError.aboveReference => l10n.errorAboveReference,
       EntryFormError.nameRequired => l10n.errorNameRequired,
       EntryFormError.nameTaken => l10n.errorNameTaken,
+      EntryFormError.future => l10n.errorFutureTime,
     };
 
     final notifications = ref.watch(notificationStatusProvider).value;
@@ -379,7 +352,19 @@ class _FormViewState extends ConsumerState<_FormView> {
                     const SizedBox(height: 14),
                     _Result(grams: form.amount?.proteinGrams, locale: locale),
                   ],
-                  if (args is! EditEntryArgs) ...[
+                  if (!args.isProduct) ...[
+                    _Label(l10n.formWhen),
+                    _EntryTime(
+                      time: form.time,
+                      now: ref.read(clockProvider)(),
+                      locale: locale,
+                      // An entry being edited keeps a time of its own.
+                      canReset: args is NewEntryArgs,
+                      errorText: error(EntryFormField.time),
+                      onChanged: _dismissing(_notifier.setTime),
+                    ),
+                  ],
+                  if (args.isProduct || form.saveAsProduct) ...[
                     const SizedBox(height: 8),
                     _Label(l10n.routineTitle),
                     _OptionSelector(
@@ -434,16 +419,12 @@ class _FormViewState extends ConsumerState<_FormView> {
                   if (args is NewEntryArgs)
                     _SaveAsProduct(
                       value: form.saveAsProduct,
-                      label: form.updatesProduct
-                          ? l10n.updateProduct
-                          : l10n.saveAsProduct,
-                      // Locked on while a routine is chosen: it belongs to
-                      // the product.
-                      onChanged:
-                          form.canSaveAsProduct &&
-                              form.routine == DailyRoutine.none
-                          ? _notifier.setSaveAsProduct
-                          : null,
+                      label: l10n.saveAsProduct,
+                      // A new product needs a name of its own.
+                      hint: form.nameTaken ? l10n.errorNameTaken : null,
+                      onChanged: form.nameTaken
+                          ? null
+                          : _notifier.setSaveAsProduct,
                     ),
                   FilledButton(
                     onPressed: _saving ? null : _submit,
@@ -650,6 +631,98 @@ class _RoutineTime extends StatelessWidget {
   }
 }
 
+/// Moment of an entry: now for a new one, until a day and a time are
+/// picked, to add afterwards what was forgotten.
+class _EntryTime extends StatelessWidget {
+  const _EntryTime({
+    required this.time,
+    required this.now,
+    required this.locale,
+    required this.canReset,
+    required this.errorText,
+    required this.onChanged,
+  });
+
+  final DateTime? time;
+  final DateTime now;
+  final String locale;
+
+  /// Whether a button sets the moment back to now.
+  final bool canReset;
+  final String? errorText;
+  final ValueChanged<DateTime?> onChanged;
+
+  Future<void> _pick(BuildContext context) async {
+    final current = time ?? now;
+    final initial = current.isAfter(now) ? now : current;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(min(2000, initial.year)),
+      lastDate: now,
+    );
+    if (date == null || !context.mounted) return;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (picked == null) return;
+    onChanged(
+      DateTime(date.year, date.month, date.day, picked.hour, picked.minute),
+    );
+  }
+
+  String _label(AppLocalizations l10n) {
+    final time = this.time;
+    if (time == null) return l10n.formNow;
+    final today = DateUtils.dateOnly(now);
+    final day = DateUtils.dateOnly(time);
+    final dayText = day == today
+        ? l10n.formToday
+        : day == DateTime(today.year, today.month, today.day - 1)
+        ? l10n.formYesterday
+        : formatShortDate(time, locale);
+    return l10n.formDayAt(dayText, formatTime(time, locale));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final error = errorText;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => _pick(context),
+              icon: const Icon(LucideIcons.clock, size: 18),
+              label: Text(_label(l10n)),
+            ),
+            if (canReset && time != null) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: () => onChanged(null),
+                child: Text(l10n.formNow),
+              ),
+            ],
+          ],
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 12),
+            child: Text(
+              error,
+              style: Theme.of(context).textTheme.bodySmall!
+                  .copyWith(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _Suggestions extends StatelessWidget {
   const _Suggestions({
     required this.products,
@@ -763,11 +836,15 @@ class _SaveAsProduct extends StatelessWidget {
   const _SaveAsProduct({
     required this.value,
     required this.label,
+    required this.hint,
     required this.onChanged,
   });
 
   final bool value;
   final String label;
+
+  /// Why the option is not available, under its label.
+  final String? hint;
 
   /// Null while the option is not available.
   final ValueChanged<bool>? onChanged;
@@ -791,10 +868,17 @@ class _SaveAsProduct extends StatelessWidget {
                   : null,
             ),
             Expanded(
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.bodyLarge!
-                    .copyWith(color: enabled ? null : colors.textSecondary),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyLarge!
+                        .copyWith(color: enabled ? null : colors.textSecondary),
+                  ),
+                  if (hint case final hint?)
+                    Text(hint, style: Theme.of(context).textTheme.bodySmall),
+                ],
               ),
             ),
           ],

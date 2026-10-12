@@ -2,7 +2,7 @@ name: protein_calculator
 description: "Daily protein intake tracker."
 publish_to: 'none'
 
-version: 1.1.0+11
+version: 1.2.0+12
 
 environment:
   sdk: ^3.13.0
@@ -24,12 +24,15 @@ dependencies:
   go_router: ^18.0.2
   intl: ^0.20.3
   lucide_icons_flutter: ^3.1.21
-  package_info_plus: ^10.2.1
+  package_info_plus: ^10.2.2
   path_provider: ^2.1.6
   sensors_plus: ^7.1.1
   sentry_flutter: 9.30.1
   timezone: ^0.11.1
-  url_launcher: ^6.3.2
+  url_launcher: ^6.3.3
+  # Link with the Wear OS watch app.
+  watch_link:
+    path: packages/watch_link
 
 dev_dependencies:
   flutter_test:

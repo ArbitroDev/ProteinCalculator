@@ -35,6 +35,9 @@ class Entries extends Table {
   /// then computes the right value of every entry.
   TextColumn get slot =>
       textEnum<DaySlot>().withDefault(Constant(DaySlot.morning.name))();
+
+  /// Whether the entry was added on the watch, see `WatchDao.add`.
+  BoolColumn get fromWatch => boolean().withDefault(const Constant(false))();
 }
 
 /// Products saved by the user to fill in entries quickly.
@@ -88,6 +91,17 @@ class GoalChanges extends Table {
   Set<Column<Object>> get primaryKey => {dayKey};
 }
 
+/// Additions and deletions of the watch already made, by the id the watch
+/// gave them: one sent again, its answer lost, is not made twice. Kept 60
+/// days, specific to the phone: not in the backups.
+class WatchRequests extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get handledAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 /// Single-row table holding the app settings.
 @DataClassName('AppSettingsRow')
 class AppSettings extends Table {
@@ -109,6 +123,11 @@ class AppSettings extends Table {
 
   /// Whether crash reports are sent; off until the user agrees.
   BoolColumn get crashReports => boolean().withDefault(const Constant(false))();
+
+  /// Whether a notification reminds the user to add entries in a part of the
+  /// day left empty, see `SlotReminder`; off until the user turns it on.
+  BoolColumn get slotReminders =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

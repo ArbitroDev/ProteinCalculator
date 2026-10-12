@@ -146,6 +146,35 @@ void main() {
     expect(backup.entries.first.slot.value, DaySlot.afternoon);
   });
 
+  test('keeps the entries added on the watch', () async {
+    await source.entriesDao.insertEntry(
+      name: 'Skyr nature',
+      amount: const DirectAmount(15),
+      createdAt: DateTime(2026, 10, 1, 12, 30),
+      fromWatch: true,
+    );
+    final json = jsonDecode(await export()) as Map<String, dynamic>;
+
+    expect(
+      [for (final e in rows(json, 'entries')) e['fromWatch']],
+      [false, false, true],
+    );
+    final backup = parseBackup(jsonEncode(json));
+    expect(backup.entries.map((e) => e.fromWatch.value), [false, false, true]);
+  });
+
+  test('reads backups made before entries told their origin', () async {
+    final json = jsonDecode(await export()) as Map<String, dynamic>;
+    json['version'] = 4;
+    for (final entry in rows(json, 'entries')) {
+      entry.remove('fromWatch');
+    }
+
+    final backup = parseBackup(jsonEncode(json));
+
+    expect(backup.entries.map((e) => e.fromWatch.value), [false, false]);
+  });
+
   test('computes the part of the day for backups of version 1', () async {
     final json = jsonDecode(await export()) as Map<String, dynamic>;
     json['version'] = 1;

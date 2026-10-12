@@ -4,6 +4,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
+import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 
@@ -69,6 +70,16 @@ void main() {
       expect(await dao.isNameTaken('SKYR'), isTrue);
       expect(await dao.isNameTaken('Skyr', exceptId: id), isFalse);
       expect(await dao.isNameTaken('Yaourt'), isFalse);
+    });
+  });
+
+  test('getNameKeys lists the normalized names of the products', () async {
+    await addProduct('Skyr nature');
+    await addProduct('Œufs');
+
+    expect(await dao.getNameKeys(), {
+      productNameKey('Skyr nature'),
+      productNameKey('Œufs'),
     });
   });
 

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Protein Calculator</string>
+    <string name="tile_label">Protein of the day</string>
+    <string name="tile_title">Protein</string>
+    <string name="complication_label">Protein of the day</string>
+    <string name="complication_description">%1$s g of protein out of %2$s g</string>
+    <string name="grams">%1$s g</string>
+    <!-- The unit alone, styled apart from the number. -->
+    <string name="grams_unit" translatable="false">g</string>
+    <string name="goal_of">of %1$s g</string>
+    <string name="remaining">%1$s g left to shake</string>
+    <string name="goal_reached">Goal reached</string>
+    <string name="updated_at">Updated at %1$s</string>
+    <string name="phone_away_since">Phone away · %1$s</string>
+    <string name="pending">%1$s g waiting</string>
+    <string name="add_portion">Add a portion</string>
+    <string name="added">+%1$s g</string>
+    <string name="added_later">Sent once your phone is near</string>
+    <string name="add">Add</string>
+    <string name="today">Today</string>
+    <string name="no_entries">No entries yet today.</string>
+    <string name="unnamed">Unnamed</string>
+    <string name="entry_waiting">waiting</string>
+    <string name="from_watch">Added on the watch</string>
+    <string name="delete">Delete</string>
+    <string name="undo">Undo</string>
+    <string name="free_entry">Free entry</string>
+    <string name="free_grams_hint">Tap to type</string>
+    <string name="type_grams">Type the grams</string>
+    <string name="next">Next</string>
+    <string name="erase">Erase</string>
+    <string name="done">Done</string>
+    <string name="entry_name">Name of the entry</string>
+    <string name="add_name">Add a name</string>
+    <string name="change_name">Change the name</string>
+    <string name="products">Products</string>
+    <string name="no_products">Save products on your phone to add them from here.</string>
+    <string name="favorite">Favorite</string>
+    <string name="open_phone">Open Protein Calculator on your phone.</string>
+    <string name="update_watch">Update Protein Calculator on your watch.</string>
+    <string name="update_phone">Update Protein Calculator on your phone.</string>
+</resources>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The notification icon is only named in Dart code: kept from the
-     removal of unused resources in release builds. -->
+<!-- Kept from the removal of unused resources in release builds: the
+     notification icon, only named in Dart code, and the capabilities read by
+     Google Play services. -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_notification" />
+    tools:keep="@drawable/ic_notification,@array/android_wear_capabilities" />

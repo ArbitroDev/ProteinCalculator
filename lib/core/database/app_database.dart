@@ -7,6 +7,7 @@ import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/database/tables.dart';
+import 'package:protein_calculator/core/database/watch_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
@@ -18,8 +19,8 @@ import 'package:protein_calculator/core/domain/product_sort.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Entries, Products, AppSettings, GoalChanges],
-  daos: [EntriesDao, ProductsDao, SettingsDao],
+  tables: [Entries, Products, AppSettings, GoalChanges, WatchRequests],
+  daos: [EntriesDao, ProductsDao, SettingsDao, WatchDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
@@ -32,8 +33,9 @@ class AppDatabase extends _$AppDatabase {
       // can be set aside when it cannot be opened.
       native: DriftNativeOptions(
         databasePath: databasePath,
-        // The buttons of the notifications write to the data apart from the
-        // app: one waits for the other rather than failing.
+        // The buttons of the notifications and the requests of the watch
+        // write to the data apart from the app: one waits for the other
+        // rather than failing.
         setup: (db) => db.execute('PRAGMA busy_timeout = 5000'),
       ),
       web: DriftWebOptions(
@@ -44,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,6 +78,13 @@ class AppDatabase extends _$AppDatabase {
       },
       from6To7: (m, schema) async {
         await m.addColumn(schema.appSettings, schema.appSettings.dayStartHour);
+      },
+      from7To8: (m, schema) async {
+        await m.create(schema.watchRequests);
+        await m.addColumn(schema.entries, schema.entries.fromWatch);
+      },
+      from8To9: (m, schema) async {
+        await m.addColumn(schema.appSettings, schema.appSettings.slotReminders);
       },
     ),
     beforeOpen: (details) async {

@@ -90,4 +90,15 @@ void main() {
       expect(await dao.watchHistoryView().first, HistoryView.calendar);
     });
   });
+
+  group('slot reminders', () {
+    test('are off by default, and can be turned on', () async {
+      expect(await dao.getSlotReminders(), isFalse);
+
+      await dao.setSlotReminders(true);
+
+      expect(await dao.getSlotReminders(), isTrue);
+      expect(await dao.watchSlotReminders().first, isTrue);
+    });
+  });
 }

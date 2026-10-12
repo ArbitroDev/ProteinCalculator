@@ -2,11 +2,14 @@
 
 Run from the root of the repository, after
     flutter test tool/store_screenshots --update-goldens
+and, from android/, for the watch app:
+    ./gradlew :wear:testDebugUnitTest -PstoreScreenshots --tests '*StoreScreenshotsTest'
 with:
     python tool/store_screenshots/compose.py
 Needs Pillow (pip install pillow). Writes, for the version of pubspec.yaml,
-store/<language>/screenshots/<n>_<language>_<version>.png (1080 x 1920) and
-store/<language>/feature-graphic_<language>_<version>.png (1024 x 500).
+store/<language>/screenshots/<n>_<language>_<version>.png (1080 x 1920),
+store/<language>/feature-graphic_<language>_<version>.png (1024 x 500) and
+store/<language>/wear/<n>_<language>_<version>.png (384 x 384).
 """
 import os
 import re
@@ -17,7 +20,7 @@ SAIRA = 'assets/fonts/SairaSemiCondensed-ExtraBold.ttf'
 OUTFIT = 'assets/fonts/Outfit-Medium.ttf'
 ICON = 'assets/branding/play-store-icon-512.png'
 COBALT = (45, 63, 224)
-MARINE = (11, 16, 80)
+MARINE = (16, 20, 46)
 ORANGE = (255, 138, 61)
 WHITE = (255, 255, 255)
 
@@ -40,6 +43,11 @@ SCREENS = {
         ('1-today', 'light', 'Light or dark,', 'your choice'),
     ],
 }
+# Raw screenshots of the watch app, rendered by android/wear
+# (StoreScreenshotsTest): shown as they are, as Google Play wants the
+# interface of the app alone, without frame nor text.
+WATCH_SCREENS = ['1-day', '2-entries', '3-products', '4-tile']
+
 TAGLINES = {
     'fr': 'Suis tes protéines, simplement',
     'en': 'Track your protein, simply',
@@ -83,18 +91,26 @@ def screenshot(language, shot, theme, line1, line2, path):
     stamp(canvas, VERSION).save(path, optimize=True)
 
 
+def watch_screenshot(language, shot, path):
+    raw = Image.open(f'tool/store_screenshots/{language}/wear-{shot}.png')
+    # Without transparency, which Google Play refuses.
+    stamp(raw.convert('RGB'), VERSION).save(path, optimize=True)
+
+
 def feature_graphic(language, path):
     graphic = Image.new('RGB', (1024, 500), COBALT)
     draw = ImageDraw.Draw(graphic)
+    # The background of the icon is the cobalt of the graphic: only the
+    # shaker shows, as large as the height allows.
     icon = rounded(
-        Image.open(ICON).convert('RGBA').resize((300, 300), Image.LANCZOS), 66
+        Image.open(ICON).convert('RGBA').resize((440, 440), Image.LANCZOS), 97
     )
-    graphic.paste(icon, (80, 100), icon)
-    name = ImageFont.truetype(SAIRA, 74)
-    tagline = ImageFont.truetype(OUTFIT, 34)
-    draw.text((420, 150), 'Protein', font=name, fill=WHITE)
-    draw.text((420, 225), 'Calculator', font=name, fill=WHITE)
-    draw.text((424, 325), TAGLINES[language], font=tagline, fill=ORANGE)
+    graphic.paste(icon, (0, 30), icon)
+    name = ImageFont.truetype(SAIRA, 112)
+    tagline = ImageFont.truetype(OUTFIT, 42)
+    draw.text((390, 88), 'Protein', font=name, fill=WHITE)
+    draw.text((390, 188), 'Calculator', font=name, fill=WHITE)
+    draw.text((394, 342), TAGLINES[language], font=tagline, fill=ORANGE)
     stamp(graphic, VERSION).save(path, optimize=True)
 
 
@@ -110,4 +126,11 @@ for language, screens in SCREENS.items():
     feature_graphic(
         language, f'store/{language}/feature-graphic_{language}_{VERSION}.png'
     )
-    print(f'{language} {VERSION}: {len(screens)} screenshots and the feature graphic')
+    wear = f'store/{language}/wear'
+    os.makedirs(wear, exist_ok=True)
+    for index, shot in enumerate(WATCH_SCREENS, 1):
+        watch_screenshot(language, shot, f'{wear}/{index}_{language}_{VERSION}.png')
+    print(
+        f'{language} {VERSION}: {len(screens)} screenshots, the feature graphic '
+        f'and {len(WATCH_SCREENS)} screenshots of the watch app'
+    )

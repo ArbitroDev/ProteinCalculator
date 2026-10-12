@@ -10,8 +10,6 @@ sealed class EntryFormArgs {
   const EntryFormArgs();
 
   bool get isProduct => this is NewProductArgs || this is EditProductArgs;
-
-  bool get isNew => this is NewEntryArgs || this is NewProductArgs;
 }
 
 /// New entry, prefilled from the product [productId] if given.
@@ -64,7 +62,14 @@ final class EditProductArgs extends EntryFormArgs {
   int get hashCode => Object.hash(EditProductArgs, productId);
 }
 
-enum EntryFormField { name, protein, consumed, proteinPerReference, reference }
+enum EntryFormField {
+  name,
+  protein,
+  consumed,
+  proteinPerReference,
+  reference,
+  time,
+}
 
 enum EntryFormError {
   /// A quantity is missing or is not a number.
@@ -81,6 +86,9 @@ enum EntryFormError {
 
   /// Another product already has this name.
   nameTaken,
+
+  /// The time of the entry has not come yet.
+  future,
 }
 
 /// Values typed in the entry form, kept as text while typing and parsed
@@ -96,10 +104,10 @@ class EntryFormState {
     this.proteinPerReference = '',
     this.reference = '100',
     this.saveAsProduct = false,
-    this.canSaveAsProduct = true,
-    this.updatesProduct = false,
+    this.nameTaken = false,
     this.routine = DailyRoutine.none,
     this.routineMinutes = 8 * 60,
+    this.time,
     this.errors = const {},
     this.revision = 0,
   });
@@ -110,20 +118,23 @@ class EntryFormState {
   final String consumed;
   final String proteinPerReference;
   final String reference;
+
+  /// Whether a new entry is also saved as a new product, which then gets the
+  /// [routine]. Off while the [name] is [nameTaken].
   final bool saveAsProduct;
 
-  /// Whether a new entry can be saved as a product: when it starts from a
-  /// saved product, only once its values have been changed.
-  final bool canSaveAsProduct;
-
-  /// Whether saving as a product updates the product the entry starts from,
-  /// because it keeps its name, instead of creating a new one.
-  final bool updatesProduct;
+  /// Whether another product already has the [name]: a new entry cannot be
+  /// saved as a product, a product cannot take it.
+  final bool nameTaken;
 
   /// Daily routine of the product, and its time in minutes since midnight,
   /// kept when the routine is turned off in case it is turned on again.
   final DailyRoutine routine;
   final int routineMinutes;
+
+  /// Moment of an entry: the one it was added at when edited, or the one
+  /// chosen to add it afterwards. Null for a new entry added now.
+  final DateTime? time;
   final Map<EntryFormField, EntryFormError> errors;
 
   /// Increases when the values are replaced as a whole (a product is
@@ -152,12 +163,19 @@ class EntryFormState {
     );
   }
 
-  /// Checks the quantities of the current mode and, if [nameRequired], the
-  /// name. Duplicate names are checked against the database separately.
-  Map<EntryFormField, EntryFormError> validate({required bool nameRequired}) {
+  /// Checks the quantities of the current mode, the [time] against [now]
+  /// and, if [nameRequired], the name. Duplicate names are checked against
+  /// the database separately.
+  Map<EntryFormField, EntryFormError> validate({
+    required bool nameRequired,
+    required DateTime now,
+  }) {
     final errors = <EntryFormField, EntryFormError>{};
     if (nameRequired && name.trim().isEmpty) {
       errors[EntryFormField.name] = EntryFormError.nameRequired;
+    }
+    if (time?.isAfter(now) ?? false) {
+      errors[EntryFormField.time] = EntryFormError.future;
     }
 
     void positive(EntryFormField field, String text) {
@@ -196,10 +214,11 @@ class EntryFormState {
     String? proteinPerReference,
     String? reference,
     bool? saveAsProduct,
-    bool? canSaveAsProduct,
-    bool? updatesProduct,
+    bool? nameTaken,
     DailyRoutine? routine,
     int? routineMinutes,
+    DateTime? time,
+    bool clearTime = false,
     Map<EntryFormField, EntryFormError>? errors,
     int? revision,
   }) => EntryFormState(
@@ -210,10 +229,10 @@ class EntryFormState {
     proteinPerReference: proteinPerReference ?? this.proteinPerReference,
     reference: reference ?? this.reference,
     saveAsProduct: saveAsProduct ?? this.saveAsProduct,
-    canSaveAsProduct: canSaveAsProduct ?? this.canSaveAsProduct,
-    updatesProduct: updatesProduct ?? this.updatesProduct,
+    nameTaken: nameTaken ?? this.nameTaken,
     routine: routine ?? this.routine,
     routineMinutes: routineMinutes ?? this.routineMinutes,
+    time: clearTime ? null : time ?? this.time,
     errors: errors ?? this.errors,
     revision: revision ?? this.revision,
   );

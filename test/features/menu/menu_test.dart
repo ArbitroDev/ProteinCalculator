@@ -81,6 +81,22 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  testWidgets('turns the missed entry reminders on and off', (tester) async {
+    await openMenu(tester);
+    expect(await db.settingsDao.getSlotReminders(), isFalse);
+
+    // Off by default; without notifications to allow in tests, it turns on
+    // at once.
+    await tester.tap(find.text('Missed entry reminders'));
+    await tester.pumpAndSettle();
+    expect(await db.settingsDao.getSlotReminders(), isTrue);
+
+    await tester.tap(find.text('Missed entry reminders'));
+    await tester.pumpAndSettle();
+    expect(await db.settingsDao.getSlotReminders(), isFalse);
+    await disposeApp(tester, db);
+  });
+
   testWidgets('opens the data and privacy page', (tester) async {
     await openMenu(tester);
 

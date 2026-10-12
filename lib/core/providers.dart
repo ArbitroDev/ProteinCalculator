@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:protein_calculator/core/background_changes.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
@@ -15,6 +16,18 @@ import 'package:protein_calculator/core/domain/product_sort.dart';
 final databaseProvider = Provider<AppDatabase>(
   (ref) => throw UnimplementedError('Override databaseProvider in main.'),
 );
+
+/// Reads the data again, while the app runs, each time code run apart from
+/// it changes the data: the buttons of the notifications, the requests of
+/// the watch.
+final backgroundChangesProvider = Provider<void>((ref) {
+  final db = ref.watch(databaseProvider);
+  ref.onDispose(
+    listenToBackgroundChanges(
+      () => db.markTablesUpdated([db.entries, db.products, db.watchRequests]),
+    ),
+  );
+});
 
 /// Current time; overridden in tests.
 final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
@@ -108,6 +121,12 @@ final historyProvider = StreamProvider<List<DaySummary>>(
 /// Whether the user agreed to send crash reports, see `setCrashReporting`.
 final crashReportsProvider = StreamProvider<bool>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchCrashReports(),
+);
+
+/// Whether the reminders of the parts of the day left empty are on, see
+/// `SlotReminder`.
+final slotRemindersProvider = StreamProvider<bool>(
+  (ref) => ref.watch(databaseProvider).settingsDao.watchSlotReminders(),
 );
 
 /// Sort order chosen in the products tab, remembered between launches.

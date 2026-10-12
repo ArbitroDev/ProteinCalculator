@@ -493,9 +493,24 @@ class _EntryLabel extends StatelessWidget {
                                   fontWeight: FontWeight.w500,
                                 ),
                         ),
-                        Text(
-                          formatTime(entry.createdAt, locale),
-                          style: textTheme.bodySmall!.copyWith(fontSize: 11),
+                        Row(
+                          children: [
+                            Text(
+                              formatTime(entry.createdAt, locale),
+                              style: textTheme.bodySmall!.copyWith(
+                                fontSize: 11,
+                              ),
+                            ),
+                            if (entry.fromWatch) ...[
+                              const SizedBox(width: 4),
+                              Icon(
+                                LucideIcons.watch,
+                                size: 11,
+                                color: colors.textSecondary,
+                                semanticLabel: l10n.entryFromWatch,
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),

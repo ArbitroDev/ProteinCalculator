@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tile_label">Protéines du jour</string>
+    <string name="tile_title">Protéines</string>
+    <string name="complication_label">Protéines du jour</string>
+    <string name="complication_description">%1$s g de protéines sur %2$s g</string>
+    <string name="grams">%1$s g</string>
+    <string name="goal_of">sur %1$s g</string>
+    <string name="remaining">encore %1$s g à secouer</string>
+    <string name="goal_reached">Objectif atteint</string>
+    <string name="updated_at">Mis à jour à %1$s</string>
+    <string name="phone_away_since">Hors de portée · %1$s</string>
+    <string name="pending">%1$s g en attente</string>
+    <string name="add_portion">Ajouter une portion</string>
+    <string name="added">+%1$s g</string>
+    <string name="added_later">Envoyé dès que ton téléphone sera proche</string>
+    <string name="add">Ajouter</string>
+    <string name="today">Aujourd\'hui</string>
+    <string name="no_entries">Pas encore d\'entrée aujourd\'hui.</string>
+    <string name="unnamed">Sans nom</string>
+    <string name="entry_waiting">en attente</string>
+    <string name="from_watch">Ajoutée depuis la montre</string>
+    <string name="delete">Supprimer</string>
+    <string name="undo">Annuler</string>
+    <string name="free_entry">Entrée libre</string>
+    <string name="free_grams_hint">Touche pour taper</string>
+    <string name="type_grams">Taper les grammes</string>
+    <string name="next">Suivant</string>
+    <string name="erase">Effacer</string>
+    <string name="done">Valider</string>
+    <string name="entry_name">Nom de l\'entrée</string>
+    <string name="add_name">Ajouter un nom</string>
+    <string name="change_name">Changer le nom</string>
+    <string name="products">Produits</string>
+    <string name="no_products">Enregistre des produits sur ton téléphone pour les ajouter d\'ici.</string>
+    <string name="favorite">Favori</string>
+    <string name="open_phone">Ouvre Protein Calculator sur ton téléphone.</string>
+    <string name="update_watch">Mets à jour Protein Calculator sur ta montre.</string>
+    <string name="update_phone">Mets à jour Protein Calculator sur ton téléphone.</string>
+</resources>

@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/router.dart';
 
 import '../../helpers.dart';
 
@@ -32,6 +36,76 @@ void main() {
     expect(find.text('Something went wrong, please try again.'), findsOne);
     expect(find.text('New entry'), findsOneWidget);
     expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('picks the moment of a new entry', (tester) async {
+    await pumpApp(tester, db);
+    await tester.tap(find.byTooltip('Add'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '30');
+
+    final moment = find.widgetWithText(OutlinedButton, 'Now');
+    await tester.ensureVisible(moment);
+    await tester.tap(moment);
+    await tester.pumpAndSettle();
+    // The day, then the time, both offered at the current moment.
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Today at'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    // A direct query: streams never emit in widget tests.
+    final entry = (await db.select(db.entries).get()).single;
+    expect(entry.createdAt, defaultNow);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('shows the moment of an edited entry', (tester) async {
+    final id = await db.entriesDao.insertEntry(
+      amount: const DirectAmount(15),
+      createdAt: DateTime(2026, 9, 30, 20),
+    );
+    await pumpApp(tester, db);
+    final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+    unawaited(router.push(AppRoutes.editEntry(id)));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Yesterday at'), findsOneWidget);
+    // Its own time: no going back to now.
+    expect(find.widgetWithText(TextButton, 'Now'), findsNothing);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('saves as a product only under a free name', (tester) async {
+    final productId = await db.productsDao.insertProduct(
+      name: 'Skyr',
+      amount: const DirectAmount(15),
+      createdAt: DateTime(2026),
+    );
+    await pumpApp(tester, db);
+    final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+    unawaited(router.push(AppRoutes.newEntryFrom(productId)));
+    await tester.pumpAndSettle();
+
+    // Filled from the product, whose name is taken.
+    final box = find.byType(Checkbox);
+    expect(tester.widget<Checkbox>(box).onChanged, isNull);
+    expect(find.text('A product already has this name.'), findsOneWidget);
+    expect(find.text('Every day'), findsNothing);
+
+    await tester.enterText(find.byType(TextField).first, 'Skyr vanille');
+    await tester.pumpAndSettle();
+    expect(find.text('A product already has this name.'), findsNothing);
+
+    // The routine comes with the new product.
+    await tester.tap(box);
+    await tester.pumpAndSettle();
+    expect(find.text('Every day'), findsOneWidget);
     await disposeApp(tester, db);
   });
 
