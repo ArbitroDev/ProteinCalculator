@@ -19,6 +19,24 @@ String? normalizeBarcode(String code) {
 /// [normalizeBarcode].
 bool isNormalizedBarcode(String code) => normalizeBarcode(code) == code;
 
+/// The UPC-A a UPC-E [code] is the short form of, both of 8 digits with
+/// their number system and check digit: the zeros left out of the
+/// manufacturer and product numbers come back, where the sixth digit says.
+/// Null if [code] is not 8 digits.
+String? expandUpcE(String code) {
+  if (code.length != 8 || !_digits.hasMatch(code)) return null;
+  final system = code[0];
+  final d = code.substring(1, 7);
+  final check = code[7];
+  final body = switch (d[5]) {
+    '0' || '1' || '2' => '${d.substring(0, 2)}${d[5]}0000${d.substring(2, 5)}',
+    '3' => '${d.substring(0, 3)}00000${d.substring(3, 5)}',
+    '4' => '${d.substring(0, 4)}00000${d[4]}',
+    _ => '${d.substring(0, 5)}0000${d[5]}',
+  };
+  return '$system$body$check';
+}
+
 final _digits = RegExp(r'^\d+$');
 
 /// From the right, the check digit counts once, then the digits count three

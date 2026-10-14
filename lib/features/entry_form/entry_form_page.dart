@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,7 @@ import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/quantity_unit.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
+import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
@@ -195,6 +197,19 @@ class _FormViewState extends ConsumerState<_FormView> {
     if (mounted) await askExactAlarms(context, ref);
   }
 
+  /// Whether the form offers to scan a barcode: not for an entry being
+  /// edited, nor on the web, which only serves to try the app.
+  bool get _canScan => !kIsWeb && widget.args is! EditEntryArgs;
+
+  Future<void> _scan() async {
+    _dismissSuggestions();
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final barcode = await context.push<String>(AppRoutes.scan);
+    if (barcode == null || !mounted) return;
+    messenger.showSnackBar(SnackBar(content: Text(l10n.scanRead(barcode))));
+  }
+
   Future<void> _submit() async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
@@ -252,24 +267,35 @@ class _FormViewState extends ConsumerState<_FormView> {
                         ? l10n.formName
                         : l10n.formNameOptional,
                   ),
-                  TextField(
-                    controller: _name,
-                    focusNode: _nameFocus,
-                    textCapitalization: TextCapitalization.sentences,
-                    inputFormatters: [
-                      LengthLimitingTextInputFormatter(maxNameLength),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _name,
+                          focusNode: _nameFocus,
+                          textCapitalization: TextCapitalization.sentences,
+                          inputFormatters: [
+                            LengthLimitingTextInputFormatter(maxNameLength),
+                          ],
+                          textInputAction: TextInputAction.next,
+                          onChanged: (value) {
+                            if (_hideSuggestions) {
+                              setState(() => _hideSuggestions = false);
+                            }
+                            _notifier.setName(value);
+                          },
+                          decoration: InputDecoration(
+                            hintText: l10n.formNameHint,
+                            errorText: error(EntryFormField.name),
+                          ),
+                        ),
+                      ),
+                      if (_canScan) ...[
+                        const SizedBox(width: 10),
+                        _ScanButton(onPressed: _scan),
+                      ],
                     ],
-                    textInputAction: TextInputAction.next,
-                    onChanged: (value) {
-                      if (_hideSuggestions) {
-                        setState(() => _hideSuggestions = false);
-                      }
-                      _notifier.setName(value);
-                    },
-                    decoration: InputDecoration(
-                      hintText: l10n.formNameHint,
-                      errorText: error(EntryFormField.name),
-                    ),
                   ),
                   // Always one slot, even when empty: the fields after it keep
                   // their place in the list, so the field being tapped is not
@@ -445,6 +471,31 @@ class _FormViewState extends ConsumerState<_FormView> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Opens the camera to scan the barcode of a product. Its green tells the
+/// values it fills in.
+class _ScanButton extends StatelessWidget {
+  const _ScanButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: AppLocalizations.of(context).scanBarcode,
+      style: IconButton.styleFrom(
+        backgroundColor: colors.scanSurface,
+        foregroundColor: colors.scan,
+        // As tall as the name field beside it.
+        fixedSize: const Size.square(54),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      icon: const Icon(LucideIcons.scanBarcode),
     );
   }
 }

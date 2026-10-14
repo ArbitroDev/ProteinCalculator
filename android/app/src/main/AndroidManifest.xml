@@ -1,6 +1,33 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Only used to send crash reports, when the user keeps them on. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Reads the barcode of a product, asked when the user first scans one.
+         The picture is read on the phone and never leaves it. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- The camera library asks for these, or brings them, to record videos,
+         which the app never does. -->
+    <uses-permission
+        android:name="android.permission.RECORD_AUDIO"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
+    <!-- Phones without a camera can still install the app: the barcode can
+         be typed. -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false"
+        tools:replace="android:required" />
     <!-- Plans the notifications of the daily routines again after the phone
          restarts. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />

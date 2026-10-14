@@ -19,6 +19,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.structure,
     required this.shakerInside,
     required this.accentText,
+    required this.scan,
+    required this.scanSurface,
   });
 
   final Color background;
@@ -36,6 +38,14 @@ class AppColors extends ThemeExtension<AppColors> {
 
   /// Orange readable as text on the background.
   final Color accentText;
+
+  /// Green of the barcode scan, readable as text and icons on [scanSurface],
+  /// the background of the scan button and of the values it filled in.
+  final Color scan;
+  final Color scanSurface;
+
+  /// Frame the barcode is placed in, over the camera picture.
+  static const scanFrame = Color(0xFF5FD38F);
 
   static const accent = Color(0xFFFF8A3D);
   static const onAccent = Color(0xFF1B0E05);
@@ -59,6 +69,8 @@ class AppColors extends ThemeExtension<AppColors> {
     structure: Color(0xFF2D3FE0),
     shakerInside: Color(0xFFEEF2FF),
     accentText: Color(0xFFB8440F),
+    scan: Color(0xFF17703F),
+    scanSurface: Color(0xFFCDEFD9),
   );
 
   static const dark = AppColors(
@@ -71,6 +83,8 @@ class AppColors extends ThemeExtension<AppColors> {
     structure: Color(0xFF7C86DE),
     shakerInside: Color(0xFF1C2142),
     accentText: Color(0xFFFF8A3D),
+    scan: Color(0xFF5FD38F),
+    scanSurface: Color(0xFF1B3B34),
   );
 
   /// Color of the entries added during [slot].
@@ -94,6 +108,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? structure,
     Color? shakerInside,
     Color? accentText,
+    Color? scan,
+    Color? scanSurface,
   }) => AppColors(
     background: background ?? this.background,
     surface: surface ?? this.surface,
@@ -104,6 +120,8 @@ class AppColors extends ThemeExtension<AppColors> {
     structure: structure ?? this.structure,
     shakerInside: shakerInside ?? this.shakerInside,
     accentText: accentText ?? this.accentText,
+    scan: scan ?? this.scan,
+    scanSurface: scanSurface ?? this.scanSurface,
   );
 
   @override
@@ -120,6 +138,8 @@ class AppColors extends ThemeExtension<AppColors> {
       structure: mix(structure, other.structure),
       shakerInside: mix(shakerInside, other.shakerInside),
       accentText: mix(accentText, other.accentText),
+      scan: mix(scan, other.scan),
+      scanSurface: mix(scanSurface, other.scanSurface),
     );
   }
 }

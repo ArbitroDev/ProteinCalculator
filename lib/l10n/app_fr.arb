@@ -181,6 +181,59 @@
   "@formUnit": {
     "description": "Name read by screen readers for the list of units of a quantity of food."
   },
+  "scanBarcode": "Scanner un code-barres",
+  "@scanBarcode": {
+    "description": "Tooltip of the button opening the camera to scan the barcode of a product."
+  },
+  "scanRead": "Code lu : {code}",
+  "@scanRead": {
+    "description": "Barcode read by the camera, shown until the product is looked up.",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "scanHint": "Place le code-barres dans le cadre",
+  "@scanHint": {
+    "description": "Hint over the camera picture while scanning."
+  },
+  "scanTorchOn": "Allumer la lampe",
+  "@scanTorchOn": {
+    "description": "Tooltip of the button lighting the flashlight while scanning."
+  },
+  "scanTorchOff": "Éteindre la lampe",
+  "@scanTorchOff": {
+    "description": "Tooltip of the button turning the flashlight off while scanning."
+  },
+  "scanTypeCode": "Saisir le code",
+  "@scanTypeCode": {
+    "description": "Button to type the digits of the barcode instead of scanning it."
+  },
+  "scanTypeTitle": "Code-barres",
+  "@scanTypeTitle": {
+    "description": "Title of the dialog where the barcode is typed."
+  },
+  "scanTypeHint": "Les chiffres sous le code-barres",
+  "@scanTypeHint": {
+    "description": "Hint of the field where the barcode is typed."
+  },
+  "scanTypeInvalid": "Ce code n'est pas valide : vérifie les chiffres.",
+  "@scanTypeInvalid": {
+    "description": "Error when the typed barcode has the wrong length or check digit."
+  },
+  "scanTypeConfirm": "Valider",
+  "@scanTypeConfirm": {
+    "description": "Button confirming the typed barcode."
+  },
+  "scanCameraDenied": "L'app n'a pas accès à la caméra. Autorise-la dans les réglages d'Android, ou saisis le code à la main.",
+  "@scanCameraDenied": {
+    "description": "Shown in place of the camera picture when the camera was refused."
+  },
+  "scanCameraUnavailable": "La caméra n'est pas disponible. Tu peux saisir le code à la main.",
+  "@scanCameraUnavailable": {
+    "description": "Shown in place of the camera picture when the phone has no camera or it cannot open."
+  },
   "formResult": "de protéines",
   "@formResult": {
     "description": "After the computed protein amount, as in '15 g of protein'."
