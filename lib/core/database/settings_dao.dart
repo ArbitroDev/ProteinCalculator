@@ -76,6 +76,20 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
   Future<void> setCrashReports(bool enabled) =>
       _write(AppSettingsCompanion(crashReports: Value(enabled)));
 
+  /// Whether the products page folds its list of saved products.
+  Stream<bool> watchSavedProductsCollapsed() =>
+      _row.watchSingle().map((settings) => settings.savedProductsCollapsed);
+
+  Future<void> setSavedProductsCollapsed(bool collapsed) =>
+      _write(AppSettingsCompanion(savedProductsCollapsed: Value(collapsed)));
+
+  /// Whether the products page folds its list of recent scans.
+  Stream<bool> watchRecentScansCollapsed() =>
+      _row.watchSingle().map((settings) => settings.recentScansCollapsed);
+
+  Future<void> setRecentScansCollapsed(bool collapsed) =>
+      _write(AppSettingsCompanion(recentScansCollapsed: Value(collapsed)));
+
   Future<bool> getSlotReminders() async =>
       (await _row.getSingle()).slotReminders;
 

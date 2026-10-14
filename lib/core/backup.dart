@@ -6,6 +6,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/barcode.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
@@ -27,7 +28,8 @@ const backupFormat = 'protein-calculator';
 /// start hour of the day.
 /// 5: entries tell whether they were added on the watch.
 /// 6: entries and products hold the unit of their quantities.
-const backupVersion = 6;
+/// 7: products hold their barcode.
+const backupVersion = 7;
 
 /// Thrown when a file is not a valid Protein Calculator backup.
 class InvalidBackupException implements Exception {
@@ -122,6 +124,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'isFavorite': p.isFavorite,
           'routine': p.routine.name,
           'routineMinutes': p.routineMinutes,
+          'barcode': p.barcode,
         },
     ],
   });
@@ -160,6 +163,9 @@ Backup parseBackup(String text) {
     }
     if (!_unique(products.map((p) => p.nameKey.value))) {
       throw const InvalidBackupException('duplicate product names');
+    }
+    if (!_unique(products.map((p) => p.barcode.value).nonNulls)) {
+      throw const InvalidBackupException('duplicate barcodes');
     }
     if (products.where((p) => p.isFavorite.value).length > 1) {
       throw const InvalidBackupException('several favorite products');
@@ -326,6 +332,11 @@ ProductsCompanion _product(Map<String, dynamic> p) {
       (routineMinutes != null && !isValidRoutineMinutes(routineMinutes))) {
     throw const InvalidBackupException('invalid daily routine');
   }
+  // Absent from backups made before barcodes existed.
+  final barcode = p['barcode'] as String?;
+  if (barcode != null && !isNormalizedBarcode(barcode)) {
+    throw const InvalidBackupException('invalid barcode');
+  }
   return ProductsCompanion.insert(
     id: Value(_id(p['id'])),
     name: name,
@@ -345,6 +356,7 @@ ProductsCompanion _product(Map<String, dynamic> p) {
     isFavorite: Value(p['isFavorite'] as bool? ?? false),
     routine: Value(routine),
     routineMinutes: Value(routineMinutes),
+    barcode: Value(barcode),
   );
 }
 
