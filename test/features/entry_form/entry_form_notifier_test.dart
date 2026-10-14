@@ -1,10 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
+import 'package:protein_calculator/core/food_facts/food_facts.dart';
+import 'package:protein_calculator/core/food_facts/open_food_facts.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_notifier.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
@@ -16,12 +23,22 @@ void main() {
   late ProviderContainer container;
   final now = DateTime(2026, 10, 1, 9);
 
+  /// What Open Food Facts answers about any barcode.
+  late http.Response Function() foodFacts;
+
   setUp(() {
     db = openTestDatabase();
+    foodFacts = () => http.Response('', 404);
     container = ProviderContainer(
       overrides: [
         databaseProvider.overrideWithValue(db),
         clockProvider.overrideWithValue(() => now),
+        openFoodFactsProvider.overrideWithValue(
+          OpenFoodFacts(
+            MockClient((_) async => foodFacts()),
+            appVersion: Future.value('1.3.0'),
+          ),
+        ),
       ],
     );
     addTearDown(() async {
@@ -456,6 +473,257 @@ void main() {
       expect(
         stateOf(args).errors[EntryFormField.name],
         EntryFormError.nameRequired,
+      );
+    });
+  });
+  test('saves quantities in milliliters', () async {
+    const args = NewEntryArgs();
+    final form = await open(args);
+    form
+      ..setName('Milk')
+      ..setMode(EntryMode.perQuantity)
+      ..setUnit(QuantityUnit.milliliters)
+      ..setConsumed('250')
+      ..setProteinPerReference('3.4')
+      ..setSaveAsProduct(true);
+
+    expect(await form.submit(), isTrue);
+
+    final entry = (await todayEntries()).single;
+    expect(entry.unit, QuantityUnit.milliliters);
+    expect(entry.proteinGrams, 8.5);
+    expect((await products()).single.unit, QuantityUnit.milliliters);
+  });
+
+  group('scanned barcode', () {
+    const nutella = '3017620422003';
+
+    /// Open Food Facts knowing [name], with [protein] per 100 g if given.
+    void answer({String name = 'Nutella', double? protein, int? serving}) =>
+        foodFacts = () => http.Response(
+          jsonEncode({
+            'product': {
+              'product_name': name,
+              'brands': 'Nutella',
+              'nutriments': {'proteins_100g': ?protein},
+              'serving_quantity': ?serving,
+            },
+            'result': {'id': 'product_found'},
+          }),
+          200,
+        );
+
+    test(
+      'fills a new entry with what Open Food Facts says, in green',
+      () async {
+        answer(protein: 6.3, serving: 15);
+        const args = NewEntryArgs();
+        final form = await open(args);
+
+        final outcome = await form.scanned(nutella, language: 'fr');
+
+        expect(outcome, isA<ScanFilled>());
+        final state = stateOf(args);
+        expect(state.name, 'Nutella');
+        expect(state.mode, EntryMode.perQuantity);
+        expect(state.proteinPerReference, '6.3');
+        expect(state.reference, '100');
+        expect(state.consumed, '15');
+        expect(state.barcode, nutella);
+        expect(state.fromFoodFacts, {
+          EntryFormField.name,
+          EntryFormField.proteinPerReference,
+          EntryFormField.reference,
+          EntryFormField.consumed,
+        });
+        expect(state.amount!.proteinGrams, 0.9);
+      },
+    );
+
+    test('shows a field edited no longer in green', () async {
+      answer(protein: 6.3);
+      const args = NewEntryArgs();
+      final form = await open(args);
+      await form.scanned(nutella, language: 'fr');
+
+      form.setProteinPerReference('7');
+
+      expect(
+        stateOf(args).fromFoodFacts,
+        isNot(contains(EntryFormField.proteinPerReference)),
+      );
+      expect(stateOf(args).fromFoodFacts, contains(EntryFormField.name));
+    });
+
+    test('leaves for the user a protein content unknown or zero', () async {
+      for (final (barcode, protein) in [('96385074', null), (nutella, 0.0)]) {
+        answer(name: 'Water', protein: protein);
+        const args = NewProductArgs();
+        final form = await open(args);
+
+        await form.scanned(barcode, language: 'fr');
+
+        expect(stateOf(args).name, 'Water (Nutella)');
+        expect(stateOf(args).proteinPerReference, '');
+        expect(
+          stateOf(args).fromFoodFacts,
+          isNot(contains(EntryFormField.proteinPerReference)),
+        );
+      }
+    });
+
+    test('gives its barcode to the product saved from the entry', () async {
+      answer(protein: 6.3);
+      const args = NewEntryArgs();
+      final form = await open(args);
+      await form.scanned(nutella, language: 'fr');
+      form
+        ..setConsumed('15')
+        ..setSaveAsProduct(true);
+
+      expect(await form.submit(), isTrue);
+
+      final product = (await db.productsDao.findByBarcode(nutella))!;
+      expect(product.name, 'Nutella');
+      expect(await db.scansDao.watchRecent().first, isEmpty);
+    });
+
+    test('starts a new entry from a recent scan', () async {
+      await db.scansDao.saveScan(
+        const FoodFacts(
+          name: 'Nutella',
+          proteinPer100: 6.3,
+        ).toScan(nutella, fetchedAt: now, scannedAt: now).toCompanion(false),
+      );
+      const args = NewEntryArgs(barcode: nutella);
+      await open(args);
+
+      expect(stateOf(args).name, 'Nutella');
+      expect(stateOf(args).proteinPerReference, '6.3');
+      expect(stateOf(args).barcode, nutella);
+    });
+
+    test('takes the product of the user with that barcode, not in '
+        'green', () async {
+      final id = await addProduct('My Nutella');
+      await db.productsDao.setBarcode(id, nutella);
+      const args = NewEntryArgs();
+      final form = await open(args);
+
+      final outcome = await form.scanned(nutella, language: 'fr');
+
+      expect((outcome as ScanFoundProduct).product.id, id);
+      expect(stateOf(args).name, 'My Nutella');
+      expect(stateOf(args).fromFoodFacts, isEmpty);
+    });
+
+    test('offers the barcode to the product of the same name', () async {
+      answer(protein: 6.3);
+      final id = await addProduct('Nutella');
+      const args = NewEntryArgs();
+      final form = await open(args);
+
+      final outcome = await form.scanned(nutella, language: 'fr') as ScanFilled;
+      expect(outcome.sameName!.id, id);
+
+      await form.giveBarcode(outcome.sameName!, nutella);
+
+      expect((await db.productsDao.getProduct(id))!.barcode, nutella);
+      // The values of the user come instead of those of Open Food Facts.
+      expect(stateOf(args).proteinPerReference, '10');
+      expect(stateOf(args).fromFoodFacts, isEmpty);
+    });
+
+    test('takes a newer protein content into a saved product', () async {
+      final id = await addProduct('Nutella');
+      const args = NewEntryArgs();
+      final form = await open(args);
+      final product = (await db.productsDao.getProduct(id))!;
+
+      await form.takeFoodFacts(
+        product,
+        const FoodFacts(name: 'Nutella', proteinPer100: 7),
+      );
+
+      final updated = (await db.productsDao.getProduct(id))!;
+      expect(updated.proteinPerReference, 7);
+      expect(updated.consumedGrams, 150);
+    });
+
+    test('keeps the barcode of an unknown product', () async {
+      const args = NewProductArgs();
+      final form = await open(args);
+
+      final outcome = await form.scanned(nutella, language: 'fr');
+
+      expect((outcome as ScanNotFound).problem, isNull);
+      expect(stateOf(args).barcode, nutella);
+    });
+
+    test('tells why Open Food Facts could not be asked', () async {
+      foodFacts = () => throw http.ClientException('offline');
+      const args = NewProductArgs();
+      final form = await open(args);
+
+      final outcome = await form.scanned(nutella, language: 'fr');
+
+      expect((outcome as ScanNotFound).problem, FoodFactsProblem.offline);
+      expect(stateOf(args).barcode, nutella);
+    });
+
+    test('does not give a new product the barcode of another', () async {
+      final id = await addProduct('Nutella');
+      await db.productsDao.setBarcode(id, nutella);
+      const args = NewProductArgs();
+      final form = await open(args);
+
+      final outcome = await form.scanned(nutella, language: 'fr');
+
+      expect((outcome as ScanBarcodeTaken).product.id, id);
+      expect(stateOf(args).barcode, isNull);
+    });
+
+    test('only gives its barcode to a product edited', () async {
+      answer(protein: 6.3);
+      final id = await addProduct('Spread');
+      final args = EditProductArgs(id);
+      final form = await open(args);
+
+      expect(await form.scanned(nutella, language: 'fr'), isA<ScanKept>());
+      expect(stateOf(args).name, 'Spread');
+      expect(stateOf(args).proteinPerReference, '10');
+      expect(await form.submit(), isTrue);
+
+      expect((await db.productsDao.getProduct(id))!.barcode, nutella);
+    });
+
+    test('takes away the barcode of a product edited', () async {
+      final id = await addProduct('Spread');
+      await db.productsDao.setBarcode(id, nutella);
+      final args = EditProductArgs(id);
+      final form = await open(args);
+      expect(stateOf(args).barcode, nutella);
+
+      form.setBarcode(null);
+      expect(await form.submit(), isTrue);
+
+      expect((await db.productsDao.getProduct(id))!.barcode, isNull);
+    });
+
+    test('refuses to save a barcode another product took', () async {
+      const args = NewProductArgs();
+      final form = await open(args);
+      await form.scanned(nutella, language: 'fr');
+      form
+        ..setName('Spread')
+        ..setProtein('5');
+      final id = await addProduct('Nutella');
+      await db.productsDao.setBarcode(id, nutella);
+
+      expect(await form.submit(), isFalse);
+      expect(
+        stateOf(args).errors[EntryFormField.barcode],
+        EntryFormError.barcodeTaken,
       );
     });
   });

@@ -35,4 +35,37 @@ void main() {
     expect(isValidName('Skyr '), isFalse);
     expect(isValidName('S' * 41), isFalse);
   });
+
+  group('scannedProductName', () {
+    test('adds the first brand to the name', () {
+      expect(
+        scannedProductName('Skyr nature', "Siggi's, Arla"),
+        "Skyr nature (Siggi's)",
+      );
+    });
+
+    test('leaves out a brand the name already says', () {
+      expect(scannedProductName('Nutella', 'Nutella'), 'Nutella');
+      expect(
+        scannedProductName('Coca-Cola Zero', 'coca-cola'),
+        'Coca-Cola Zero',
+      );
+    });
+
+    test('leaves out the brand when the name would be too long', () {
+      final name = 'S' * 35;
+      expect(scannedProductName(name, 'Brand'), name);
+      expect(isValidName(scannedProductName('S' * 30, 'Brand')!), isTrue);
+    });
+
+    test('cuts a name too long and collapses its spaces', () {
+      expect(scannedProductName('S' * 50, null), 'S' * 40);
+      expect(scannedProductName('  Skyr   nature ', ' '), 'Skyr nature');
+    });
+
+    test('is null without a name', () {
+      expect(scannedProductName(null, 'Brand'), isNull);
+      expect(scannedProductName('  ', 'Brand'), isNull);
+    });
+  });
 }

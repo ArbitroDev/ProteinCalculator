@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 import 'package:protein_calculator/core/router.dart';
 
 import '../../helpers.dart';
@@ -190,5 +191,49 @@ void main() {
       expect(tester.widget<TextField>(fields.first).controller!.text, 'Skyr');
       await disposeApp(tester, db);
     });
+  });
+  testWidgets('offers to scan a barcode, but not for an entry edited', (
+    tester,
+  ) async {
+    await db.entriesDao.insertEntry(
+      name: 'Shaker',
+      amount: const DirectAmount(25),
+      createdAt: DateTime(2026, 10, 1, 8),
+    );
+    await pumpApp(tester, db);
+    await tester.tap(find.byTooltip('Add'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Scan a barcode'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Shaker'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit entry'), findsOneWidget);
+    expect(find.byTooltip('Scan a barcode'), findsNothing);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('measures a quantity in milliliters', (tester) async {
+    await pumpApp(tester, db);
+    await tester.tap(find.byTooltip('Add'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('From the product'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButton<QuantityUnit>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ml').last);
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(1), '250');
+    await tester.enterText(fields.at(2), '3.4');
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    final entry = await db.select(db.entries).getSingle();
+    expect(entry.unit, QuantityUnit.milliliters);
+    expect(entry.proteinGrams, 8.5);
+    await disposeApp(tester, db);
   });
 }

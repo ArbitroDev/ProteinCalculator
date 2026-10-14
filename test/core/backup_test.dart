@@ -9,6 +9,7 @@ import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 import '../helpers.dart';
 
@@ -175,6 +176,58 @@ void main() {
     expect(backup.entries.map((e) => e.fromWatch.value), [false, false]);
   });
 
+  test('keeps the unit of quantities and the barcodes of products', () async {
+    const milk = PerQuantityAmount(
+      consumedGrams: 250,
+      proteinPerReference: 3.4,
+      referenceGrams: 100,
+      unit: QuantityUnit.milliliters,
+    );
+    await source.productsDao.insertProduct(
+      name: 'Milk',
+      amount: milk,
+      createdAt: DateTime(2026, 9, 2),
+      barcode: '3017620422003',
+    );
+    await source.entriesDao.insertEntry(
+      name: 'Milk',
+      amount: milk,
+      createdAt: DateTime(2026, 10, 1, 8),
+    );
+    final target = openTestDatabase();
+    addTearDown(target.close);
+
+    await restoreBackup(target, parseBackup(await export()));
+
+    final product = (await target.productsDao.findByBarcode('3017620422003'))!;
+    expect(product.name, 'Milk');
+    expect(product.unit, QuantityUnit.milliliters);
+    final entries = await target.select(target.entries).get();
+    expect(
+      entries.singleWhere((e) => e.name == 'Milk').unit,
+      QuantityUnit.milliliters,
+    );
+  });
+
+  test('reads backups made before units and barcodes', () async {
+    final json = jsonDecode(await export()) as Map<String, dynamic>;
+    json['version'] = 5;
+    for (final row in [...rows(json, 'entries'), ...rows(json, 'products')]) {
+      row
+        ..remove('unit')
+        ..remove('barcode');
+    }
+
+    final backup = parseBackup(jsonEncode(json));
+
+    expect(backup.products.single.unit.value, QuantityUnit.grams);
+    expect(backup.products.single.barcode.value, isNull);
+    expect(
+      backup.entries.map((e) => e.unit.value),
+      everyElement(QuantityUnit.grams),
+    );
+  });
+
   test('computes the part of the day for backups of version 1', () async {
     final json = jsonDecode(await export()) as Map<String, dynamic>;
     json['version'] = 1;
@@ -335,6 +388,28 @@ void main() {
       final json = await exported();
       final products = rows(json, 'products');
       products.add({...products.first, 'id': 99, 'name': 'SKYR  nature'});
+      expectInvalid(jsonEncode(json));
+    });
+
+    test('with an invalid barcode, or one not in its stored form', () async {
+      for (final barcode in ['3017620422004', '049000028911', 'abc']) {
+        final json = await exported();
+        rows(json, 'products').first['barcode'] = barcode;
+        expectInvalid(jsonEncode(json));
+      }
+    });
+
+    test('with duplicate barcodes', () async {
+      final json = await exported();
+      final products = rows(json, 'products');
+      products.first['barcode'] = '3017620422003';
+      products.add({...products.first, 'id': 99, 'name': 'Copy'});
+      expectInvalid(jsonEncode(json));
+    });
+
+    test('with an unknown unit', () async {
+      final json = await exported();
+      rows(json, 'entries').first['unit'] = 'cups';
       expectInvalid(jsonEncode(json));
     });
 

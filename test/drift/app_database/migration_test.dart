@@ -8,6 +8,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'generated/schema.dart';
 
 import 'generated/schema_v1.dart' as v1;
+import 'generated/schema_v11.dart' as v11;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
@@ -428,4 +429,64 @@ void main() {
       );
     },
   );
+
+  test('migration from v9, the version of 1.2.0, to v11 keeps the data, '
+      'in grams and without barcodes', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 9,
+      newVersion: 11,
+      createOld: v9.DatabaseAtV9.new,
+      createNew: v11.DatabaseAtV11.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch
+          ..insert(
+            oldDb.entries,
+            const v9.EntriesData(
+              id: 1,
+              name: 'Skyr',
+              nameKey: 'skyr',
+              mode: 'perQuantity',
+              proteinGrams: 15,
+              consumedGrams: 150,
+              proteinPerReference: 10,
+              referenceGrams: 100,
+              createdAt: 1790000000,
+              dayKey: 20260921,
+              slot: 'morning',
+              fromWatch: 0,
+            ),
+          )
+          ..insert(
+            oldDb.products,
+            const v9.ProductsData(
+              id: 1,
+              name: 'Skyr',
+              nameKey: 'skyr',
+              mode: 'perQuantity',
+              consumedGrams: 150,
+              proteinPerReference: 10,
+              referenceGrams: 100,
+              useCount: 1,
+              createdAt: 1790000000,
+              isFavorite: 1,
+              routine: 'none',
+            ),
+          );
+      },
+      validateItems: (newDb) async {
+        final entry = await newDb.select(newDb.entries).getSingle();
+        expect(entry.consumedGrams, 150);
+        expect(entry.unit, 'grams');
+        final product = await newDb.select(newDb.products).getSingle();
+        expect(product.name, 'Skyr');
+        expect(product.unit, 'grams');
+        expect(product.barcode, equals(null));
+        expect(await newDb.select(newDb.scannedProducts).get(), isEmpty);
+        final settings = await newDb.select(newDb.appSettings).getSingle();
+        expect(settings.savedProductsCollapsed, 0);
+        expect(settings.recentScansCollapsed, 0);
+      },
+    );
+  });
 }
