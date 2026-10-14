@@ -591,6 +591,14 @@
   "@onboardingCrashReportsHint": {
     "description": "First launch: note under the crash reports checkbox."
   },
+  "privacyScan": "Quand tu scannes un code-barres, l'image est lue sur ton téléphone et n'en sort jamais. Si le produit n'y est pas déjà, seul son code-barres est envoyé à Open Food Facts, une base de données libre, pour en trouver les valeurs.",
+  "@privacyScan": {
+    "description": "Paragraph of the data and privacy page about barcode scanning."
+  },
+  "aboutFoodFacts": "Les valeurs des produits scannés viennent d'Open Food Facts, une base de données libre et collaborative, sous licence Open Database License (ODbL). Ses contributeurs les fournissent et elles peuvent contenir des erreurs : vérifie-les.",
+  "@aboutFoodFacts": {
+    "description": "Paragraph of the about page crediting Open Food Facts, as its license asks."
+  },
   "privacyBackup": "Si la sauvegarde Google est activée sur ton appareil, Android peut inclure les données de l'app dans cette sauvegarde, chiffrée et accessible à toi seul. Tu peux la désactiver dans les réglages de ton téléphone.",
   "@privacyBackup": {
     "description": "Privacy page: Android backup."

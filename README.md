@@ -29,11 +29,20 @@ Gradle: see [Wear OS watch app](CONTRIBUTING.md#wear-os-watch-app).
 ## Privacy
 
 Entries, products and settings stay on the device: the app needs no account
-and has no server. The only data that can leave the phone is crash reports,
-sent to [Sentry](https://sentry.io) (EU region) only if the user turns them
-on, on the first launch screen or in *Data and privacy*. A report holds the
-error, the app version, the phone model and its Android version, never the
-user's entries, products or goal.
+and has no server. Only two things can leave the phone:
+
+- crash reports, sent to [Sentry](https://sentry.io) (EU region) only if the
+  user turns them on, on the first launch screen or in *Data and privacy*. A
+  report holds the error, the app version, the phone model and its Android
+  version, never the user's entries, products, goal or barcodes;
+- the barcode of a product scanned, sent to
+  [Open Food Facts](https://world.openfoodfacts.org) to look it up when the
+  phone does not know it yet. The camera picture is read on the phone by
+  [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp), with no Google service,
+  and never leaves it.
+
+Product data come from Open Food Facts, under the
+[Open Database License](https://opendatacommons.org/licenses/odbl/1-0/).
 
 With a Wear OS watch, the phone and the watch exchange the day, its entries
 and the saved products directly, over Bluetooth or the same Wi-Fi network,

@@ -119,6 +119,8 @@
   "crashReportsToggle": "Send crash reports",
   "onboardingCrashReports": "Send crash reports to help fix bugs",
   "onboardingCrashReportsHint": "Your entries, products and goal never leave your phone, except for your watch. You can change it anytime in the menu.",
+  "privacyScan": "When you scan a barcode, the picture is read on your phone and never leaves it. If the product isn't on your phone yet, only its barcode is sent to Open Food Facts, a free database, to find its values.",
+  "aboutFoodFacts": "The values of the products scanned come from Open Food Facts, a free and collaborative database, under the Open Database License (ODbL). Its contributors provide them and they may contain errors: check them.",
   "privacyBackup": "If Google backup is turned on for your device, Android may include the app's data in that backup, encrypted and only accessible to you. You can turn it off in your phone settings.",
   "aboutDescription": "Track your daily protein intake, simply.",
   "aboutLicense": "The source code is publicly available. All rights reserved.",

@@ -11,6 +11,7 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/pick_backup.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
+import 'package:protein_calculator/features/menu/food_facts_link.dart';
 import 'package:protein_calculator/features/menu/github_link.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -112,7 +113,7 @@ class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
 
     return _InfoScaffold(
       title: l10n.menuPrivacy,
-      paragraphs: [l10n.privacyLocal, l10n.privacyBackup],
+      paragraphs: [l10n.privacyLocal, l10n.privacyScan, l10n.privacyBackup],
       footer: [
         if (crashReportingAvailable) ...[
           Text(l10n.crashReportsTitle, style: textTheme.titleMedium),
@@ -192,8 +193,9 @@ class AboutPage extends ConsumerWidget {
         l10n.aboutDescription,
         l10n.aboutLicense,
         l10n.aboutContribute,
+        l10n.aboutFoodFacts,
       ],
-      footer: const [GitHubLink()],
+      footer: const [GitHubLink(), SizedBox(height: 10), FoodFactsLink()],
     );
   }
 }
