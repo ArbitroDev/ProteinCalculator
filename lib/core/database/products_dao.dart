@@ -40,6 +40,11 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
   Future<Product?> getProduct(int id) =>
       (select(products)..where((p) => p.id.equals(id))).getSingleOrNull();
 
+  /// Product named [name], with any case, accents or extra spaces.
+  Future<Product?> findByName(String name) => (select(
+    products,
+  )..where((p) => p.nameKey.equals(productNameKey(name)))).getSingleOrNull();
+
   /// Product with [barcode], in its stored form, see `normalizeBarcode`.
   Future<Product?> findByBarcode(String barcode) => (select(
     products,

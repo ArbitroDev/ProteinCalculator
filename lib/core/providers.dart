@@ -148,6 +148,20 @@ final sortedProductsProvider = StreamProvider<List<Product>>((ref) {
   return ref.watch(databaseProvider).productsDao.watchAll(sort);
 });
 
+/// Recent scans, latest first, see `ScansDao.watchRecent`.
+final recentScansProvider = StreamProvider<List<ScannedProduct>>(
+  (ref) => ref.watch(databaseProvider).scansDao.watchRecent(),
+);
+
+/// Whether the products tab folds its saved products, and its recent scans.
+final savedProductsCollapsedProvider = StreamProvider<bool>(
+  (ref) =>
+      ref.watch(databaseProvider).settingsDao.watchSavedProductsCollapsed(),
+);
+final recentScansCollapsedProvider = StreamProvider<bool>(
+  (ref) => ref.watch(databaseProvider).settingsDao.watchRecentScansCollapsed(),
+);
+
 /// Version of the app, read from the package.
 final appVersionProvider = FutureProvider<String>(
   (ref) async => (await PackageInfo.fromPlatform()).version,

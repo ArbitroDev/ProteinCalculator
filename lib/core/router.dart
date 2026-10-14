@@ -23,6 +23,11 @@ abstract final class AppRoutes {
   /// New entry prefilled with a product.
   static String newEntryFrom(int productId) => '$newEntry?productId=$productId';
 
+  /// New entry prefilled with what Open Food Facts said of the product
+  /// scanned with [barcode].
+  static String newEntryFromScan(String barcode) =>
+      '$newEntry?barcode=$barcode';
+
   static String editEntry(int entryId) => '/entries/$entryId';
 
   static String historyDay(int dayKey) => '$history/$dayKey';
@@ -31,6 +36,11 @@ abstract final class AppRoutes {
   static const about = '$menu/about';
 
   static const newProduct = '/products/new';
+
+  /// New product prefilled with what Open Food Facts said of the product
+  /// scanned with [barcode].
+  static String newProductFromScan(String barcode) =>
+      '$newProduct?barcode=$barcode';
 
   static String editProduct(int productId) => '$products/$productId';
 
@@ -117,6 +127,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             productId: int.tryParse(
               state.uri.queryParameters['productId'] ?? '',
             ),
+            barcode: state.uri.queryParameters['barcode'],
           ),
         ),
       ),
@@ -126,8 +137,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.newProduct,
-        builder: (context, state) =>
-            const EntryFormPage(args: NewProductArgs()),
+        builder: (context, state) => EntryFormPage(
+          args: NewProductArgs(barcode: state.uri.queryParameters['barcode']),
+        ),
       ),
       GoRoute(
         path: '/products/:id',

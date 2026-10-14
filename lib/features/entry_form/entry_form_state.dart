@@ -13,18 +13,22 @@ sealed class EntryFormArgs {
   bool get isProduct => this is NewProductArgs || this is EditProductArgs;
 }
 
-/// New entry, prefilled from the product [productId] if given.
+/// New entry, prefilled from the product [productId], or from what Open
+/// Food Facts said of the product scanned with [barcode], if given.
 final class NewEntryArgs extends EntryFormArgs {
-  const NewEntryArgs({this.productId});
+  const NewEntryArgs({this.productId, this.barcode});
 
   final int? productId;
+  final String? barcode;
 
   @override
   bool operator ==(Object other) =>
-      other is NewEntryArgs && other.productId == productId;
+      other is NewEntryArgs &&
+      other.productId == productId &&
+      other.barcode == barcode;
 
   @override
-  int get hashCode => Object.hash(NewEntryArgs, productId);
+  int get hashCode => Object.hash(NewEntryArgs, productId, barcode);
 }
 
 final class EditEntryArgs extends EntryFormArgs {
@@ -40,14 +44,19 @@ final class EditEntryArgs extends EntryFormArgs {
   int get hashCode => Object.hash(EditEntryArgs, entryId);
 }
 
+/// New product, prefilled from what Open Food Facts said of the product
+/// scanned with [barcode], if given.
 final class NewProductArgs extends EntryFormArgs {
-  const NewProductArgs();
+  const NewProductArgs({this.barcode});
+
+  final String? barcode;
 
   @override
-  bool operator ==(Object other) => other is NewProductArgs;
+  bool operator ==(Object other) =>
+      other is NewProductArgs && other.barcode == barcode;
 
   @override
-  int get hashCode => (NewProductArgs).hashCode;
+  int get hashCode => Object.hash(NewProductArgs, barcode);
 }
 
 final class EditProductArgs extends EntryFormArgs {
@@ -70,6 +79,7 @@ enum EntryFormField {
   proteinPerReference,
   reference,
   time,
+  barcode,
 }
 
 enum EntryFormError {
@@ -90,6 +100,9 @@ enum EntryFormError {
 
   /// The time of the entry has not come yet.
   future,
+
+  /// Another product already has this barcode.
+  barcodeTaken,
 }
 
 /// Values typed in the entry form, kept as text while typing and parsed
@@ -110,6 +123,8 @@ class EntryFormState {
     this.routine = DailyRoutine.none,
     this.routineMinutes = 8 * 60,
     this.time,
+    this.barcode,
+    this.fromFoodFacts = const {},
     this.errors = const {},
     this.revision = 0,
   });
@@ -140,6 +155,13 @@ class EntryFormState {
   /// Moment of an entry: the one it was added at when edited, or the one
   /// chosen to add it afterwards. Null for a new entry added now.
   final DateTime? time;
+
+  /// Barcode of the product, see `normalizeBarcode`: the one scanned, or
+  /// the one of the product edited. Only products keep it, not entries.
+  final String? barcode;
+
+  /// Fields filled in from Open Food Facts, until the user edits them.
+  final Set<EntryFormField> fromFoodFacts;
   final Map<EntryFormField, EntryFormError> errors;
 
   /// Increases when the values are replaced as a whole (a product is
@@ -226,6 +248,9 @@ class EntryFormState {
     int? routineMinutes,
     DateTime? time,
     bool clearTime = false,
+    String? barcode,
+    bool clearBarcode = false,
+    Set<EntryFormField>? fromFoodFacts,
     Map<EntryFormField, EntryFormError>? errors,
     int? revision,
   }) => EntryFormState(
@@ -241,6 +266,8 @@ class EntryFormState {
     routine: routine ?? this.routine,
     routineMinutes: routineMinutes ?? this.routineMinutes,
     time: clearTime ? null : time ?? this.time,
+    barcode: clearBarcode ? null : barcode ?? this.barcode,
+    fromFoodFacts: fromFoodFacts ?? this.fromFoodFacts,
     errors: errors ?? this.errors,
     revision: revision ?? this.revision,
   );
@@ -248,4 +275,10 @@ class EntryFormState {
   /// Same state without the error of [field], once the user edits it.
   EntryFormState clearError(EntryFormField field) =>
       copyWith(errors: {...errors}..remove(field));
+
+  /// Same state once the user edits [field]: without its error, and no
+  /// longer showing it came from Open Food Facts.
+  EntryFormState edited(EntryFormField field) =>
+      clearError(field)
+          .copyWith(fromFoodFacts: {...fromFoodFacts}..remove(field));
 }

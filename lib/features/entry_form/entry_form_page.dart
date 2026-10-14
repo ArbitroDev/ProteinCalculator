@@ -14,7 +14,6 @@ import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/quantity_unit.dart';
 import 'package:protein_calculator/core/food_facts/open_food_facts.dart';
-import 'package:protein_calculator/core/food_facts/product_lookup.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
@@ -31,13 +30,130 @@ import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Form adding or editing an entry, or creating or editing a product.
-class EntryFormPage extends ConsumerWidget {
+class EntryFormPage extends ConsumerStatefulWidget {
   const EntryFormPage({super.key, required this.args});
 
   final EntryFormArgs args;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EntryFormPage> createState() => _EntryFormPageState();
+}
+
+/// Holds what lasts while the form view is built again with new values,
+/// such as a scan and what follows it.
+class _EntryFormPageState extends ConsumerState<EntryFormPage> {
+  /// Whether the product of a barcode scanned is being looked up.
+  bool _lookingUp = false;
+
+  EntryFormNotifier get _notifier =>
+      ref.read(entryFormProvider(widget.args).notifier);
+
+  /// Scans a barcode and fills the form from its product, then tells what
+  /// is worth knowing: a value Open Food Facts lacks, a product of the user
+  /// with the same name, newer values.
+  Future<void> _scan() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final language = Localizations.localeOf(context).languageCode;
+    final barcode = await context.push<String>(AppRoutes.scan);
+    if (barcode == null || !mounted) return;
+
+    setState(() => _lookingUp = true);
+    final outcome = await runUserAction(
+      messenger,
+      l10n,
+      () => _notifier.scanned(barcode, language: language),
+    );
+    if (!mounted) return;
+    setState(() => _lookingUp = false);
+
+    void tell(String message, {SnackBarAction? action}) => messenger
+        .showSnackBar(SnackBar(content: Text(message), action: action));
+
+    switch (outcome) {
+      case null || ScanKept():
+        break;
+      case ScanFoundProduct(:final product, :final update):
+        final facts = await update;
+        if (facts == null || !mounted) return;
+        tell(
+          l10n.scanProductChanged(
+            product.name,
+            l10n.productPerReference(
+              formatProtein(facts.proteinPer100!, l10n.localeName),
+              formatQuantity(l10n, 100, facts.unit),
+            ),
+          ),
+          action: SnackBarAction(
+            label: l10n.scanTakeChange,
+            onPressed: () => runUserAction(
+              messenger,
+              l10n,
+              () => _notifier.takeFoodFacts(product, facts),
+            ),
+          ),
+        );
+      case ScanFilled(:final scan, :final sameName, :final update):
+        if (sameName != null) {
+          tell(
+            l10n.scanNameTaken(sameName.name),
+            action: SnackBarAction(
+              label: l10n.scanGiveBarcode,
+              onPressed: () => _giveBarcode(sameName, barcode),
+            ),
+          );
+        } else if (scan.proteinPer100 == null) {
+          tell(l10n.scanNoProtein);
+        } else if (scan.proteinPer100 == 0) {
+          tell(l10n.scanZeroProtein);
+        }
+        final fresh = await update;
+        if (fresh == null || !mounted) return;
+        _notifier.refreshFromFoodFacts(fresh);
+        tell(l10n.scanUpdated);
+      case ScanBarcodeTaken(:final product):
+        tell(
+          l10n.scanBarcodeTaken(product.name),
+          action: SnackBarAction(
+            label: l10n.scanOpenProduct,
+            onPressed: () {
+              if (mounted) {
+                context.pushReplacement(AppRoutes.editProduct(product.id));
+              }
+            },
+          ),
+        );
+      case ScanNotFound(:final problem):
+        tell(switch (problem) {
+          null => l10n.scanNotFound,
+          FoodFactsProblem.offline => l10n.scanOffline,
+          FoodFactsProblem.busy => l10n.scanBusy,
+          FoodFactsProblem.timeout ||
+          FoodFactsProblem.failed => l10n.scanUnavailable,
+        });
+    }
+  }
+
+  /// Gives [barcode] to [product], the user's product of the same name, in
+  /// place of the values of Open Food Facts. A new product is then not
+  /// needed: its form closes.
+  Future<void> _giveBarcode(Product product, String barcode) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final given = await runUserAction(messenger, l10n, () async {
+      await _notifier.giveBarcode(product, barcode);
+      return true;
+    });
+    if (given == null || !mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.scanBarcodeGiven(product.name))),
+    );
+    if (widget.args is NewProductArgs) context.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final args = widget.args;
     final l10n = AppLocalizations.of(context);
     final form = ref.watch(entryFormProvider(args)).value;
     final title = switch (args) {
@@ -59,19 +175,37 @@ class EntryFormPage extends ConsumerWidget {
       body: ContentWidth(
         child: form == null
             ? const SizedBox.shrink()
-            : _FormView(key: ValueKey(form.revision), args: args, form: form),
+            : _FormView(
+                key: ValueKey(form.revision),
+                args: args,
+                form: form,
+                onScan: _scan,
+                lookingUp: _lookingUp,
+              ),
       ),
     );
   }
 }
 
 class _FormView extends ConsumerStatefulWidget {
-  const _FormView({super.key, required this.args, required this.form});
+  const _FormView({
+    super.key,
+    required this.args,
+    required this.form,
+    required this.onScan,
+    required this.lookingUp,
+  });
 
   final EntryFormArgs args;
 
   /// Values the text fields start with.
   final EntryFormState form;
+
+  /// Scans a barcode and fills the form from its product.
+  final Future<void> Function() onScan;
+
+  /// Whether the product of a barcode scanned is being looked up.
+  final bool lookingUp;
 
   @override
   ConsumerState<_FormView> createState() => _FormViewState();
@@ -203,34 +337,10 @@ class _FormViewState extends ConsumerState<_FormView> {
   /// edited, nor on the web, which only serves to try the app.
   bool get _canScan => !kIsWeb && widget.args is! EditEntryArgs;
 
+  /// Hides the suggestions, then scans a barcode, see [_FormView.onScan].
   Future<void> _scan() async {
     _dismissSuggestions();
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    final language = Localizations.localeOf(context).languageCode;
-    final lookup = ref.read(productLookupProvider);
-    final barcode = await context.push<String>(AppRoutes.scan);
-    if (barcode == null || !mounted) return;
-    final result = await lookup.lookUp(barcode, language: language);
-    final message = switch (result) {
-      SavedProductFound(:final product) => product.name,
-      ScannedProductFound(:final scan) => [
-        scannedProductName(scan.name, scan.brands) ?? barcode,
-        if (scan.proteinPer100 case final protein?)
-          l10n.productPerReference(
-            formatProtein(protein, l10n.localeName),
-            formatQuantity(l10n, 100, scan.unit),
-          ),
-      ].join(' · '),
-      ProductNotFound() => l10n.scanNotFound,
-      ProductLookupFailed(:final problem) => switch (problem) {
-        FoodFactsProblem.offline => l10n.scanOffline,
-        FoodFactsProblem.busy => l10n.scanBusy,
-        FoodFactsProblem.timeout ||
-        FoodFactsProblem.failed => l10n.scanUnavailable,
-      },
-    };
-    messenger.showSnackBar(SnackBar(content: Text(message)));
+    await widget.onScan();
   }
 
   Future<void> _submit() async {
@@ -263,7 +373,14 @@ class _FormViewState extends ConsumerState<_FormView> {
       EntryFormError.nameRequired => l10n.errorNameRequired,
       EntryFormError.nameTaken => l10n.errorNameTaken,
       EntryFormError.future => l10n.errorFutureTime,
+      EntryFormError.barcodeTaken => l10n.errorBarcodeTaken,
     };
+
+    /// Background of the fields Open Food Facts filled in, like the scan
+    /// button; the theme's for the others.
+    Color? fill(EntryFormField field) => form.fromFoodFacts.contains(field)
+        ? AppColors.of(context).scanSurface
+        : null;
 
     final notifications = ref.watch(notificationStatusProvider).value;
     bool notified(DailyRoutine routine) =>
@@ -311,15 +428,29 @@ class _FormViewState extends ConsumerState<_FormView> {
                           decoration: InputDecoration(
                             hintText: l10n.formNameHint,
                             errorText: error(EntryFormField.name),
+                            fillColor: fill(EntryFormField.name),
                           ),
                         ),
                       ),
                       if (_canScan) ...[
                         const SizedBox(width: 10),
-                        _ScanButton(onPressed: _scan),
+                        _ScanButton(
+                          onPressed: widget.lookingUp ? null : _scan,
+                          busy: widget.lookingUp,
+                        ),
                       ],
                     ],
                   ),
+                  // Always one slot, like the suggestions below.
+                  if (form.barcode case final barcode?
+                      when args.isProduct || form.saveAsProduct)
+                    _BarcodeLine(
+                      barcode: barcode,
+                      errorText: error(EntryFormField.barcode),
+                      onRemove: () => _notifier.setBarcode(null),
+                    )
+                  else
+                    const SizedBox.shrink(),
                   // Always one slot, even when empty: the fields after it keep
                   // their place in the list, so the field being tapped is not
                   // rebuilt (it would lose the focus, which would go back to
@@ -354,6 +485,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                       decimal: true,
                       onChanged: _dismissing(_notifier.setProtein),
                       errorText: error(EntryFormField.protein),
+                      fillColor: fill(EntryFormField.protein),
                     ),
                   ] else ...[
                     _Label(
@@ -365,6 +497,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                       onUnitChanged: _dismissing(_notifier.setUnit),
                       onChanged: _dismissing(_notifier.setConsumed),
                       errorText: error(EntryFormField.consumed),
+                      fillColor: fill(EntryFormField.consumed),
                     ),
                     _Label(l10n.formProductProtein),
                     Row(
@@ -380,6 +513,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                             errorText: error(
                               EntryFormField.proteinPerReference,
                             ),
+                            fillColor: fill(EntryFormField.proteinPerReference),
                           ),
                         ),
                         Padding(
@@ -398,6 +532,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                             unit: form.unit,
                             onChanged: _dismissing(_notifier.setReference),
                             errorText: error(EntryFormField.reference),
+                            fillColor: fill(EntryFormField.reference),
                           ),
                         ),
                       ],
@@ -501,9 +636,13 @@ class _FormViewState extends ConsumerState<_FormView> {
 /// Opens the camera to scan the barcode of a product. Its green tells the
 /// values it fills in.
 class _ScanButton extends StatelessWidget {
-  const _ScanButton({required this.onPressed});
+  const _ScanButton({required this.onPressed, required this.busy});
 
-  final VoidCallback onPressed;
+  /// Null while [busy].
+  final VoidCallback? onPressed;
+
+  /// Whether the product of the barcode scanned is being looked up.
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -514,11 +653,76 @@ class _ScanButton extends StatelessWidget {
       style: IconButton.styleFrom(
         backgroundColor: colors.scanSurface,
         foregroundColor: colors.scan,
+        disabledBackgroundColor: colors.scanSurface,
         // As tall as the name field beside it.
         fixedSize: const Size.square(54),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      icon: const Icon(LucideIcons.scanBarcode),
+      icon: busy
+          ? SizedBox.square(
+              dimension: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: colors.scan,
+              ),
+            )
+          : const Icon(LucideIcons.scanBarcode),
+    );
+  }
+}
+
+/// Barcode the product takes, with a button taking it away.
+class _BarcodeLine extends StatelessWidget {
+  const _BarcodeLine({
+    required this.barcode,
+    required this.errorText,
+    required this.onRemove,
+  });
+
+  final String barcode;
+  final String? errorText;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(LucideIcons.barcode, size: 18, color: colors.scan),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.formBarcode(barcode),
+                  style: textTheme.bodyMedium!.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: onRemove,
+                tooltip: l10n.formRemoveBarcode,
+                icon: Icon(
+                  LucideIcons.x,
+                  size: 18,
+                  color: colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          if (errorText case final error?)
+            Text(
+              error,
+              style: Theme.of(context).inputDecorationTheme.errorStyle,
+            ),
+        ],
+      ),
     );
   }
 }
@@ -547,6 +751,7 @@ class _GramsField extends StatelessWidget {
     this.decimal = false,
     this.unit = QuantityUnit.grams,
     this.onUnitChanged,
+    this.fillColor,
   });
 
   final TextEditingController controller;
@@ -559,6 +764,9 @@ class _GramsField extends StatelessWidget {
 
   /// Lets the user pick the [unit] in a list, shown in place of its symbol.
   final ValueChanged<QuantityUnit>? onUnitChanged;
+
+  /// Background of the field, the theme's if null.
+  final Color? fillColor;
   final ValueChanged<String> onChanged;
   final String? errorText;
 
@@ -580,6 +788,7 @@ class _GramsField extends StatelessWidget {
             : _UnitList(unit: unit, onChanged: onUnitChanged),
         errorText: errorText,
         errorMaxLines: 2,
+        fillColor: fillColor,
       ),
     );
   }

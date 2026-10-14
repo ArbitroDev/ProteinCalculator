@@ -185,6 +185,102 @@
   "@scanBarcode": {
     "description": "Tooltip of the button opening the camera to scan the barcode of a product."
   },
+  "productsSaved": "Mes produits",
+  "@productsSaved": {
+    "description": "Title of the list of saved products, which folds."
+  },
+  "productsRecentScans": "Derniers produits scannés",
+  "@productsRecentScans": {
+    "description": "Title of the list of the latest products scanned and not saved, which folds."
+  },
+  "scanProteinUnknown": "Protéines non renseignées",
+  "@scanProteinUnknown": {
+    "description": "A recent scan whose protein content Open Food Facts does not know."
+  },
+  "scanDeleted": "Scan supprimé",
+  "@scanDeleted": {
+    "description": "Snack bar after deleting a recent scan, which can be undone."
+  },
+  "scanNoProtein": "Open Food Facts n'indique pas les protéines de ce produit : remplis-les à la main.",
+  "@scanNoProtein": {
+    "description": "After a scan, when Open Food Facts knows the product but not its protein content."
+  },
+  "scanZeroProtein": "Selon Open Food Facts, ce produit ne contient pas de protéines.",
+  "@scanZeroProtein": {
+    "description": "After a scan, when Open Food Facts says the product has no protein."
+  },
+  "scanNameTaken": "« {name} » est déjà dans tes produits.",
+  "@scanNameTaken": {
+    "description": "After a scan, when a saved product without barcode has the name of the product scanned.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scanGiveBarcode": "Lui donner ce code",
+  "@scanGiveBarcode": {
+    "description": "Action giving the barcode scanned to the saved product of the same name."
+  },
+  "scanBarcodeGiven": "Code-barres ajouté à « {name} ».",
+  "@scanBarcodeGiven": {
+    "description": "Once a saved product took the barcode scanned.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scanBarcodeTaken": "Ce code-barres est déjà celui de « {name} ».",
+  "@scanBarcodeTaken": {
+    "description": "After a scan, when another saved product has the barcode.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scanOpenProduct": "Ouvrir",
+  "@scanOpenProduct": {
+    "description": "Action opening the saved product that has the barcode scanned."
+  },
+  "scanProductChanged": "Open Food Facts indique maintenant {protein} pour « {name} ».",
+  "@scanProductChanged": {
+    "description": "After a scan of a saved product, when Open Food Facts changed its protein content since it was last asked.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "protein": {
+        "type": "String"
+      }
+    }
+  },
+  "scanTakeChange": "Mettre à jour",
+  "@scanTakeChange": {
+    "description": "Action taking the new protein content of Open Food Facts into the saved product."
+  },
+  "scanUpdated": "Valeurs mises à jour depuis Open Food Facts.",
+  "@scanUpdated": {
+    "description": "When newer values of Open Food Facts replaced those it gave before in the form."
+  },
+  "formBarcode": "Code-barres {barcode}",
+  "@formBarcode": {
+    "description": "Barcode the product takes, under its name.",
+    "placeholders": {
+      "barcode": {
+        "type": "String"
+      }
+    }
+  },
+  "formRemoveBarcode": "Retirer le code-barres",
+  "@formRemoveBarcode": {
+    "description": "Tooltip of the button taking the barcode away from the product."
+  },
+  "errorBarcodeTaken": "Un autre produit a déjà ce code-barres.",
+  "@errorBarcodeTaken": {
+    "description": "Error when saving a product whose barcode another product has."
+  },
   "scanNotFound": "Open Food Facts ne connaît pas ce produit : remplis les valeurs à la main.",
   "@scanNotFound": {
     "description": "After a scan, when neither the user nor Open Food Facts knows the product."
