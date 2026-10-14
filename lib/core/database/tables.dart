@@ -5,6 +5,7 @@ import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 /// Protein entries. Each entry keeps a full copy of the values it was created
 /// with, so editing or deleting a product never changes the history.
@@ -38,6 +39,11 @@ class Entries extends Table {
 
   /// Whether the entry was added on the watch, see `WatchDao.add`.
   BoolColumn get fromWatch => boolean().withDefault(const Constant(false))();
+
+  /// Unit of [consumedGrams] and [referenceGrams], despite their names:
+  /// grams, or milliliters for drinks.
+  TextColumn get unit =>
+      textEnum<QuantityUnit>().withDefault(Constant(QuantityUnit.grams.name))();
 }
 
 /// Products saved by the user to fill in entries quickly.
@@ -77,6 +83,11 @@ class Products extends Table {
   /// next ones come after it. Set when the routine is chosen, so it never
   /// adds entries for the days before.
   DateTimeColumn get routineCheckedAt => dateTime().nullable()();
+
+  /// Unit of [consumedGrams] and [referenceGrams], despite their names:
+  /// grams, or milliliters for drinks.
+  TextColumn get unit =>
+      textEnum<QuantityUnit>().withDefault(Constant(QuantityUnit.grams.name))();
 }
 
 /// Daily goals over time: each row holds the goal set on an app day, which

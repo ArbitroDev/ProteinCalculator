@@ -15,6 +15,7 @@ import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 part 'app_database.g.dart';
 
@@ -46,7 +47,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -85,6 +86,10 @@ class AppDatabase extends _$AppDatabase {
       },
       from8To9: (m, schema) async {
         await m.addColumn(schema.appSettings, schema.appSettings.slotReminders);
+      },
+      from9To10: (m, schema) async {
+        await m.addColumn(schema.entries, schema.entries.unit);
+        await m.addColumn(schema.products, schema.products.unit);
       },
     ),
     beforeOpen: (details) async {

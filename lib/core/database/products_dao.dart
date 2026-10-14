@@ -69,6 +69,7 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
           consumedGrams: Value(columns.consumedGrams),
           proteinPerReference: Value(columns.proteinPerReference),
           referenceGrams: Value(columns.referenceGrams),
+          unit: Value(columns.unit),
           createdAt: createdAt,
         ),
       );

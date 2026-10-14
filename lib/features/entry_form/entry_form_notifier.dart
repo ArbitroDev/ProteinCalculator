@@ -8,6 +8,7 @@ import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/protein_calc.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
 
@@ -108,6 +109,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       consumed: '',
       proteinPerReference: '',
       reference: _gramsText(defaultReferenceGrams),
+      unit: QuantityUnit.grams,
     ),
     PerQuantityAmount() => form.copyWith(
       mode: amount.mode,
@@ -116,6 +118,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       consumed: _gramsText(amount.consumedGrams),
       proteinPerReference: _proteinText(amount.proteinPerReference),
       reference: _gramsText(amount.referenceGrams),
+      unit: amount.unit,
     ),
   };
 
@@ -161,6 +164,8 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         .clearError(EntryFormField.proteinPerReference)
         .copyWith(proteinPerReference: value),
   );
+
+  void setUnit(QuantityUnit value) => _update((s) => s.copyWith(unit: value));
 
   void setReference(String value) => _update(
     (s) => s

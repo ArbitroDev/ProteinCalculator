@@ -33,6 +33,19 @@
       }
     }
   },
+  "millilitersUnit": "ml",
+  "@millilitersUnit": {
+    "description": "Unit symbol for milliliters."
+  },
+  "milliliters": "{milliliters} ml",
+  "@milliliters": {
+    "description": "A quantity in milliliters, already formatted.",
+    "placeholders": {
+      "milliliters": {
+        "type": "String"
+      }
+    }
+  },
   "todayGoal": "Objectif {goal} g",
   "@todayGoal": {
     "description": "Daily goal shown above the total on the today screen.",
@@ -164,6 +177,10 @@
   "@formPer": {
     "description": "Between the protein content and the reference quantity, as in '10 g for 100 g'."
   },
+  "formUnit": "Unité",
+  "@formUnit": {
+    "description": "Name read by screen readers for the list of units of a quantity of food."
+  },
   "formResult": "de protéines",
   "@formResult": {
     "description": "After the computed protein amount, as in '15 g of protein'."
@@ -232,9 +249,9 @@
   "@errorFutureTime": {
     "description": "Error when the moment chosen for an entry is yet to come."
   },
-  "productPerReference": "{protein} g / {reference} g",
+  "productPerReference": "{protein} g / {reference}",
   "@productPerReference": {
-    "description": "Protein content of a product per reference quantity.",
+    "description": "Protein content of a product per reference quantity, given with its unit ('100 g', '100 ml').",
     "placeholders": {
       "protein": {
         "type": "String"
@@ -305,11 +322,11 @@
   "@sortRecentlyUsed": {
     "description": "Sort products by last use."
   },
-  "productPortion": "portion {grams} g",
+  "productPortion": "portion {quantity}",
   "@productPortion": {
-    "description": "Usual portion of a product.",
+    "description": "Usual portion of a product, given with its unit ('150 g', '250 ml').",
     "placeholders": {
-      "grams": {
+      "quantity": {
         "type": "String"
       }
     }

@@ -231,8 +231,9 @@ upgrading these packages, replace them with the files of the same versions:
 
 - Protein amounts typed by the user (the amount itself, or the protein
   content of a product) take one decimal at most; quantities of food are
-  whole grams. The protein computed from a quantity is rounded to one
-  decimal when the entry is saved (`computeProtein`).
+  whole grams, or whole milliliters for drinks (`QuantityUnit`), while
+  protein is always in grams. The protein computed from a quantity is
+  rounded to one decimal when the entry is saved (`computeProtein`).
 - Values are stored exactly. Totals, what is left and the goal are shown
   truncated to the unit (`formatGrams`), so the goal only shows as reached
   once it really is; the protein of one entry or one product shows with one

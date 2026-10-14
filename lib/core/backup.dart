@@ -14,6 +14,7 @@ import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 /// Identifies Protein Calculator backup files.
 const backupFormat = 'protein-calculator';
@@ -25,7 +26,8 @@ const backupFormat = 'protein-calculator';
 /// 4: the goals set over time, how the history shows the days and the
 /// start hour of the day.
 /// 5: entries tell whether they were added on the watch.
-const backupVersion = 5;
+/// 6: entries and products hold the unit of their quantities.
+const backupVersion = 6;
 
 /// Thrown when a file is not a valid Protein Calculator backup.
 class InvalidBackupException implements Exception {
@@ -96,6 +98,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'consumedGrams': e.consumedGrams,
           'proteinPerReference': e.proteinPerReference,
           'referenceGrams': e.referenceGrams,
+          'unit': e.unit.name,
           'createdAt': e.createdAt.toUtc().toIso8601String(),
           'dayKey': e.dayKey,
           'slot': e.slot.name,
@@ -112,6 +115,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'consumedGrams': p.consumedGrams,
           'proteinPerReference': p.proteinPerReference,
           'referenceGrams': p.referenceGrams,
+          'unit': p.unit.name,
           'useCount': p.useCount,
           'lastUsedAt': p.lastUsedAt?.toUtc().toIso8601String(),
           'createdAt': p.createdAt.toUtc().toIso8601String(),
@@ -290,6 +294,7 @@ EntriesCompanion _entry(Map<String, dynamic> e, int version) {
     consumedGrams: Value(columns.consumedGrams),
     proteinPerReference: Value(columns.proteinPerReference),
     referenceGrams: Value(columns.referenceGrams),
+    unit: Value(columns.unit),
     createdAt: createdAt,
     dayKey: dayKey,
     // Backups made before the part of the day was stored: computed from the
@@ -330,6 +335,7 @@ ProductsCompanion _product(Map<String, dynamic> p) {
     consumedGrams: Value(columns.consumedGrams),
     proteinPerReference: Value(columns.proteinPerReference),
     referenceGrams: Value(columns.referenceGrams),
+    unit: Value(columns.unit),
     useCount: Value(useCount),
     lastUsedAt: Value(
       lastUsedAt == null ? null : DateTime.parse(lastUsedAt).toLocal(),
@@ -343,9 +349,9 @@ ProductsCompanion _product(Map<String, dynamic> p) {
 }
 
 /// Protein amount of an entry or a product, following the rules of the
-/// form: protein amounts with one decimal at most, whole grams of food, a
-/// protein content not above the reference quantity, and nothing from the
-/// other mode.
+/// form: protein amounts with one decimal at most, whole grams or
+/// milliliters of food, a protein content not above the reference
+/// quantity, and nothing from the other mode.
 ///
 /// In "per quantity" mode, an entry also stores the protein it amounts to
 /// ([storesProtein]); it is computed again rather than read.
@@ -358,6 +364,10 @@ ProteinAmount _amount(
   final consumed = _optionalDouble(json['consumedGrams']);
   final perReference = _optionalDouble(json['proteinPerReference']);
   final reference = _optionalDouble(json['referenceGrams']);
+  // Absent from backups made before milliliters existed.
+  final unit = QuantityUnit.values.byName(
+    json['unit'] as String? ?? QuantityUnit.grams.name,
+  );
   switch (mode) {
     case EntryMode.direct:
       if (protein != null &&
@@ -380,6 +390,7 @@ ProteinAmount _amount(
           consumedGrams: consumed,
           proteinPerReference: perReference,
           referenceGrams: reference,
+          unit: unit,
         );
       }
   }

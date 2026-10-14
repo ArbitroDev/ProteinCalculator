@@ -11,6 +11,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
@@ -311,6 +312,8 @@ class _FormViewState extends ConsumerState<_FormView> {
                     ),
                     _GramsField(
                       controller: _consumed,
+                      unit: form.unit,
+                      onUnitChanged: _dismissing(_notifier.setUnit),
                       onChanged: _dismissing(_notifier.setConsumed),
                       errorText: error(EntryFormField.consumed),
                     ),
@@ -343,6 +346,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                         Expanded(
                           child: _GramsField(
                             controller: _reference,
+                            unit: form.unit,
                             onChanged: _dismissing(_notifier.setReference),
                             errorText: error(EntryFormField.reference),
                           ),
@@ -467,28 +471,103 @@ class _GramsField extends StatelessWidget {
     required this.onChanged,
     required this.errorText,
     this.decimal = false,
+    this.unit = QuantityUnit.grams,
+    this.onUnitChanged,
   });
 
   final TextEditingController controller;
 
   /// Allows one decimal: protein amounts take one, quantities of food none.
   final bool decimal;
+
+  /// Unit shown after the value: protein amounts are always in grams.
+  final QuantityUnit unit;
+
+  /// Lets the user pick the [unit] in a list, shown in place of its symbol.
+  final ValueChanged<QuantityUnit>? onUnitChanged;
   final ValueChanged<String> onChanged;
   final String? errorText;
 
   @override
-  Widget build(BuildContext context) => TextField(
-    controller: controller,
-    onChanged: onChanged,
-    keyboardType: TextInputType.numberWithOptions(decimal: decimal),
-    inputFormatters: [GramsInputFormatter(maxDecimals: decimal ? 1 : 0)],
-    textInputAction: TextInputAction.next,
-    decoration: InputDecoration(
-      suffixText: AppLocalizations.of(context).gramsUnit,
-      errorText: errorText,
-      errorMaxLines: 2,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final onUnitChanged = this.onUnitChanged;
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+      inputFormatters: [GramsInputFormatter(maxDecimals: decimal ? 1 : 0)],
+      textInputAction: TextInputAction.next,
+      decoration: InputDecoration(
+        suffixText: onUnitChanged == null
+            ? quantityUnitSymbol(AppLocalizations.of(context), unit)
+            : null,
+        suffixIcon: onUnitChanged == null
+            ? null
+            : _UnitList(unit: unit, onChanged: onUnitChanged),
+        errorText: errorText,
+        errorMaxLines: 2,
+      ),
+    );
+  }
+}
+
+/// List of the units of a quantity, at the end of its field.
+class _UnitList extends StatelessWidget {
+  const _UnitList({required this.unit, required this.onChanged});
+
+  final QuantityUnit unit;
+  final ValueChanged<QuantityUnit> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    return Semantics(
+      label: l10n.formUnit,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Sets the list apart from the value: only the unit opens it.
+          Container(
+            width: 1,
+            height: 24,
+            color: colors.textSecondary.withValues(alpha: 0.3),
+          ),
+          const SizedBox(width: 14),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 10),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<QuantityUnit>(
+                value: unit,
+                isDense: true,
+                borderRadius: BorderRadius.circular(10),
+                dropdownColor: colors.surfaceRaised,
+                icon: Padding(
+                  padding: const EdgeInsetsDirectional.only(start: 6),
+                  child: Icon(
+                    LucideIcons.chevronDown,
+                    size: 16,
+                    color: colors.textSecondary,
+                  ),
+                ),
+                style: Theme.of(context).textTheme.bodyLarge,
+                items: [
+                  for (final value in QuantityUnit.values)
+                    DropdownMenuItem(
+                      value: value,
+                      child: Text(quantityUnitSymbol(l10n, value)),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) onChanged(value);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Options of equal width, the selected one on a sliding pill.

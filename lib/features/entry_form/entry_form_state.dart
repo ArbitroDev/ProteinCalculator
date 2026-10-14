@@ -3,6 +3,7 @@ import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 /// What the form creates or edits, with the ids it needs.
 @immutable
@@ -103,6 +104,7 @@ class EntryFormState {
     this.consumed = '',
     this.proteinPerReference = '',
     this.reference = '100',
+    this.unit = QuantityUnit.grams,
     this.saveAsProduct = false,
     this.nameTaken = false,
     this.routine = DailyRoutine.none,
@@ -118,6 +120,9 @@ class EntryFormState {
   final String consumed;
   final String proteinPerReference;
   final String reference;
+
+  /// Unit of [consumed] and [reference]: grams, or milliliters for drinks.
+  final QuantityUnit unit;
 
   /// Whether a new entry is also saved as a new product, which then gets the
   /// [routine]. Off while the [name] is [nameTaken].
@@ -160,6 +165,7 @@ class EntryFormState {
       consumedGrams: consumedGrams,
       proteinPerReference: per,
       referenceGrams: referenceGrams,
+      unit: unit,
     );
   }
 
@@ -213,6 +219,7 @@ class EntryFormState {
     String? consumed,
     String? proteinPerReference,
     String? reference,
+    QuantityUnit? unit,
     bool? saveAsProduct,
     bool? nameTaken,
     DailyRoutine? routine,
@@ -228,6 +235,7 @@ class EntryFormState {
     consumed: consumed ?? this.consumed,
     proteinPerReference: proteinPerReference ?? this.proteinPerReference,
     reference: reference ?? this.reference,
+    unit: unit ?? this.unit,
     saveAsProduct: saveAsProduct ?? this.saveAsProduct,
     nameTaken: nameTaken ?? this.nameTaken,
     routine: routine ?? this.routine,
