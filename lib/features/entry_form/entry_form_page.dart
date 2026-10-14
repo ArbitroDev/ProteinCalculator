@@ -13,6 +13,8 @@ import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/quantity_unit.dart';
+import 'package:protein_calculator/core/food_facts/open_food_facts.dart';
+import 'package:protein_calculator/core/food_facts/product_lookup.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
@@ -205,9 +207,30 @@ class _FormViewState extends ConsumerState<_FormView> {
     _dismissSuggestions();
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    final language = Localizations.localeOf(context).languageCode;
+    final lookup = ref.read(productLookupProvider);
     final barcode = await context.push<String>(AppRoutes.scan);
     if (barcode == null || !mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text(l10n.scanRead(barcode))));
+    final result = await lookup.lookUp(barcode, language: language);
+    final message = switch (result) {
+      SavedProductFound(:final product) => product.name,
+      ScannedProductFound(:final scan) => [
+        scannedProductName(scan.name, scan.brands) ?? barcode,
+        if (scan.proteinPer100 case final protein?)
+          l10n.productPerReference(
+            formatProtein(protein, l10n.localeName),
+            formatQuantity(l10n, 100, scan.unit),
+          ),
+      ].join(' · '),
+      ProductNotFound() => l10n.scanNotFound,
+      ProductLookupFailed(:final problem) => switch (problem) {
+        FoodFactsProblem.offline => l10n.scanOffline,
+        FoodFactsProblem.busy => l10n.scanBusy,
+        FoodFactsProblem.timeout ||
+        FoodFactsProblem.failed => l10n.scanUnavailable,
+      },
+    };
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _submit() async {

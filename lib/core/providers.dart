@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:protein_calculator/core/background_changes.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
@@ -11,6 +12,8 @@ import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/day_progress.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/food_facts/open_food_facts.dart';
+import 'package:protein_calculator/core/food_facts/product_lookup.dart';
 
 /// The app database, opened in `main` before the first frame.
 final databaseProvider = Provider<AppDatabase>(
@@ -148,4 +151,23 @@ final sortedProductsProvider = StreamProvider<List<Product>>((ref) {
 /// Version of the app, read from the package.
 final appVersionProvider = FutureProvider<String>(
   (ref) async => (await PackageInfo.fromPlatform()).version,
+);
+
+/// Open Food Facts, asked about the products scanned.
+final openFoodFactsProvider = Provider<OpenFoodFacts>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return OpenFoodFacts(
+    client,
+    appVersion: ref.watch(appVersionProvider.future),
+  );
+});
+
+/// Finds the product of a barcode, on the phone first.
+final productLookupProvider = Provider<ProductLookupService>(
+  (ref) => ProductLookupService(
+    ref.watch(databaseProvider),
+    ref.watch(openFoodFactsProvider),
+    ref.watch(clockProvider),
+  ),
 );

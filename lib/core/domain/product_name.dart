@@ -11,6 +11,27 @@ bool isValidName(String name) =>
     name.trim() == name &&
     name.characters.length <= maxNameLength;
 
+/// Name given to a product found by its barcode, from its [name] and
+/// [brands] (comma separated): the name with the first brand,
+/// "Skyr nature (Siggi's)", when the name does not say the brand already
+/// and it fits in [maxNameLength]; else the name alone, cut to fit. Null
+/// without a name.
+String? scannedProductName(String? name, String? brands) {
+  final cleanName = _singleSpaces(name ?? '');
+  if (cleanName.isEmpty) return null;
+  final brand = _singleSpaces(brands?.split(',').first ?? '');
+  final withBrand = '$cleanName ($brand)';
+  if (brand.isNotEmpty &&
+      !productNameKey(cleanName).contains(productNameKey(brand)) &&
+      withBrand.characters.length <= maxNameLength) {
+    return withBrand;
+  }
+  return cleanName.characters.take(maxNameLength).toString().trim();
+}
+
+String _singleSpaces(String text) =>
+    text.trim().replaceAll(RegExp(r'\s+'), ' ');
+
 const _foldedLetters = {
   'à': 'a',
   'á': 'a',

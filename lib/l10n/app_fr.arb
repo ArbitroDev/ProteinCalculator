@@ -185,14 +185,21 @@
   "@scanBarcode": {
     "description": "Tooltip of the button opening the camera to scan the barcode of a product."
   },
-  "scanRead": "Code lu : {code}",
-  "@scanRead": {
-    "description": "Barcode read by the camera, shown until the product is looked up.",
-    "placeholders": {
-      "code": {
-        "type": "String"
-      }
-    }
+  "scanNotFound": "Open Food Facts ne connaît pas ce produit : remplis les valeurs à la main.",
+  "@scanNotFound": {
+    "description": "After a scan, when neither the user nor Open Food Facts knows the product."
+  },
+  "scanOffline": "Pas de connexion : remplis les valeurs à la main.",
+  "@scanOffline": {
+    "description": "After a scan, when Open Food Facts cannot be asked without a connection."
+  },
+  "scanBusy": "Open Food Facts reçoit trop de demandes : réessaie dans une minute, ou remplis les valeurs à la main.",
+  "@scanBusy": {
+    "description": "After a scan, when Open Food Facts refuses requests for a while."
+  },
+  "scanUnavailable": "Open Food Facts ne répond pas : remplis les valeurs à la main.",
+  "@scanUnavailable": {
+    "description": "After a scan, when Open Food Facts gives no answer in time or fails."
   },
   "scanHint": "Place le code-barres dans le cadre",
   "@scanHint": {

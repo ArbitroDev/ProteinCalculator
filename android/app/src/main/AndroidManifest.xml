@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- Only used to send crash reports, when the user keeps them on. -->
+    <!-- Sends crash reports, when the user keeps them on, and looks up the
+         barcodes scanned on Open Food Facts. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Reads the barcode of a product, asked when the user first scans one.
          The picture is read on the phone and never leaves it. -->
