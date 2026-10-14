@@ -1731,6 +1731,187 @@ i1.GeneratedColumn<int> _column_40(String aliasedName) =>
       type: i1.DriftSqlType.int,
       $customConstraints: 'NOT NULL',
     );
+
+final class Schema12 extends i0.VersionedSchema {
+  Schema12({required super.database}) : super(version: 12);
+  @override
+  late final List<i1.DatabaseSchemaEntity> entities = [
+    entries,
+    products,
+    appSettings,
+    goalChanges,
+    watchRequests,
+    scannedProducts,
+    entriesDayKey,
+    entriesNameKey,
+    productsBarcode,
+  ];
+  late final Shape12 entries = Shape12(
+    source: i0.VersionedTable(
+      entityName: 'entries',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_20,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_5,
+        _column_6,
+        _column_7,
+        _column_8,
+        _column_19,
+        _column_27,
+        _column_31,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape14 products = Shape14(
+    source: i0.VersionedTable(
+      entityName: 'products',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_0,
+        _column_9,
+        _column_10,
+        _column_2,
+        _column_11,
+        _column_4,
+        _column_5,
+        _column_6,
+        _column_12,
+        _column_13,
+        _column_7,
+        _column_14,
+        _column_21,
+        _column_22,
+        _column_23,
+        _column_31,
+        _column_32,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape17 appSettings = Shape17(
+    source: i0.VersionedTable(
+      entityName: 'app_settings',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_15,
+        _column_16,
+        _column_17,
+        _column_26,
+        _column_24,
+        _column_18,
+        _column_30,
+        _column_33,
+        _column_34,
+        _column_41,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape7 goalChanges = Shape7(
+    source: i0.VersionedTable(
+      entityName: 'goal_changes',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(day_key)'],
+      columns: [_column_8, _column_25],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape10 watchRequests = Shape10(
+    source: i0.VersionedTable(
+      entityName: 'watch_requests',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [_column_28, _column_29],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape16 scannedProducts = Shape16(
+    source: i0.VersionedTable(
+      entityName: 'scanned_products',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(barcode)'],
+      columns: [
+        _column_35,
+        _column_1,
+        _column_36,
+        _column_37,
+        _column_38,
+        _column_31,
+        _column_39,
+        _column_40,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Index entriesDayKey = i1.Index(
+    'entries_day_key',
+    'CREATE INDEX entries_day_key ON entries (day_key)',
+  );
+  final i1.Index entriesNameKey = i1.Index(
+    'entries_name_key',
+    'CREATE INDEX entries_name_key ON entries (name_key)',
+  );
+  final i1.Index productsBarcode = i1.Index(
+    'products_barcode',
+    'CREATE UNIQUE INDEX products_barcode ON products (barcode)',
+  );
+}
+
+class Shape17 extends i0.VersionedTable {
+  Shape17({required super.source, required super.alias}) : super.aliased();
+  i1.GeneratedColumn<int> get id =>
+      columnsByName['id']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<double> get dailyGoalGrams =>
+      columnsByName['daily_goal_grams']! as i1.GeneratedColumn<double>;
+  i1.GeneratedColumn<String> get productSort =>
+      columnsByName['product_sort']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<int> get dayStartHour =>
+      columnsByName['day_start_hour']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<String> get historyView =>
+      columnsByName['history_view']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<int> get crashReports =>
+      columnsByName['crash_reports']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get slotReminders =>
+      columnsByName['slot_reminders']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get savedProductsCollapsed =>
+      columnsByName['saved_products_collapsed']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get recentScansCollapsed =>
+      columnsByName['recent_scans_collapsed']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get scanNoticeSeen =>
+      columnsByName['scan_notice_seen']! as i1.GeneratedColumn<int>;
+}
+
+i1.GeneratedColumn<int> _column_41(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'scan_notice_seen',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints:
+          'NOT NULL DEFAULT 0 CHECK (scan_notice_seen IN (0, 1))',
+      defaultValue: const i1.CustomExpression('0'),
+    );
 i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
   required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
@@ -1742,6 +1923,7 @@ i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema9 schema) from8To9,
   required Future<void> Function(i1.Migrator m, Schema10 schema) from9To10,
   required Future<void> Function(i1.Migrator m, Schema11 schema) from10To11,
+  required Future<void> Function(i1.Migrator m, Schema12 schema) from11To12,
 }) {
   return (currentVersion, database) async {
     switch (currentVersion) {
@@ -1795,6 +1977,11 @@ i0.MigrationStepWithVersion migrationSteps({
         final migrator = i1.Migrator(database, schema);
         await from10To11(migrator, schema);
         return 11;
+      case 11:
+        final schema = Schema12(database: database);
+        final migrator = i1.Migrator(database, schema);
+        await from11To12(migrator, schema);
+        return 12;
       default:
         throw ArgumentError.value('Unknown migration from $currentVersion');
     }
@@ -1812,6 +1999,7 @@ i1.OnUpgrade stepByStep({
   required Future<void> Function(i1.Migrator m, Schema9 schema) from8To9,
   required Future<void> Function(i1.Migrator m, Schema10 schema) from9To10,
   required Future<void> Function(i1.Migrator m, Schema11 schema) from10To11,
+  required Future<void> Function(i1.Migrator m, Schema12 schema) from11To12,
 }) => i0.VersionedSchema.stepByStepHelper(
   step: migrationSteps(
     from1To2: from1To2,
@@ -1824,5 +2012,6 @@ i1.OnUpgrade stepByStep({
     from8To9: from8To9,
     from9To10: from9To10,
     from10To11: from10To11,
+    from11To12: from11To12,
   ),
 );

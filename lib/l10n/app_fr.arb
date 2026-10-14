@@ -297,6 +297,14 @@
   "@scanUnavailable": {
     "description": "After a scan, when Open Food Facts gives no answer in time or fails."
   },
+  "scanNotice": "L'image de la caméra est lue sur ton téléphone et n'en sort jamais. Seuls les codes-barres que tu scannes sont envoyés à Open Food Facts, une base de données libre, pour trouver les produits que ton téléphone ne connaît pas encore. Rien d'autre n'est envoyé.",
+  "@scanNotice": {
+    "description": "Told once, before the first scan: what is sent to Open Food Facts."
+  },
+  "scanNoticeAccept": "Continuer",
+  "@scanNoticeAccept": {
+    "description": "Button going on to the first scan once its notice is read."
+  },
   "scanHint": "Place le code-barres dans le cadre",
   "@scanHint": {
     "description": "Hint over the camera picture while scanning."

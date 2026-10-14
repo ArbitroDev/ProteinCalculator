@@ -185,6 +185,11 @@ class AppSettings extends Table {
   BoolColumn get recentScansCollapsed =>
       boolean().withDefault(const Constant(false))();
 
+  /// Whether the user read, before a first scan, what is sent to Open Food
+  /// Facts. Specific to the phone: not in the backups.
+  BoolColumn get scanNoticeSeen =>
+      boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

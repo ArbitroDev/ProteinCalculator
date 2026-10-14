@@ -214,6 +214,26 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  testWidgets('tells what is sent before the first scan', (tester) async {
+    await pumpApp(tester, db);
+    await tester.tap(find.byTooltip('Add'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Scan a barcode'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Only the barcodes you scan are sent'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    // Still on the form, and told again next time.
+    expect(find.text('New entry'), findsOneWidget);
+    expect(await db.settingsDao.getScanNoticeSeen(), isFalse);
+    await disposeApp(tester, db);
+  });
+
   testWidgets('measures a quantity in milliliters', (tester) async {
     await pumpApp(tester, db);
     await tester.tap(find.byTooltip('Add'));

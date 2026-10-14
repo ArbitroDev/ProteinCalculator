@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -110,6 +110,12 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(
           schema.appSettings,
           schema.appSettings.recentScansCollapsed,
+        );
+      },
+      from11To12: (m, schema) async {
+        await m.addColumn(
+          schema.appSettings,
+          schema.appSettings.scanNoticeSeen,
         );
       },
     ),

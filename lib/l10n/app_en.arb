@@ -57,6 +57,8 @@
   "scanOffline": "No connection: fill in the values yourself.",
   "scanBusy": "Open Food Facts is getting too many requests: try again in a minute, or fill in the values yourself.",
   "scanUnavailable": "Open Food Facts isn't answering: fill in the values yourself.",
+  "scanNotice": "The camera picture is read on your phone and never leaves it. Only the barcodes you scan are sent to Open Food Facts, a free database, to find the products your phone doesn't know yet. Nothing else is sent.",
+  "scanNoticeAccept": "Continue",
   "scanHint": "Place the barcode in the frame",
   "scanTorchOn": "Turn on the flashlight",
   "scanTorchOff": "Turn off the flashlight",

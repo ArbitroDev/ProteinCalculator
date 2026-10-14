@@ -55,6 +55,7 @@ class _EntryFormPageState extends ConsumerState<EntryFormPage> {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final language = Localizations.localeOf(context).languageCode;
+    if (!await _readScanNotice() || !mounted) return;
     final barcode = await context.push<String>(AppRoutes.scan);
     if (barcode == null || !mounted) return;
 
@@ -132,6 +133,35 @@ class _EntryFormPageState extends ConsumerState<EntryFormPage> {
           FoodFactsProblem.failed => l10n.scanUnavailable,
         });
     }
+  }
+
+  /// Before the first scan, tells what is sent to Open Food Facts. Returns
+  /// whether the user goes on, which is not asked again.
+  Future<bool> _readScanNotice() async {
+    final settings = ref.read(databaseProvider).settingsDao;
+    if (await settings.getScanNoticeSeen()) return true;
+    if (!mounted) return false;
+    final l10n = AppLocalizations.of(context);
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.scanBarcode),
+        content: Text(l10n.scanNotice),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.scanNoticeAccept),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true) return false;
+    await settings.setScanNoticeSeen();
+    return true;
   }
 
   /// Gives [barcode] to [product], the user's product of the same name, in

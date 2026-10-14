@@ -90,6 +90,14 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
   Future<void> setRecentScansCollapsed(bool collapsed) =>
       _write(AppSettingsCompanion(recentScansCollapsed: Value(collapsed)));
 
+  /// Whether the user read what is sent to Open Food Facts, see
+  /// `AppSettings.scanNoticeSeen`.
+  Future<bool> getScanNoticeSeen() async =>
+      (await _row.getSingle()).scanNoticeSeen;
+
+  Future<void> setScanNoticeSeen() =>
+      _write(const AppSettingsCompanion(scanNoticeSeen: Value(true)));
+
   Future<bool> getSlotReminders() async =>
       (await _row.getSingle()).slotReminders;
 

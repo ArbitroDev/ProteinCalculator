@@ -89,10 +89,11 @@ produit : les 20 derniers produits scannés, et les dernières valeurs connues d
 ont un code-barres. Les produits scannés ne figurent pas dans l'export de tes données ; le
 code-barres de tes produits enregistrés, si. Rien n'est ajouté à ton suivi sans que tu le valides.
 
-**Base légale.** L'envoi n'a lieu qu'à ta demande, quand tu scannes ou saisis un code, pour te
-rendre le service que tu utilises (article 6.1.b du RGPD). Pour l'éviter, remplis les valeurs à la
-main. Open Food Facts traite ces demandes selon sa propre politique de confidentialité :
-<https://world.openfoodfacts.org/privacy>.
+**Base légale.** L'envoi n'a lieu qu'à ta demande, quand tu scannes ou saisis un code, et
+l'application te l'explique avant ton premier scan. Il repose sur notre **intérêt légitime** à te
+fournir la fonction que tu utilises (article 6.1.f du RGPD) ; il se limite au code-barres, et tu
+peux l'éviter en remplissant les valeurs à la main. Open Food Facts traite ces demandes selon sa
+propre politique de confidentialité : <https://world.openfoodfacts.org/privacy>.
 
 ## 3. Rapports d'erreur (facultatifs)
 
@@ -263,10 +264,11 @@ latest products scanned, and the latest known values of your products that have 
 products scanned are not in the export of your data; the barcode of your saved products is.
 Nothing is added to your tracking without your approval.
 
-**Legal basis.** The barcode is only sent at your request, when you scan or type a code, to
-provide the feature you use (Article 6(1)(b) GDPR). To avoid it, fill in the values yourself. Open
-Food Facts processes these requests under its own privacy policy:
-<https://world.openfoodfacts.org/privacy>.
+**Legal basis.** The barcode is only sent at your request, when you scan or type a code, and the
+app explains it before your first scan. It relies on our **legitimate interest** in providing the
+feature you use (Article 6(1)(f) GDPR); it is limited to the barcode, and you can avoid it by
+filling in the values yourself. Open Food Facts processes these requests under its own privacy
+policy: <https://world.openfoodfacts.org/privacy>.
 
 ## 3. Crash reports (optional)
 
