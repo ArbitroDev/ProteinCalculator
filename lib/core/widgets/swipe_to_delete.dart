@@ -44,16 +44,16 @@ class SwipeToDelete extends StatelessWidget {
 /// A deleted row is hidden at once, until the database confirms: if the
 /// deletion fails, the row shows again.
 mixin UndoableDeletion<W extends StatefulWidget> on State<W> {
-  final _hidden = <int>{};
+  final _hidden = <Object>{};
 
   /// Whether the row [id] was deleted and must not show.
-  bool isDeleted(int id) => _hidden.contains(id);
+  bool isDeleted(Object id) => _hidden.contains(id);
 
   /// Deletes the row [id] with [delete], which returns what [restore] needs
   /// to put it back, or null if it was already gone; then offers to undo it
   /// with a message saying [label].
   Future<void> deleteWithUndo<T extends Object>({
-    required int id,
+    required Object id,
     required Future<T?> Function() delete,
     required Future<void> Function(T deleted) restore,
     required String label,

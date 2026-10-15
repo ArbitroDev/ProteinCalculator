@@ -108,6 +108,7 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
           consumedGrams: Value(columns.consumedGrams),
           proteinPerReference: Value(columns.proteinPerReference),
           referenceGrams: Value(columns.referenceGrams),
+          unit: Value(columns.unit),
           createdAt: createdAt,
           dayKey: dayKeyOf(createdAt),
           slot: Value(DaySlot.of(createdAt)),

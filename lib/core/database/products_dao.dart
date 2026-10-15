@@ -6,6 +6,8 @@ import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/protein_calc.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 part 'products_dao.g.dart';
 
@@ -19,6 +21,16 @@ class DuplicateProductNameException implements Exception {
   String toString() => 'DuplicateProductNameException: $name';
 }
 
+/// Thrown when saving a product whose barcode is already another one's.
+class DuplicateBarcodeException implements Exception {
+  const DuplicateBarcodeException(this.barcode);
+
+  final String barcode;
+
+  @override
+  String toString() => 'DuplicateBarcodeException: $barcode';
+}
+
 @DriftAccessor(tables: [Products])
 class ProductsDao extends DatabaseAccessor<AppDatabase>
     with _$ProductsDaoMixin {
@@ -29,6 +41,16 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
 
   Future<Product?> getProduct(int id) =>
       (select(products)..where((p) => p.id.equals(id))).getSingleOrNull();
+
+  /// Product named [name], with any case, accents or extra spaces.
+  Future<Product?> findByName(String name) => (select(
+    products,
+  )..where((p) => p.nameKey.equals(productNameKey(name)))).getSingleOrNull();
+
+  /// Product with [barcode], in its stored form, see `normalizeBarcode`.
+  Future<Product?> findByBarcode(String barcode) => (select(
+    products,
+  )..where((p) => p.barcode.equals(barcode))).getSingleOrNull();
 
   /// Products adding themselves every day, see [DailyRoutine.autoAdd].
   Future<List<Product>> getAutoAdds() => (select(
@@ -49,17 +71,29 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
     return (await query.get()).isNotEmpty;
   }
 
-  /// Saves a new product.
+  /// Whether [barcode] is already the barcode of a product other than
+  /// [exceptId].
+  Future<bool> isBarcodeTaken(String barcode, {int? exceptId}) async {
+    final product = await findByBarcode(barcode);
+    return product != null && product.id != exceptId;
+  }
+
+  /// Saves a new product, with its [barcode] if it has one.
   ///
-  /// Throws [DuplicateProductNameException] if the name is already used.
+  /// Throws [DuplicateProductNameException] if the name is already used, and
+  /// [DuplicateBarcodeException] if the barcode is.
   Future<int> insertProduct({
     required String name,
     required ProteinAmount amount,
     required DateTime createdAt,
+    String? barcode,
   }) {
     final columns = amountColumns(amount);
     return transaction(() async {
       if (await isNameTaken(name)) throw DuplicateProductNameException(name);
+      if (barcode != null && await isBarcodeTaken(barcode)) {
+        throw DuplicateBarcodeException(barcode);
+      }
       final id = await into(products).insert(
         ProductsCompanion.insert(
           name: name.trim(),
@@ -69,7 +103,9 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
           consumedGrams: Value(columns.consumedGrams),
           proteinPerReference: Value(columns.proteinPerReference),
           referenceGrams: Value(columns.referenceGrams),
+          unit: Value(columns.unit),
           createdAt: createdAt,
+          barcode: Value(barcode),
         ),
       );
       // Entries made before with its name count as uses.
@@ -80,11 +116,17 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
 
   /// Saves the edited values of an existing product.
   ///
-  /// Throws [DuplicateProductNameException] if the new name is already used.
+  /// Throws [DuplicateProductNameException] if the new name is already used,
+  /// and [DuplicateBarcodeException] if the new barcode is.
   Future<void> updateProduct(Product product) {
     return transaction(() async {
       if (await isNameTaken(product.name, exceptId: product.id)) {
         throw DuplicateProductNameException(product.name);
+      }
+      final barcode = product.barcode;
+      if (barcode != null &&
+          await isBarcodeTaken(barcode, exceptId: product.id)) {
+        throw DuplicateBarcodeException(barcode);
       }
       await update(products).replace(
         product.copyWith(
@@ -94,8 +136,51 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       );
       // A new name counts the entries with that name instead.
       await attachedDatabase.refreshUses(productNameKey(product.name));
+      // Its former barcode, if changed, makes a recent scan again.
+      await attachedDatabase.scansDao.keepRecent();
     });
   }
+
+  /// Gives the product [id] a protein content of [proteinPer100] grams per
+  /// 100 [unit], keeping its portion, and leaves the rest of it as it is
+  /// now. A product whose protein is typed per portion stays as it is.
+  Future<void> setProteinPer100(
+    int id,
+    double proteinPer100, {
+    required QuantityUnit unit,
+  }) => transaction(() async {
+    final amount = (await getProduct(id))?.amount;
+    if (amount is! PerQuantityAmount) return;
+    final columns = amountColumns(
+      PerQuantityAmount(
+        consumedGrams: amount.consumedGrams,
+        proteinPerReference: proteinPer100,
+        referenceGrams: defaultReferenceGrams,
+        unit: unit,
+      ),
+    );
+    await (update(products)..where((p) => p.id.equals(id))).write(
+      ProductsCompanion(
+        proteinPerReference: Value(columns.proteinPerReference),
+        referenceGrams: Value(columns.referenceGrams),
+        unit: Value(columns.unit),
+      ),
+    );
+  });
+
+  /// Gives the product [id] the [barcode], or takes its barcode away when
+  /// null.
+  ///
+  /// Throws [DuplicateBarcodeException] if another product has it.
+  Future<void> setBarcode(int id, String? barcode) => transaction(() async {
+    if (barcode != null && await isBarcodeTaken(barcode, exceptId: id)) {
+      throw DuplicateBarcodeException(barcode);
+    }
+    await (update(products)..where((p) => p.id.equals(id))).write(
+      ProductsCompanion(barcode: Value(barcode)),
+    );
+    await attachedDatabase.scansDao.keepRecent();
+  });
 
   /// Makes [id] the favorite product, replacing the previous one, or removes
   /// it from favorites when [favorite] is false.
@@ -137,6 +222,10 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       final product = await getProduct(id);
       if (product == null) return null;
       await (delete(products)..where((p) => p.id.equals(id))).go();
+      // Its barcode makes a recent scan again, kept for now: the deletion
+      // can be undone, with what Open Food Facts said of the product. The
+      // recent scans show 20 at most, and the next scan saved deletes the
+      // older ones.
       return product;
     });
   }
@@ -149,12 +238,18 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       if (await isNameTaken(product.name)) {
         throw DuplicateProductNameException(product.name);
       }
-      // Another product may have become the favorite meanwhile.
+      // Another product may have become the favorite, or taken the barcode,
+      // meanwhile.
       final favoriteTaken = await (select(
         products,
       )..where((p) => p.isFavorite.equals(true))).getSingleOrNull();
+      final barcode = product.barcode;
+      final barcodeTaken = barcode != null && await isBarcodeTaken(barcode);
       await into(products).insert(
-        favoriteTaken == null ? product : product.copyWith(isFavorite: false),
+        product.copyWith(
+          isFavorite: product.isFavorite && favoriteTaken == null,
+          barcode: barcodeTaken ? const Value(null) : Value(barcode),
+        ),
       );
       await attachedDatabase.refreshUses(product.nameKey);
     });

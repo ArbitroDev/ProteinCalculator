@@ -5,6 +5,7 @@ import 'package:protein_calculator/core/database/app_database.steps.dart';
 import 'package:protein_calculator/core/database/database_file.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
+import 'package:protein_calculator/core/database/scans_dao.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/database/tables.dart';
 import 'package:protein_calculator/core/database/watch_dao.dart';
@@ -15,12 +16,20 @@ import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Entries, Products, AppSettings, GoalChanges, WatchRequests],
-  daos: [EntriesDao, ProductsDao, SettingsDao, WatchDao],
+  tables: [
+    Entries,
+    Products,
+    AppSettings,
+    GoalChanges,
+    WatchRequests,
+    ScannedProducts,
+  ],
+  daos: [EntriesDao, ProductsDao, SettingsDao, WatchDao, ScansDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
@@ -46,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -85,6 +94,29 @@ class AppDatabase extends _$AppDatabase {
       },
       from8To9: (m, schema) async {
         await m.addColumn(schema.appSettings, schema.appSettings.slotReminders);
+      },
+      from9To10: (m, schema) async {
+        await m.addColumn(schema.entries, schema.entries.unit);
+        await m.addColumn(schema.products, schema.products.unit);
+      },
+      from10To11: (m, schema) async {
+        await m.addColumn(schema.products, schema.products.barcode);
+        await m.create(schema.productsBarcode);
+        await m.create(schema.scannedProducts);
+        await m.addColumn(
+          schema.appSettings,
+          schema.appSettings.savedProductsCollapsed,
+        );
+        await m.addColumn(
+          schema.appSettings,
+          schema.appSettings.recentScansCollapsed,
+        );
+      },
+      from11To12: (m, schema) async {
+        await m.addColumn(
+          schema.appSettings,
+          schema.appSettings.scanNoticeSeen,
+        );
       },
     ),
     beforeOpen: (details) async {

@@ -1,5 +1,6 @@
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/protein_calc.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 /// Protein amount of an entry or of a portion of a product, in one of the
 /// two ways the form offers, each with exactly the values it needs.
@@ -36,16 +37,21 @@ final class DirectAmount extends ProteinAmount {
 
 /// Protein in [consumedGrams] of a product containing [proteinPerReference]
 /// grams of protein per [referenceGrams].
+///
+/// Despite their names, [consumedGrams] and [referenceGrams] are in [unit]:
+/// grams, or milliliters for drinks.
 final class PerQuantityAmount extends ProteinAmount {
   const PerQuantityAmount({
     required this.consumedGrams,
     required this.proteinPerReference,
     required this.referenceGrams,
+    this.unit = QuantityUnit.grams,
   });
 
   final double consumedGrams;
   final double proteinPerReference;
   final double referenceGrams;
+  final QuantityUnit unit;
 
   @override
   double get proteinGrams => computeProtein(
@@ -62,14 +68,15 @@ final class PerQuantityAmount extends ProteinAmount {
       other is PerQuantityAmount &&
       other.consumedGrams == consumedGrams &&
       other.proteinPerReference == proteinPerReference &&
-      other.referenceGrams == referenceGrams;
+      other.referenceGrams == referenceGrams &&
+      other.unit == unit;
 
   @override
   int get hashCode =>
-      Object.hash(consumedGrams, proteinPerReference, referenceGrams);
+      Object.hash(consumedGrams, proteinPerReference, referenceGrams, unit);
 
   @override
   String toString() =>
-      'PerQuantityAmount($consumedGrams g at '
-      '$proteinPerReference g per $referenceGrams g)';
+      'PerQuantityAmount($consumedGrams ${unit.name} at '
+      '$proteinPerReference g per $referenceGrams ${unit.name})';
 }

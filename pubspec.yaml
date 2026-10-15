@@ -8,6 +8,7 @@ environment:
   sdk: ^3.13.0
 
 dependencies:
+  camera: ^0.12.1
   characters: ^1.4.1
   collection: ^1.19.1
   drift: ^2.35.1
@@ -21,7 +22,9 @@ dependencies:
   flutter_riverpod: ^3.4.3
   flutter_svg: ^2.3.0
   flutter_timezone: ^5.1.1
+  flutter_zxing: ^3.1.0
   go_router: ^18.0.2
+  http: ^1.6.0
   intl: ^0.20.3
   lucide_icons_flutter: ^3.1.21
   package_info_plus: ^10.2.2
@@ -50,6 +53,8 @@ flutter:
     - assets/fonts/OFL-Outfit.txt
     - assets/fonts/OFL-SairaSemiCondensed.txt
     - assets/licenses/LICENSE-Octicons.txt
+    - assets/licenses/LICENSE-zxing-cpp.txt
+    - assets/licenses/LICENSE-zint.txt
 
   fonts:
     - family: Saira Semi Condensed

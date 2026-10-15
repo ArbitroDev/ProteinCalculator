@@ -104,6 +104,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Your data stays on your phone.'), findsWidgets);
+    expect(
+      find.textContaining('only its barcode is sent to Open Food Facts'),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(find.text('Import a backup'), 200);
     expect(find.text('Export my data'), findsOneWidget);
     expect(find.text('Import a backup'), findsOneWidget);
     await disposeApp(tester, db);
@@ -118,6 +123,9 @@ void main() {
     expect(find.text('Version 1.0.0'), findsOneWidget);
     expect(find.textContaining('contributing code on GitHub'), findsOneWidget);
     expect(find.text('View the source code on GitHub'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Open Food Facts'), 200);
+    expect(find.textContaining('Open Database License (ODbL)'), findsOneWidget);
+    expect(find.text('world.openfoodfacts.org'), findsOneWidget);
     await disposeApp(tester, db);
   });
 }

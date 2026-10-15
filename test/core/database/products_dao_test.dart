@@ -2,11 +2,13 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 import 'test_database.dart';
 
@@ -254,5 +256,137 @@ void main() {
         expect(apple, isPositive);
       },
     );
+  });
+
+  group('barcodes', () {
+    const nutella = '3017620422003';
+
+    Future<int> addWithBarcode(String name, String? barcode) =>
+        dao.insertProduct(
+          name: name,
+          amount: const DirectAmount(10),
+          createdAt: DateTime(2026, 9, 1),
+          barcode: barcode,
+        );
+
+    test('finds a product by its barcode or its name', () async {
+      final id = await addWithBarcode('Nutella', nutella);
+
+      expect((await dao.findByBarcode(nutella))!.id, id);
+      expect(await dao.findByBarcode('96385074'), isNull);
+      expect((await dao.findByName(' NUTELLA '))!.id, id);
+    });
+
+    test('lets products without barcode be many', () async {
+      await addWithBarcode('Skyr', null);
+      await addWithBarcode('Eggs', null);
+
+      expect(await dao.findByBarcode(nutella), isNull);
+    });
+
+    test('refuses a barcode another product has', () async {
+      final id = await addWithBarcode('Nutella', nutella);
+
+      expect(
+        () => addWithBarcode('Copy', nutella),
+        throwsA(isA<DuplicateBarcodeException>()),
+      );
+      final other = await addWithBarcode('Other', null);
+      expect(
+        () => dao.setBarcode(other, nutella),
+        throwsA(isA<DuplicateBarcodeException>()),
+      );
+      final product = (await dao.getProduct(other))!;
+      expect(
+        () =>
+            dao.updateProduct(product.copyWith(barcode: const Value(nutella))),
+        throwsA(isA<DuplicateBarcodeException>()),
+      );
+      expect(await dao.isBarcodeTaken(nutella), isTrue);
+      expect(await dao.isBarcodeTaken(nutella, exceptId: id), isFalse);
+    });
+
+    test('gives a product a barcode, and takes it away', () async {
+      final id = await addWithBarcode('Nutella', null);
+
+      await dao.setBarcode(id, nutella);
+      expect((await dao.getProduct(id))!.barcode, nutella);
+
+      await dao.setBarcode(id, null);
+      expect((await dao.getProduct(id))!.barcode, isNull);
+    });
+
+    test('puts back a deleted product without the barcode taken '
+        'meanwhile', () async {
+      final id = await addWithBarcode('Nutella', nutella);
+      final deleted = (await dao.deleteProduct(id))!;
+      await addWithBarcode('Nutella pot', nutella);
+
+      await dao.restoreProduct(deleted);
+
+      expect((await dao.getProduct(id))!.barcode, isNull);
+    });
+
+    test('puts back a deleted product with its barcode', () async {
+      final id = await addWithBarcode('Nutella', nutella);
+      final deleted = (await dao.deleteProduct(id))!;
+
+      await dao.restoreProduct(deleted);
+
+      expect((await dao.getProduct(id))!.barcode, nutella);
+    });
+  });
+
+  group('setProteinPer100', () {
+    test('takes the new protein content per 100, keeping the portion, and '
+        'the rest as it is now', () async {
+      final id = await dao.insertProduct(
+        name: 'Skyr',
+        amount: const PerQuantityAmount(
+          consumedGrams: 150,
+          proteinPerReference: 3,
+          referenceGrams: 30,
+        ),
+        createdAt: DateTime(2026, 9, 1),
+      );
+      // Changed after the values of Open Food Facts came: the routine has
+      // added its entries up to now.
+      final checkedAt = DateTime(2026, 10, 8, 9);
+      await dao.setRoutine(
+        id,
+        DailyRoutine.autoAdd,
+        minutes: 480,
+        now: checkedAt,
+      );
+      await dao.setFavorite(id, favorite: true);
+
+      await dao.setProteinPer100(id, 11.5, unit: QuantityUnit.milliliters);
+
+      final product = (await dao.getProduct(id))!;
+      expect(
+        product.amount,
+        const PerQuantityAmount(
+          consumedGrams: 150,
+          proteinPerReference: 11.5,
+          referenceGrams: 100,
+          unit: QuantityUnit.milliliters,
+        ),
+      );
+      expect(product.routine, DailyRoutine.autoAdd);
+      expect(product.routineCheckedAt, checkedAt);
+      expect(product.isFavorite, isTrue);
+    });
+
+    test('leaves a product typed per portion as it is', () async {
+      final id = await dao.insertProduct(
+        name: 'Bar',
+        amount: const DirectAmount(20),
+        createdAt: DateTime(2026, 9, 1),
+      );
+
+      await dao.setProteinPer100(id, 11.5, unit: QuantityUnit.grams);
+
+      expect((await dao.getProduct(id))!.amount, const DirectAmount(20));
+    });
   });
 }

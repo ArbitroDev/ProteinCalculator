@@ -101,4 +101,23 @@ void main() {
       expect(await dao.watchSlotReminders().first, isTrue);
     });
   });
+
+  test('remembers the notice of the first scan once read', () async {
+    expect(await dao.getScanNoticeSeen(), isFalse);
+
+    await dao.setScanNoticeSeen();
+
+    expect(await dao.getScanNoticeSeen(), isTrue);
+  });
+
+  test('remembers the folded lists of the products tab', () async {
+    expect(await dao.watchSavedProductsCollapsed().first, isFalse);
+    expect(await dao.watchRecentScansCollapsed().first, isFalse);
+
+    await dao.setSavedProductsCollapsed(true);
+    await dao.setRecentScansCollapsed(true);
+
+    expect(await dao.watchSavedProductsCollapsed().first, isTrue);
+    expect(await dao.watchRecentScansCollapsed().first, isTrue);
+  });
 }

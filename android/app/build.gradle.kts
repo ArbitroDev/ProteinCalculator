@@ -52,6 +52,18 @@ android {
     }
 
     buildTypes {
+        // Development builds have an id and a name of their own: they install
+        // next to the app from Google Play, with data of their own, and link
+        // with the development build of the watch app.
+        debug {
+            applicationIdSuffix = ".dev"
+        }
+        // Compiled as for a release, light and fast, but still a development
+        // build. Flutter makes it a copy of the debug build before the
+        // settings above, which it does not get.
+        getByName("profile") {
+            applicationIdSuffix = ".dev"
+        }
         release {
             signingConfig = signingConfigs.findByName("release")
                 ?: signingConfigs.getByName("debug")
