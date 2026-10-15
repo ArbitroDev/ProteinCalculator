@@ -19,14 +19,12 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    // From version 9.1, also allow the newer Compose versions held back in
-    // .github/dependabot.yml.
-    id("com.android.application") version "8.11.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.2.20" apply false
+    id("com.android.application") version "9.1.0" apply false
+    id("org.jetbrains.kotlin.android") version "2.4.0" apply false
     // The watch app and the format of its messages, written in Kotlin.
-    id("org.jetbrains.kotlin.jvm") version "2.2.20" apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.2.20" apply false
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20" apply false
+    id("org.jetbrains.kotlin.jvm") version "2.4.0" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.0" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.4.0" apply false
 }
 
 include(":app")

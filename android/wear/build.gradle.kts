@@ -4,7 +4,8 @@ import java.util.Properties
 // adds its products. The phone app stays the only source of truth.
 plugins {
     id("com.android.application")
-    id("kotlin-android")
+    // Kotlin itself is applied by the Flutter Gradle plugin, as to every
+    // Android project of the build.
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -27,15 +28,11 @@ val keyProperties = Properties().apply {
 
 android {
     namespace = "arbitro.android.protein_calculator.wear"
-    compileSdk = 36
+    compileSdk = 37
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
@@ -86,6 +83,12 @@ android {
 
     // The fonts of the phone app, and their licenses.
     sourceSets["main"].assets.srcDir("../../assets/fonts")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
 }
 
 // The Flutter tool builds the phone app with tasks run in every project
