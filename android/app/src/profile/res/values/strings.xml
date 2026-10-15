@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Name of the development builds, next to the app from Google Play. -->
+<resources>
+    <string name="app_name" translatable="false">Protein Calculator Dev</string>
+</resources>

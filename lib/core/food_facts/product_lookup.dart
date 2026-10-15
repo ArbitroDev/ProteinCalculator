@@ -1,4 +1,5 @@
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/domain/barcode.dart';
 import 'package:protein_calculator/core/food_facts/food_facts.dart';
 import 'package:protein_calculator/core/food_facts/open_food_facts.dart';
 
@@ -30,9 +31,13 @@ final class ScannedProductFound extends ProductLookup {
   final Future<ScannedProduct?> update;
 }
 
-/// Neither the user nor Open Food Facts knows the product.
+/// Neither the user nor Open Food Facts knows the product, or it has a
+/// code of the shop ([storeCode], see `isStoreBarcode`), which Open Food
+/// Facts is not asked about.
 final class ProductNotFound extends ProductLookup {
-  const ProductNotFound(super.barcode);
+  const ProductNotFound(super.barcode, {this.storeCode = false});
+
+  final bool storeCode;
 }
 
 /// Open Food Facts could not be asked.
@@ -45,7 +50,8 @@ final class ProductLookupFailed extends ProductLookup {
 /// Looks up the product of a barcode on the phone first: in the products of
 /// the user, then in what Open Food Facts said not long ago. Open Food Facts
 /// is only asked when the phone does not know the product, or knows it from
-/// too long ago, see [maxAge].
+/// too long ago, see [maxAge]; never about a code of the shop, see
+/// `isStoreBarcode`.
 class ProductLookupService {
   ProductLookupService(this._db, this._foodFacts, this._clock);
 
@@ -66,7 +72,10 @@ class ProductLookupService {
     final now = _clock();
     final product = await _db.productsDao.findByBarcode(barcode);
     final scan = await _db.scansDao.getScan(barcode);
-    final fresh = scan != null && now.difference(scan.fetchedAt) < maxAge;
+    // A code of the shop would tell Open Food Facts the weight or the price.
+    final askable = !isStoreBarcode(barcode);
+    final fresh =
+        !askable || scan != null && now.difference(scan.fetchedAt) < maxAge;
 
     if (product != null) {
       return SavedProductFound(
@@ -85,6 +94,7 @@ class ProductLookupService {
       );
     }
 
+    if (!askable) return ProductNotFound(barcode, storeCode: true);
     switch (await _foodFacts.lookUp(barcode, language: language)) {
       case FoodFactsFound(:final facts):
         final found = facts.toScan(barcode, fetchedAt: now, scannedAt: now);

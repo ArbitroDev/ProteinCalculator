@@ -10,7 +10,7 @@ class ScansDao extends DatabaseAccessor<AppDatabase> with _$ScansDaoMixin {
   ScansDao(super.attachedDatabase);
 
   /// Number of recent scans kept: the older ones no product has the barcode
-  /// of are deleted.
+  /// of are deleted, see [keepRecent].
   static const recentCount = 20;
 
   Future<ScannedProduct?> getScan(String barcode) => (select(
@@ -26,6 +26,13 @@ class ScansDao extends DatabaseAccessor<AppDatabase> with _$ScansDaoMixin {
   /// before, and keeps only the [recentCount] latest recent scans.
   Future<void> saveScan(ScannedProductsCompanion scan) => transaction(() async {
     await into(scannedProducts).insertOnConflictUpdate(scan);
+    await keepRecent();
+  });
+
+  /// Deletes the recent scans older than the [recentCount] latest. Called
+  /// whenever there may be more: a scan saved, or a barcode no product has
+  /// any longer, whose scan becomes a recent one again.
+  Future<void> keepRecent() => transaction(() async {
     // SQLite takes a negative limit as none.
     final older = (await (_unsaved()..limit(-1, offset: recentCount)).get())
         .map((s) => s.barcode);

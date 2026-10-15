@@ -69,4 +69,43 @@ void main() {
       expect(expandUpcE('0425261A'), isNull);
     });
   });
+
+  group('normalizeTypedBarcode', () {
+    test('takes EAN-13, EAN-8 and UPC-A codes as normalizeBarcode', () {
+      expect(normalizeTypedBarcode('3017620422003'), '3017620422003');
+      expect(normalizeTypedBarcode(' 96385074 '), '96385074');
+      expect(normalizeTypedBarcode('049000028911'), '0049000028911');
+    });
+
+    test('takes a UPC-E as the EAN-13 of its UPC-A', () {
+      expect(normalizeTypedBarcode('04252614'), '0042100005264');
+      expect(normalizeTypedBarcode(' 04252614 '), '0042100005264');
+    });
+
+    test('refuses a UPC-E with a wrong check digit, or another number '
+        'system', () {
+      expect(normalizeTypedBarcode('04252615'), isNull);
+      // Not an EAN-8 either: a UPC-E only starts with 0 or 1.
+      expect(normalizeTypedBarcode('24252615'), isNull);
+      expect(normalizeTypedBarcode('3017620422004'), isNull);
+    });
+  });
+
+  group('isStoreBarcode', () {
+    test('tells the codes shops give to their own goods', () {
+      expect(isStoreBarcode('2123456789015'), isTrue);
+      expect(isStoreBarcode('0212345678904'), isTrue);
+      expect(isStoreBarcode('0412345678909'), isTrue);
+      expect(isStoreBarcode('21234561'), isTrue);
+      expect(isStoreBarcode('01234565'), isTrue);
+    });
+
+    test('leaves out the codes of the products sold everywhere', () {
+      expect(isStoreBarcode('3017620422003'), isFalse);
+      expect(isStoreBarcode('96385074'), isFalse);
+      // A UPC-A, and a UPC-E, as stored.
+      expect(isStoreBarcode('0049000028911'), isFalse);
+      expect(isStoreBarcode('0042100005264'), isFalse);
+    });
+  });
 }

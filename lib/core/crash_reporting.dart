@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:protein_calculator/core/domain/barcode.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 /// Address of the Sentry project, given at build time with
@@ -9,21 +10,25 @@ const _dsn = String.fromEnvironment('SENTRY_DSN');
 /// option is not offered at all.
 const crashReportingAvailable = _dsn != '';
 
-/// Starts or stops sending crash reports, following the user's choice.
-///
-/// Reports hold the error, its stack trace, the app version and the phone
-/// model and system: no personal data, no screenshot, no entry or product,
-/// and no barcode, see [hideBarcodes].
-///
-/// Never throws: if Sentry fails to start or stop, the error is only
-/// reported locally and the app goes on.
-/// Barcodes in a text: an error about a product scanned may name its
-/// barcode, which tells what the user scanned.
-final _barcodes = RegExp(r'\b\d{8}(?:\d{4,5})?\b');
+/// Numbers as long as barcodes in a text: an error about a product scanned
+/// may name its barcode, which tells what the user scanned.
+final _barcodeLike = RegExp(r'\b\d{8}(?:\d{4,5})?\b');
 
-String _withoutBarcodes(String text) => text.replaceAll(_barcodes, '[barcode]');
+/// [text] with its barcodes hidden: only the numbers whose check digit is
+/// right, so that most other numbers, such as days (20261015), stay.
+String _withoutBarcodes(String text) => text.replaceAllMapped(
+  _barcodeLike,
+  (match) => normalizeTypedBarcode(match[0]!) == null ? match[0]! : '[barcode]',
+);
 
-/// [event] without the barcodes its messages may hold.
+/// [values] with the barcodes of their texts hidden.
+Map<String, dynamic> _mapWithoutBarcodes(Map<String, dynamic> values) => {
+  for (final MapEntry(:key, :value) in values.entries)
+    key: value is String ? _withoutBarcodes(value) : value,
+};
+
+/// [event] without the barcodes its message, its exceptions and the
+/// details of its Flutter error may hold.
 @visibleForTesting
 SentryEvent hideBarcodes(SentryEvent event, Hint hint) {
   if (event.message case final message?) {
@@ -31,10 +36,23 @@ SentryEvent hideBarcodes(SentryEvent event, Hint hint) {
     if (message.template case final template?) {
       message.template = _withoutBarcodes(template);
     }
+    if (message.params case final params?) {
+      message.params = [
+        for (final param in params)
+          param is String ? _withoutBarcodes(param) : param,
+      ];
+    }
   }
   for (final exception in event.exceptions ?? const <SentryException>[]) {
     if (exception.value case final value?) {
       exception.value = _withoutBarcodes(value);
+    }
+  }
+  // The device and the system are objects; the details of a Flutter error
+  // ("flutter_error_details") are a map of texts.
+  for (final MapEntry(:key, :value) in event.contexts.entries.toList()) {
+    if (value is Map<String, dynamic>) {
+      event.contexts[key] = _mapWithoutBarcodes(value);
     }
   }
   return event;
@@ -48,14 +66,19 @@ Breadcrumb? hideBarcodesInBreadcrumb(Breadcrumb? breadcrumb, Hint hint) {
     breadcrumb.message = _withoutBarcodes(message);
   }
   if (breadcrumb.data case final data?) {
-    breadcrumb.data = {
-      for (final MapEntry(:key, :value) in data.entries)
-        key: value is String ? _withoutBarcodes(value) : value,
-    };
+    breadcrumb.data = _mapWithoutBarcodes(data);
   }
   return breadcrumb;
 }
 
+/// Starts or stops sending crash reports, following the user's choice.
+///
+/// Reports hold the error, its stack trace, the app version and the phone
+/// model and system: no personal data, no screenshot, no entry or product,
+/// and no barcode, see [hideBarcodes].
+///
+/// Never throws: if Sentry fails to start or stop, the error is only
+/// reported locally and the app goes on.
 Future<void> setCrashReporting(bool enabled) async {
   if (!crashReportingAvailable || enabled == Sentry.isEnabled) return;
   try {

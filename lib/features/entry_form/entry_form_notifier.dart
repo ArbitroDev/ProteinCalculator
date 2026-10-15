@@ -79,11 +79,13 @@ final class ScanKept extends ScanOutcome {
 }
 
 /// Nothing is known of the product, or Open Food Facts could not be asked
-/// ([problem]): the barcode is kept, the values are typed.
+/// ([problem]), or was not, about a code of the shop ([storeCode]): the
+/// barcode is kept, the values are typed.
 final class ScanNotFound extends ScanOutcome {
-  const ScanNotFound([this.problem]);
+  const ScanNotFound({this.problem, this.storeCode = false});
 
   final FoodFactsProblem? problem;
+  final bool storeCode;
 }
 
 class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
@@ -250,7 +252,16 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         .copyWith(proteinPerReference: value),
   );
 
-  void setUnit(QuantityUnit value) => _update((s) => s.copyWith(unit: value));
+  /// The unit of both quantities: chosen by the user, they no longer show
+  /// what Open Food Facts said, nor take its newer values.
+  void setUnit(QuantityUnit value) => _update(
+    (s) => value == s.unit
+        ? s
+        : s
+              .edited(EntryFormField.consumed)
+              .edited(EntryFormField.reference)
+              .copyWith(unit: value),
+  );
 
   void setReference(String value) => _update(
     (s) => s
@@ -276,6 +287,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
     final db = _db;
     if (args case EditProductArgs(:final productId)) {
       final owner = await db.productsDao.findByBarcode(barcode);
+      if (!ref.mounted) return const ScanKept();
       if (owner != null && owner.id != productId) {
         return ScanBarcodeTaken(owner);
       }
@@ -306,12 +318,12 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
           sameName: sameName?.barcode == null ? sameName : null,
           update: update,
         );
-      case ProductNotFound():
+      case ProductNotFound(:final storeCode):
         setBarcode(barcode);
-        return const ScanNotFound();
+        return ScanNotFound(storeCode: storeCode);
       case ProductLookupFailed(:final problem):
         setBarcode(barcode);
-        return ScanNotFound(problem);
+        return ScanNotFound(problem: problem);
     }
   }
 
@@ -335,25 +347,20 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
   /// values come first.
   Future<void> giveBarcode(Product product, String barcode) async {
     await _db.productsDao.setBarcode(product.id, barcode);
-    applyProduct(product);
+    if (ref.mounted) applyProduct(product);
   }
 
   /// Takes the protein content of [facts], newer values of Open Food Facts,
   /// into [product], keeping its portion, and into the form if it shows it.
   Future<void> takeFoodFacts(Product product, FoodFacts facts) async {
     final protein = facts.proteinPer100;
-    final amount = product.amount;
-    if (protein == null || amount is! PerQuantityAmount) return;
-    await _db.productsDao.updateProduct(
-      product.withAmount(
-        PerQuantityAmount(
-          consumedGrams: amount.consumedGrams,
-          proteinPerReference: protein,
-          referenceGrams: defaultReferenceGrams,
-          unit: facts.unit,
-        ),
-      ),
+    if (protein == null || product.amount is! PerQuantityAmount) return;
+    await _db.productsDao.setProteinPer100(
+      product.id,
+      protein,
+      unit: facts.unit,
     );
+    if (!ref.mounted) return;
     _update(
       (s) => productNameKey(s.name) != product.nameKey
           ? s

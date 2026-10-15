@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/backup.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/database/scans_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
@@ -10,6 +11,7 @@ import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/quantity_unit.dart';
+import 'package:protein_calculator/core/food_facts/food_facts.dart';
 
 import '../helpers.dart';
 
@@ -50,6 +52,40 @@ void main() {
   });
 
   Future<String> export() => exportBackup(source, DateTime(2026, 10, 1, 13));
+
+  test('keeps only the latest recent scans once the products are '
+      'replaced', () async {
+    final target = openTestDatabase();
+    addTearDown(target.close);
+    const replaced = '3017620422003';
+    await target.productsDao.insertProduct(
+      name: 'Nutella',
+      amount: const DirectAmount(10),
+      createdAt: DateTime(2026, 9, 1),
+      barcode: replaced,
+    );
+    Future<void> scan(String barcode, int minutes) {
+      final at = DateTime(2026, 9, 1).add(Duration(minutes: minutes));
+      return target.scansDao.saveScan(
+        const FoodFacts(name: 'Product')
+            .toScan(barcode, fetchedAt: at, scannedAt: at)
+            .toCompanion(false),
+      );
+    }
+
+    await scan(replaced, 0);
+    for (var i = 1; i <= ScansDao.recentCount; i++) {
+      await scan('${10000000 + i}', i);
+    }
+
+    await restoreBackup(target, parseBackup(await export()));
+
+    expect(await target.scansDao.getScan(replaced), isNull);
+    expect(
+      await target.scansDao.watchRecent().first,
+      hasLength(ScansDao.recentCount),
+    );
+  });
 
   test('restores exactly what was exported', () async {
     final target = openTestDatabase();

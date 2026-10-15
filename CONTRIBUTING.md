@@ -151,6 +151,17 @@ The watch app has the application id of the phone app: without
 over the phone app, whose next `flutter run` then uninstalls it and loses
 its data.
 
+Debug builds of both apps, and profile builds of the phone app, have the
+application id `arbitro.android.protein_calculator.dev` and the name
+*Protein Calculator Dev*: they install next to the apps from Google Play,
+with data of their own, and link with each other. Release builds keep
+`arbitro.android.protein_calculator`. A profile build is the light one to
+try on a phone:
+
+```bash
+flutter build apk --profile --split-per-abi --target-platform android-arm64
+```
+
 The watch app takes the version of `pubspec.yaml`; its version code is the
 one of the phone app plus `wear.versionCodeOffset`
 (`android/gradle.properties`), as Google Play needs a different one for each app bundle. Both apps must be

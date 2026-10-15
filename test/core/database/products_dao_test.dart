@@ -2,11 +2,13 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 import 'test_database.dart';
 
@@ -332,6 +334,59 @@ void main() {
       await dao.restoreProduct(deleted);
 
       expect((await dao.getProduct(id))!.barcode, nutella);
+    });
+  });
+
+  group('setProteinPer100', () {
+    test('takes the new protein content per 100, keeping the portion, and '
+        'the rest as it is now', () async {
+      final id = await dao.insertProduct(
+        name: 'Skyr',
+        amount: const PerQuantityAmount(
+          consumedGrams: 150,
+          proteinPerReference: 3,
+          referenceGrams: 30,
+        ),
+        createdAt: DateTime(2026, 9, 1),
+      );
+      // Changed after the values of Open Food Facts came: the routine has
+      // added its entries up to now.
+      final checkedAt = DateTime(2026, 10, 8, 9);
+      await dao.setRoutine(
+        id,
+        DailyRoutine.autoAdd,
+        minutes: 480,
+        now: checkedAt,
+      );
+      await dao.setFavorite(id, favorite: true);
+
+      await dao.setProteinPer100(id, 11.5, unit: QuantityUnit.milliliters);
+
+      final product = (await dao.getProduct(id))!;
+      expect(
+        product.amount,
+        const PerQuantityAmount(
+          consumedGrams: 150,
+          proteinPerReference: 11.5,
+          referenceGrams: 100,
+          unit: QuantityUnit.milliliters,
+        ),
+      );
+      expect(product.routine, DailyRoutine.autoAdd);
+      expect(product.routineCheckedAt, checkedAt);
+      expect(product.isFavorite, isTrue);
+    });
+
+    test('leaves a product typed per portion as it is', () async {
+      final id = await dao.insertProduct(
+        name: 'Bar',
+        amount: const DirectAmount(20),
+        createdAt: DateTime(2026, 9, 1),
+      );
+
+      await dao.setProteinPer100(id, 11.5, unit: QuantityUnit.grams);
+
+      expect((await dao.getProduct(id))!.amount, const DirectAmount(20));
     });
   });
 }

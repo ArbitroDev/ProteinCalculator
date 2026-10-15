@@ -1,12 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_zxing/flutter_zxing.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/quantity_unit.dart';
+import 'package:protein_calculator/core/food_facts/food_facts.dart';
+import 'package:protein_calculator/core/food_facts/open_food_facts.dart';
+import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 
 import '../../helpers.dart';
@@ -255,5 +262,143 @@ void main() {
     expect(entry.unit, QuantityUnit.milliliters);
     expect(entry.proteinGrams, 8.5);
     await disposeApp(tester, db);
+  });
+
+  group('the message of a scan, once the form is closed', () {
+    const nutella = '3017620422003';
+
+    /// Opens the form at [location], scans [nutella] there, Open Food Facts
+    /// knowing it with [protein] per 100 g, then closes the form.
+    Future<void> scanThenClose(
+      WidgetTester tester,
+      String location, {
+      double protein = 6.3,
+    }) async {
+      await db.settingsDao.setScanNoticeSeen();
+      await pumpApp(
+        tester,
+        db,
+        overrides: [
+          openFoodFactsProvider.overrideWithValue(
+            OpenFoodFacts(
+              MockClient(
+                (_) async => http.Response(
+                  jsonEncode({
+                    'product': {
+                      'product_name': 'Nutella',
+                      'brands': 'Nutella',
+                      'nutriments': {'proteins_100g': protein},
+                    },
+                    'result': {'id': 'product_found'},
+                  }),
+                  200,
+                ),
+              ),
+              appVersion: Future.value('1.3.0'),
+            ),
+          ),
+        ],
+      );
+      final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+      unawaited(router.push(location));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Scan a barcode'));
+      await tester.pumpAndSettle();
+      tester.widget<ReaderWidget>(find.byType(ReaderWidget)).onScan!(
+        Code(text: nutella, format: Format.ean13, isValid: true),
+      );
+      await tester.pumpAndSettle();
+
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('New entry'), findsNothing);
+      expect(find.text('New product'), findsNothing);
+    }
+
+    testWidgets('gives the barcode to the product of the same name', (
+      tester,
+    ) async {
+      final id = await db.productsDao.insertProduct(
+        name: 'Nutella',
+        amount: const DirectAmount(2),
+        createdAt: DateTime(2026, 9, 1),
+      );
+      await scanThenClose(tester, AppRoutes.newEntry);
+
+      await tester.tap(find.text('Give it this code'));
+      await tester.pumpAndSettle();
+
+      expect((await db.productsDao.getProduct(id))!.barcode, nutella);
+      expect(find.text('Barcode added to "Nutella".'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('takes the newer protein content into the product', (
+      tester,
+    ) async {
+      final id = await db.productsDao.insertProduct(
+        name: 'Nutella',
+        amount: const PerQuantityAmount(
+          consumedGrams: 15,
+          proteinPerReference: 6.3,
+          referenceGrams: 100,
+        ),
+        createdAt: DateTime(2026, 9, 1),
+        barcode: nutella,
+      );
+      // Asked long ago: Open Food Facts is asked again.
+      final longAgo = DateTime(2026, 8, 1);
+      await db.scansDao.saveScan(
+        const FoodFacts(name: 'Nutella', brands: 'Nutella', proteinPer100: 6.3)
+            .toScan(nutella, fetchedAt: longAgo, scannedAt: longAgo)
+            .toCompanion(false),
+      );
+      await scanThenClose(tester, AppRoutes.newEntry, protein: 7);
+
+      await tester.tap(find.text('Update'));
+      await tester.pumpAndSettle();
+
+      final product = (await db.productsDao.getProduct(id))!;
+      expect(product.proteinPerReference, 7);
+      expect(product.consumedGrams, 15);
+      expect(
+        find.text('Something went wrong, please try again.'),
+        findsNothing,
+      );
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('opens the product that has the barcode', (tester) async {
+      await db.productsDao.insertProduct(
+        name: 'My spread',
+        amount: const DirectAmount(2),
+        createdAt: DateTime(2026, 9, 1),
+        barcode: nutella,
+      );
+      await scanThenClose(tester, AppRoutes.newProduct);
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Edit product'), findsOneWidget);
+      expect(find.text('My spread'), findsWidgets);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('goes away after a while', (tester) async {
+      await db.productsDao.insertProduct(
+        name: 'Nutella',
+        amount: const DirectAmount(2),
+        createdAt: DateTime(2026, 9, 1),
+      );
+      await scanThenClose(tester, AppRoutes.newEntry);
+      expect(find.text('Give it this code'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Give it this code'), findsNothing);
+      await disposeApp(tester, db);
+    });
   });
 }

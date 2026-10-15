@@ -47,6 +47,10 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   /// closes.
   bool _done = false;
 
+  /// Whether the code is being typed: the camera, still reading behind,
+  /// is ignored meanwhile.
+  bool _typing = false;
+
   @override
   void initState() {
     super.initState();
@@ -98,7 +102,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
 
   void _onScan(Code code) {
     final text = code.text;
-    if (_done || text == null) return;
+    if (_done || _typing || text == null) return;
     // A UPC-E is the short form of a UPC-A, which products are known by.
     final upcA = code.format == Format.upce ? expandUpcE(text) : null;
     final barcode = normalizeBarcode(upcA ?? text);
@@ -128,10 +132,12 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   }
 
   Future<void> _typeCode() async {
+    _typing = true;
     final barcode = await showDialog<String>(
       context: context,
       builder: (context) => const _BarcodeDialog(),
     );
+    _typing = false;
     if (barcode != null && mounted && !_done) _close(barcode);
   }
 
@@ -317,7 +323,7 @@ class _BarcodeDialogState extends State<_BarcodeDialog> {
   }
 
   void _submit() {
-    final barcode = normalizeBarcode(_code.text);
+    final barcode = normalizeTypedBarcode(_code.text);
     if (barcode == null) {
       setState(() => _invalid = true);
     } else {

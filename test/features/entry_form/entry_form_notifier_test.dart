@@ -726,5 +726,91 @@ void main() {
         EntryFormError.barcodeTaken,
       );
     });
+
+    test('keeps the unit chosen by the user when newer values come', () async {
+      answer(protein: 6.3, serving: 15);
+      const args = NewEntryArgs();
+      final form = await open(args);
+      await form.scanned(nutella, language: 'fr');
+
+      form.setUnit(QuantityUnit.milliliters);
+
+      expect(stateOf(args).fromFoodFacts, {
+        EntryFormField.name,
+        EntryFormField.proteinPerReference,
+      });
+
+      form.refreshFromFoodFacts(
+        const FoodFacts(
+          name: 'Nutella',
+          brands: 'Nutella',
+          proteinPer100: 7,
+          servingQuantity: 20,
+        ).toScan(nutella, fetchedAt: now, scannedAt: now),
+      );
+
+      final state = stateOf(args);
+      expect(state.unit, QuantityUnit.milliliters);
+      expect(state.consumed, '15');
+      expect(state.proteinPerReference, '7');
+    });
+
+    test('keeps the green of a unit picked again', () async {
+      answer(protein: 6.3, serving: 15);
+      const args = NewEntryArgs();
+      final form = await open(args);
+      await form.scanned(nutella, language: 'fr');
+
+      form.setUnit(QuantityUnit.grams);
+
+      expect(
+        stateOf(args).fromFoodFacts,
+        containsAll([EntryFormField.reference, EntryFormField.consumed]),
+      );
+    });
+
+    test('takes a newer protein content without undoing what changed '
+        'since the scan', () async {
+      final id = await addProduct('Nutella');
+      const args = NewEntryArgs();
+      final form = await open(args);
+      final product = (await db.productsDao.getProduct(id))!;
+      // The routine adds its entries while the form is open.
+      final checkedAt = DateTime(2026, 10, 1, 8);
+      await db.productsDao.setRoutine(
+        id,
+        DailyRoutine.autoAdd,
+        minutes: 480,
+        now: checkedAt,
+      );
+
+      await form.takeFoodFacts(
+        product,
+        const FoodFacts(name: 'Nutella', proteinPer100: 7),
+      );
+
+      final updated = (await db.productsDao.getProduct(id))!;
+      expect(updated.proteinPerReference, 7);
+      expect(updated.routine, DailyRoutine.autoAdd);
+      expect(updated.routineCheckedAt, checkedAt);
+    });
+
+    test('keeps a code of the shop without asking about it', () async {
+      const weighed = '2123456789015';
+      var asked = false;
+      foodFacts = () {
+        asked = true;
+        return http.Response('', 404);
+      };
+      const args = NewProductArgs();
+      final form = await open(args);
+
+      final outcome = await form.scanned(weighed, language: 'fr');
+
+      expect((outcome as ScanNotFound).storeCode, isTrue);
+      expect(outcome.problem, isNull);
+      expect(asked, isFalse);
+      expect(stateOf(args).barcode, weighed);
+    });
   });
 }

@@ -6,6 +6,8 @@ import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/protein_calc.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 part 'products_dao.g.dart';
 
@@ -134,8 +136,37 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       );
       // A new name counts the entries with that name instead.
       await attachedDatabase.refreshUses(productNameKey(product.name));
+      // Its former barcode, if changed, makes a recent scan again.
+      await attachedDatabase.scansDao.keepRecent();
     });
   }
+
+  /// Gives the product [id] a protein content of [proteinPer100] grams per
+  /// 100 [unit], keeping its portion, and leaves the rest of it as it is
+  /// now. A product whose protein is typed per portion stays as it is.
+  Future<void> setProteinPer100(
+    int id,
+    double proteinPer100, {
+    required QuantityUnit unit,
+  }) => transaction(() async {
+    final amount = (await getProduct(id))?.amount;
+    if (amount is! PerQuantityAmount) return;
+    final columns = amountColumns(
+      PerQuantityAmount(
+        consumedGrams: amount.consumedGrams,
+        proteinPerReference: proteinPer100,
+        referenceGrams: defaultReferenceGrams,
+        unit: unit,
+      ),
+    );
+    await (update(products)..where((p) => p.id.equals(id))).write(
+      ProductsCompanion(
+        proteinPerReference: Value(columns.proteinPerReference),
+        referenceGrams: Value(columns.referenceGrams),
+        unit: Value(columns.unit),
+      ),
+    );
+  });
 
   /// Gives the product [id] the [barcode], or takes its barcode away when
   /// null.
@@ -148,6 +179,7 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
     await (update(products)..where((p) => p.id.equals(id))).write(
       ProductsCompanion(barcode: Value(barcode)),
     );
+    await attachedDatabase.scansDao.keepRecent();
   });
 
   /// Makes [id] the favorite product, replacing the previous one, or removes
@@ -190,6 +222,8 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       final product = await getProduct(id);
       if (product == null) return null;
       await (delete(products)..where((p) => p.id.equals(id))).go();
+      // Its barcode makes a recent scan again.
+      await attachedDatabase.scansDao.keepRecent();
       return product;
     });
   }

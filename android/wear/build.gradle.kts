@@ -61,6 +61,11 @@ android {
     }
 
     buildTypes {
+        // As the phone app: the development builds of both apps link
+        // together, next to the apps from Google Play.
+        debug {
+            applicationIdSuffix = ".dev"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

@@ -197,6 +197,43 @@ void main() {
     expect(result.scan.unit, QuantityUnit.milliliters);
     expect(result.scan.servingQuantity, 250);
   });
+
+  group('a code of the shop', () {
+    // Meat weighed at the counter: the code holds its weight or price.
+    const weighed = '2123456789015';
+
+    test('is not sent to Open Food Facts', () async {
+      final result = await lookUp(weighed) as ProductNotFound;
+
+      expect(result.storeCode, isTrue);
+      expect(asked, isEmpty);
+      expect(await db.scansDao.getScan(weighed), isNull);
+    });
+
+    test('still finds the product of the user, without asking', () async {
+      final id = await db.productsDao.insertProduct(
+        name: 'Ham',
+        amount: const DirectAmount(10),
+        createdAt: DateTime(2026, 9, 1),
+        barcode: weighed,
+      );
+
+      final result = await lookUp(weighed) as SavedProductFound;
+
+      expect(result.product.id, id);
+      expect(await result.update, isNull);
+      expect(asked, isEmpty);
+    });
+  });
+
+  test('tells a product nobody knows apart from a code of the shop', () async {
+    answer = () => http.Response('', 404);
+
+    final result = await lookUp() as ProductNotFound;
+
+    expect(result.storeCode, isFalse);
+    expect(asked, [nutella]);
+  });
 }
 
 http.Response found({

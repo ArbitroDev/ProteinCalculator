@@ -37,7 +37,8 @@ and has no server. Only two things can leave the phone:
   version, never the user's entries, products, goal or barcodes;
 - the barcode of a product scanned, sent to
   [Open Food Facts](https://world.openfoodfacts.org) to look it up when the
-  phone does not know it yet. The camera picture is read on the phone by
+  phone does not know it yet, or knows its values from more than 30 days ago.
+  The camera picture is read on the phone by
   [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp), with no Google service,
   and never leaves it.
 

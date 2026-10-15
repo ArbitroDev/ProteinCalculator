@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
@@ -54,6 +56,8 @@ class _EntryFormPageState extends ConsumerState<EntryFormPage> {
   Future<void> _scan() async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    final router = GoRouter.of(context);
+    final products = ref.read(databaseProvider).productsDao;
     final language = Localizations.localeOf(context).languageCode;
     if (!await _readScanNotice() || !mounted) return;
     final barcode = await context.push<String>(AppRoutes.scan);
@@ -68,8 +72,13 @@ class _EntryFormPageState extends ConsumerState<EntryFormPage> {
     if (!mounted) return;
     setState(() => _lookingUp = false);
 
-    void tell(String message, {SnackBarAction? action}) => messenger
-        .showSnackBar(SnackBar(content: Text(message), action: action));
+    // A message with an action goes away after a while like the others,
+    // rather than staying on the next pages once the form is closed; its
+    // action, tapped maybe after, works without the form.
+    void tell(String message, {SnackBarAction? action}) =>
+        messenger.showSnackBar(
+          SnackBar(content: Text(message), action: action, persist: false),
+        );
 
     switch (outcome) {
       case null || ScanKept():
@@ -87,11 +96,14 @@ class _EntryFormPageState extends ConsumerState<EntryFormPage> {
           ),
           action: SnackBarAction(
             label: l10n.scanTakeChange,
-            onPressed: () => runUserAction(
-              messenger,
-              l10n,
-              () => _notifier.takeFoodFacts(product, facts),
-            ),
+            onPressed: () => runUserAction(messenger, l10n, () async {
+              if (mounted) return _notifier.takeFoodFacts(product, facts);
+              await products.setProteinPer100(
+                product.id,
+                facts.proteinPer100!,
+                unit: facts.unit,
+              );
+            }),
           ),
         );
       case ScanFilled(:final scan, :final sameName, :final update):
@@ -100,7 +112,8 @@ class _EntryFormPageState extends ConsumerState<EntryFormPage> {
             l10n.scanNameTaken(sameName.name),
             action: SnackBarAction(
               label: l10n.scanGiveBarcode,
-              onPressed: () => _giveBarcode(sameName, barcode),
+              onPressed: () =>
+                  _giveBarcode(sameName, barcode, messenger, l10n, products),
             ),
           );
         } else if (scan.proteinPer100 == null) {
@@ -118,14 +131,18 @@ class _EntryFormPageState extends ConsumerState<EntryFormPage> {
           action: SnackBarAction(
             label: l10n.scanOpenProduct,
             onPressed: () {
+              final edit = AppRoutes.editProduct(product.id);
               if (mounted) {
-                context.pushReplacement(AppRoutes.editProduct(product.id));
+                context.pushReplacement(edit);
+              } else {
+                unawaited(router.push(edit));
               }
             },
           ),
         );
-      case ScanNotFound(:final problem):
+      case ScanNotFound(:final problem, :final storeCode):
         tell(switch (problem) {
+          null when storeCode => l10n.scanStoreCode,
           null => l10n.scanNotFound,
           FoodFactsProblem.offline => l10n.scanOffline,
           FoodFactsProblem.busy => l10n.scanBusy,
@@ -166,19 +183,28 @@ class _EntryFormPageState extends ConsumerState<EntryFormPage> {
 
   /// Gives [barcode] to [product], the user's product of the same name, in
   /// place of the values of Open Food Facts. A new product is then not
-  /// needed: its form closes.
-  Future<void> _giveBarcode(Product product, String barcode) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
+  /// needed: its form closes. Once the form is closed, the product still
+  /// takes the barcode, with [products].
+  Future<void> _giveBarcode(
+    Product product,
+    String barcode,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+    ProductsDao products,
+  ) async {
     final given = await runUserAction(messenger, l10n, () async {
-      await _notifier.giveBarcode(product, barcode);
+      if (mounted) {
+        await _notifier.giveBarcode(product, barcode);
+      } else {
+        await products.setBarcode(product.id, barcode);
+      }
       return true;
     });
-    if (given == null || !mounted) return;
+    if (given == null) return;
     messenger.showSnackBar(
       SnackBar(content: Text(l10n.scanBarcodeGiven(product.name))),
     );
-    if (widget.args is NewProductArgs) context.pop();
+    if (mounted && widget.args is NewProductArgs) context.pop();
   }
 
   @override

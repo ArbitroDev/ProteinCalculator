@@ -52,5 +52,48 @@ void main() {
 
       expect(cleaned.message, 'Entry 1234567 at 123456789012345');
     });
+
+    test('but keep the numbers whose check digit is not right, such as '
+        'days', () {
+      final breadcrumb = Breadcrumb(
+        message: 'Day 20261015, code 3017620422004',
+      );
+
+      final cleaned = hideBarcodesInBreadcrumb(breadcrumb, Hint())!;
+
+      expect(cleaned.message, 'Day 20261015, code 3017620422004');
+    });
+
+    test('of a UPC-E', () {
+      final breadcrumb = Breadcrumb(message: 'Read 04252614');
+
+      final cleaned = hideBarcodesInBreadcrumb(breadcrumb, Hint())!;
+
+      expect(cleaned.message, 'Read [barcode]');
+    });
+
+    test('of the parameters of the message and the details of a Flutter '
+        'error', () {
+      final event = SentryEvent(
+        message: SentryMessage(
+          'Lookup of %s failed',
+          template: 'Lookup of %s failed',
+          params: ['3017620422003', 2],
+        ),
+        contexts: Contexts()
+          ..['flutter_error_details'] = {
+            'context': 'thrown while looking up 3017620422003',
+            'library': 'protein_calculator',
+          },
+      );
+
+      final cleaned = hideBarcodes(event, Hint());
+
+      expect(cleaned.message!.params, ['[barcode]', 2]);
+      expect(cleaned.contexts['flutter_error_details'], {
+        'context': 'thrown while looking up [barcode]',
+        'library': 'protein_calculator',
+      });
+    });
   });
 }

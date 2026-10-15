@@ -285,6 +285,10 @@
   "@scanNotFound": {
     "description": "After a scan, when neither the user nor Open Food Facts knows the product."
   },
+  "scanStoreCode": "Code propre au magasin, souvent avec le poids ou le prix : il n'est pas envoyé à Open Food Facts. Remplis les valeurs à la main.",
+  "@scanStoreCode": {
+    "description": "After a scan, for a code a shop gives to its own goods (restricted circulation number), which Open Food Facts is not asked about."
+  },
   "scanOffline": "Pas de connexion : remplis les valeurs à la main.",
   "@scanOffline": {
     "description": "After a scan, when Open Food Facts cannot be asked without a connection."
@@ -297,7 +301,7 @@
   "@scanUnavailable": {
     "description": "After a scan, when Open Food Facts gives no answer in time or fails."
   },
-  "scanNotice": "L'image de la caméra est lue sur ton téléphone et n'en sort jamais. Seuls les codes-barres que tu scannes sont envoyés à Open Food Facts, une base de données libre, pour trouver les produits que ton téléphone ne connaît pas encore. Rien d'autre n'est envoyé.",
+  "scanNotice": "L'image de la caméra est lue sur ton téléphone et n'en sort jamais. Seuls les codes-barres que tu scannes sont envoyés à Open Food Facts, une base de données libre, pour trouver les produits que ton téléphone ne connaît pas encore, ou dont il a reçu les valeurs il y a plus de 30 jours. Rien d'autre n'est envoyé.",
   "@scanNotice": {
     "description": "Told once, before the first scan: what is sent to Open Food Facts."
   },

@@ -82,6 +82,33 @@ void main() {
     expect(await dao.getScan('99999997'), isNotNull);
   });
 
+  test('keeps only the latest recent scans when a barcode no product has '
+      'any longer makes one again', () async {
+    Future<int> save(String name, String barcode) =>
+        db.productsDao.insertProduct(
+          name: name,
+          amount: const DirectAmount(10),
+          createdAt: start,
+          barcode: barcode,
+        );
+    final deleted = await save('Deleted', '99999997');
+    final kept = await save('Kept', '99999998');
+    await scan('99999997', 0);
+    await scan('99999998', 0);
+    for (var i = 1; i <= ScansDao.recentCount; i++) {
+      await scan('${10000000 + i}', i);
+    }
+
+    await db.productsDao.deleteProduct(deleted);
+    await db.productsDao.setBarcode(kept, null);
+
+    final barcodes = await recent();
+    expect(barcodes, hasLength(ScansDao.recentCount));
+    expect(barcodes, isNot(contains('99999997')));
+    expect(await dao.getScan('99999997'), isNull);
+    expect(await dao.getScan('99999998'), isNull);
+  });
+
   test('puts a product scanned again on top', () async {
     await scan('11111111', 1);
     await scan('22222222', 2);

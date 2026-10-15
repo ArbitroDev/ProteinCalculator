@@ -255,6 +255,8 @@ Future<void> restoreBackup(
     }
     // Uses follow the restored entries, whatever the file says.
     await db.refreshUses();
+    // The barcodes of the products replaced make recent scans again.
+    await db.scansDao.keepRecent();
     await (db.update(
       db.appSettings,
     )..where((s) => s.id.equals(SettingsDao.rowId))).write(

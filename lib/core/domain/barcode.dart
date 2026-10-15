@@ -15,9 +15,31 @@ String? normalizeBarcode(String code) {
   return trimmed.length == 12 ? '0$trimmed' : trimmed;
 }
 
+/// Whether [barcode], in its stored form, is a code a shop gives to its own
+/// goods, often with their weight or price in it: the restricted
+/// circulation numbers of GS1, an EAN-13 starting with 02, 04 or 2, or an
+/// EAN-8 starting with 0 or 2. Open Food Facts is not asked about them.
+bool isStoreBarcode(String barcode) => switch (barcode.length) {
+  13 => barcode.startsWith(RegExp('0[24]|2')),
+  8 => barcode.startsWith(RegExp('[02]')),
+  _ => false,
+};
+
 /// Whether [code] is a valid barcode in its stored form, see
 /// [normalizeBarcode].
 bool isNormalizedBarcode(String code) => normalizeBarcode(code) == code;
+
+/// [code] typed by the user, in its stored form: an EAN-13, EAN-8 or UPC-A,
+/// or else a UPC-E, printed with 8 digits too but whose check digit is the
+/// one of its UPC-A, see [expandUpcE]. Null if it is none of them.
+String? normalizeTypedBarcode(String code) {
+  final trimmed = code.trim();
+  final barcode = normalizeBarcode(trimmed);
+  // A UPC-E starts with its number system, 0 or 1.
+  if (barcode != null || !trimmed.startsWith(RegExp('[01]'))) return barcode;
+  final upcA = expandUpcE(trimmed);
+  return upcA == null ? null : normalizeBarcode(upcA);
+}
 
 /// The UPC-A a UPC-E [code] is the short form of, both of 8 digits with
 /// their number system and check digit: the zeros left out of the
