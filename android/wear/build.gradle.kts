@@ -111,6 +111,9 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.coroutines.play.services)
     implementation(libs.datastore.preferences)
+    // Not used by the app: play-services-wearable brings fragment 1.1.0,
+    // reported as outdated by Google Play.
+    implementation(libs.fragment)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.play.services.wearable)

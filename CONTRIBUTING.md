@@ -70,7 +70,9 @@ the updated packages. A third weekly pull request updates the libraries of
 the watch app (`android/gradle/libs.versions.toml`), under the same rules.
 Gradle itself (its wrapper) and the Gradle plugins follow the versions set by
 Flutter: they are updated by hand, together, as the Android Gradle plugin only
-works with some versions of Gradle.
+works with some versions of Gradle. Compose 1.12 and later need the Android
+Gradle plugin 9.1: Dependabot leaves them out until Flutter uses it, and the
+rule is to be removed from `.github/dependabot.yml` at that time.
 
 ## Commit messages
 

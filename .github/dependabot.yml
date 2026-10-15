@@ -54,6 +54,12 @@ updates:
       - dependency-name: "org.jetbrains.kotlin:*"
       - dependency-name: "org.jetbrains.kotlin.*"
       - dependency-name: "dev.flutter*"
+      # Compose 1.12 (bill of materials 2026.07 and later) needs the Android
+      # Gradle plugin 9.1 and compileSdk 37. Remove this rule once Flutter,
+      # and so settings.gradle.kts, uses the Android Gradle plugin 9.1 or
+      # later, together with compileSdk 37 in android/wear/build.gradle.kts.
+      - dependency-name: "androidx.compose:compose-bom"
+        versions: [">= 2026.07.00"]
     groups:
       gradle:
         patterns: ["*"]
