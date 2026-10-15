@@ -222,8 +222,10 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       final product = await getProduct(id);
       if (product == null) return null;
       await (delete(products)..where((p) => p.id.equals(id))).go();
-      // Its barcode makes a recent scan again.
-      await attachedDatabase.scansDao.keepRecent();
+      // Its barcode makes a recent scan again, kept for now: the deletion
+      // can be undone, with what Open Food Facts said of the product. The
+      // recent scans show 20 at most, and the next scan saved deletes the
+      // older ones.
       return product;
     });
   }

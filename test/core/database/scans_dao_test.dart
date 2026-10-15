@@ -82,31 +82,63 @@ void main() {
     expect(await dao.getScan('99999997'), isNotNull);
   });
 
-  test('keeps only the latest recent scans when a barcode no product has '
-      'any longer makes one again', () async {
-    Future<int> save(String name, String barcode) =>
-        db.productsDao.insertProduct(
-          name: name,
-          amount: const DirectAmount(10),
-          createdAt: start,
-          barcode: barcode,
-        );
-    final deleted = await save('Deleted', '99999997');
-    final kept = await save('Kept', '99999998');
-    await scan('99999997', 0);
-    await scan('99999998', 0);
+  Future<int> saveProduct(String name, String barcode) =>
+      db.productsDao.insertProduct(
+        name: name,
+        amount: const DirectAmount(10),
+        createdAt: start,
+        barcode: barcode,
+      );
+
+  /// Saves [barcodes] as products scanned at the start, then the
+  /// [ScansDao.recentCount] recent scans after them.
+  Future<List<int>> fillScans(List<String> barcodes) async {
+    final ids = [
+      for (final (i, barcode) in barcodes.indexed)
+        await saveProduct('Product $i', barcode),
+    ];
+    for (final barcode in barcodes) {
+      await scan(barcode, 0);
+    }
     for (var i = 1; i <= ScansDao.recentCount; i++) {
       await scan('${10000000 + i}', i);
     }
+    return ids;
+  }
 
-    await db.productsDao.deleteProduct(deleted);
-    await db.productsDao.setBarcode(kept, null);
+  test('keeps only the latest recent scans when a barcode is taken away '
+      'from a product', () async {
+    final [id] = await fillScans(['99999998']);
+
+    await db.productsDao.setBarcode(id, null);
 
     final barcodes = await recent();
     expect(barcodes, hasLength(ScansDao.recentCount));
-    expect(barcodes, isNot(contains('99999997')));
-    expect(await dao.getScan('99999997'), isNull);
+    expect(barcodes, isNot(contains('99999998')));
     expect(await dao.getScan('99999998'), isNull);
+  });
+
+  test('keeps what Open Food Facts said of a product deleted, which comes '
+      'back with it, and shows 20 recent scans meanwhile', () async {
+    final [id] = await fillScans(['99999997']);
+
+    final deleted = (await db.productsDao.deleteProduct(id))!;
+    expect(await recent(), hasLength(ScansDao.recentCount));
+    expect(await dao.getScan('99999997'), isNotNull);
+
+    await db.productsDao.restoreProduct(deleted);
+    expect(await dao.getScan('99999997'), isNotNull);
+  });
+
+  test('deletes the scan of a product deleted at the next scan saved, if '
+      'too old', () async {
+    final [id] = await fillScans(['99999997']);
+    await db.productsDao.deleteProduct(id);
+
+    await scan('10000099', 99);
+
+    expect(await recent(), hasLength(ScansDao.recentCount));
+    expect(await dao.getScan('99999997'), isNull);
   });
 
   test('puts a product scanned again on top', () async {
