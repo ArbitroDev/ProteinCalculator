@@ -123,6 +123,7 @@ dependencies {
     implementation(libs.protolayout)
     implementation(libs.protolayout.expression)
     implementation(libs.protolayout.material3)
+    implementation(libs.splashscreen)
     implementation(libs.tiles)
     implementation(libs.wear.compose.foundation)
     implementation(libs.wear.compose.material3)

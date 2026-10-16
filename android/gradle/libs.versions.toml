@@ -12,6 +12,7 @@ play-services-wearable = "20.0.1"
 protolayout = "1.4.2"
 robolectric = "4.17"
 serialization = "1.11.0"
+splashscreen = "1.2.0"
 tiles = "1.6.2"
 wear-compose = "1.6.2"
 wear-input = "1.2.0"
@@ -35,6 +36,7 @@ protolayout-expression = { module = "androidx.wear.protolayout:protolayout-expre
 protolayout-material3 = { module = "androidx.wear.protolayout:protolayout-material3", version.ref = "protolayout" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
 tiles = { module = "androidx.wear.tiles:tiles", version.ref = "tiles" }
 tiles-renderer = { module = "androidx.wear.tiles:tiles-renderer", version.ref = "tiles" }
 wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wear-compose" }
