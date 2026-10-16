@@ -9,7 +9,6 @@
   "grams": "{grams} g",
   "millilitersUnit": "ml",
   "milliliters": "{milliliters} ml",
-  "todayGoal": "Goal {goal} g",
   "todayEntryCount": "{count, plural, =0{No entries} =1{1 entry} other{{count} entries}}",
   "todayRemaining": "{grams} g left to shake",
   "todayGoalReached": "goal reached",
