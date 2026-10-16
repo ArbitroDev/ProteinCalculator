@@ -579,6 +579,10 @@
   "@goalSheetBody": {
     "description": "Explanation when editing the daily goal."
   },
+  "privacyDataTitle": "Tes données",
+  "@privacyDataTitle": {
+    "description": "Privacy page: title of the section on where the data lives and goes."
+  },
   "privacyLocal": "Tes données restent sur ton téléphone. Protein Calculator ne demande pas de compte, et tes entrées et tes produits ne quittent jamais ton téléphone, sauf vers ta montre Wear OS si tu en utilises une : ils y passent directement, sans serveur.",
   "@privacyLocal": {
     "description": "Privacy page: data stays on the device."
