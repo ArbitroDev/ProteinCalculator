@@ -11,7 +11,7 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/pick_backup.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
-import 'package:protein_calculator/features/menu/food_facts_link.dart';
+import 'package:protein_calculator/features/menu/food_facts_credit.dart';
 import 'package:protein_calculator/features/menu/github_link.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -197,7 +197,7 @@ class AboutPage extends ConsumerWidget {
         l10n.aboutContribute,
         l10n.aboutFoodFacts,
       ],
-      footer: const [GitHubLink(), SizedBox(height: 10), FoodFactsLink()],
+      footer: const [GitHubLink(), SizedBox(height: 10), FoodFactsCredit()],
     );
   }
 }
