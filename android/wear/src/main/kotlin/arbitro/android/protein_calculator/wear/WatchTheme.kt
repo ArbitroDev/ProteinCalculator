@@ -15,9 +15,12 @@ import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material3.ColorScheme
 import androidx.wear.compose.material3.MaterialTheme
 
-/** Colors of the "Marine" theme of the phone app (lib/core/theme.dart). */
+/**
+ * Colors of the "Marine" theme of the phone app (lib/core/theme.dart), on the
+ * black background that Wear OS asks of apps and tiles.
+ */
 object WatchColors {
-    val background = Color(0xFF10142E)
+    val background = Color.Black
     val surface = Color(0xFF1A1F3D)
     val surfaceRaised = Color(0xFF272D50)
     val text = Color(0xFFFFFFFF)

@@ -111,6 +111,27 @@ void main() {
       await disposeApp(tester, db);
     });
 
+    testWidgets('counts the days given entries before the first use', (
+      tester,
+    ) async {
+      // The app is used from September 15; entries are added afterwards for
+      // September 10 and for a day of August.
+      await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 15, 9));
+      await addEntry('Skyr', 150, DateTime(2026, 9, 10, 12));
+      await addEntry('Skyr', 20, DateTime(2026, 8, 20, 12));
+      await openCalendar(tester);
+      await showSeptember(tester);
+
+      expect(day('Thursday, September 10, Goal reached'), findsWidgets);
+      await tester.scrollUntilVisible(
+        find.text('August 2026'),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('August 2026'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+
     testWidgets('opens a day with entries', (tester) async {
       await addEntry('Skyr', 15, DateTime(2026, 10, 1, 8));
       await openCalendar(tester);

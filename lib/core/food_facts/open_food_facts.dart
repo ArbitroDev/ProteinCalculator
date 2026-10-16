@@ -63,6 +63,7 @@ class OpenFoodFacts {
     'product_name_en',
     'brands',
     'nutriments.proteins_100g',
+    'nutriments.proteins_prepared_100g',
     'serving_quantity',
     'serving_quantity_unit',
     'product_quantity_unit',

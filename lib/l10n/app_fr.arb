@@ -46,15 +46,6 @@
       }
     }
   },
-  "todayGoal": "Objectif {goal} g",
-  "@todayGoal": {
-    "description": "Daily goal shown above the total on the today screen.",
-    "placeholders": {
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
   "todayEntryCount": "{count, plural, =0{Aucune entrée} =1{1 entrée} other{{count} entrées}}",
   "@todayEntryCount": {
     "description": "Number of entries added today.",
@@ -578,6 +569,10 @@
   "goalSheetBody": "Combien de grammes de protéines vises-tu par jour ?",
   "@goalSheetBody": {
     "description": "Explanation when editing the daily goal."
+  },
+  "privacyDataTitle": "Tes données",
+  "@privacyDataTitle": {
+    "description": "Privacy page: title of the section on where the data lives and goes."
   },
   "privacyLocal": "Tes données restent sur ton téléphone. Protein Calculator ne demande pas de compte, et tes entrées et tes produits ne quittent jamais ton téléphone, sauf vers ta montre Wear OS si tu en utilises une : ils y passent directement, sans serveur.",
   "@privacyLocal": {

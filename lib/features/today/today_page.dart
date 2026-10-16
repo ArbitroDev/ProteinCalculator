@@ -35,15 +35,17 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
   /// Where the quick added favorite falls.
   final _shakerKey = GlobalKey();
 
-  /// Adds the favorite without the form: a drop flies from the button into
-  /// the shaker, then the entry lands, with a few seconds to undo.
-  Future<void> _quickAdd(Product product, BuildContext button) async {
+  /// Adds the favorite without the form: a drop flies from where the button
+  /// was touched, [from], into the shaker, then the entry lands, with a few
+  /// seconds to undo.
+  Future<void> _quickAdd(Product product, Offset from) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final entries = ref.read(databaseProvider).entriesDao;
     if (!MediaQuery.disableAnimationsOf(context)) {
       await flyToShaker(
-        from: button,
+        context,
+        from: from,
         shaker: _shakerKey,
         color: AppColors.slot(DaySlot.of(ref.read(clockProvider)())),
       );
@@ -117,7 +119,7 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
       body: SafeArea(
         child: Padding(
           // Lined up with the tab bar.
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 14),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -129,7 +131,9 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
                 favorite: favorite,
                 onQuickAdd: _quickAdd,
               ),
-              const SizedBox(height: 16),
+              // Keeps the shaker at its size, the labels at their width: the
+              // room the summary gave up stays above the shaker.
+              const SizedBox(height: 30),
               Expanded(
                 child: _ShakerWithLabels(
                   shakerKey: _shakerKey,
@@ -147,9 +151,9 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
   }
 }
 
-/// Date, goal, total, what is left, and the add button: the quick add of
-/// the [favorite] if any, otherwise the form, which landscape leaves to the
-/// tab bar.
+/// Date, total and goal, what is left, and under them the add button: the
+/// quick add of the [favorite] if any, otherwise the form, which landscape
+/// leaves to the tab bar.
 class _Summary extends StatelessWidget {
   const _Summary({
     required this.dayKey,
@@ -166,7 +170,7 @@ class _Summary extends StatelessWidget {
   final double goal;
   final String locale;
   final Product? favorite;
-  final void Function(Product product, BuildContext button) onQuickAdd;
+  final void Function(Product product, Offset from) onQuickAdd;
 
   /// Smaller, without the add button, for landscape.
   final bool compact;
@@ -190,109 +194,109 @@ class _Summary extends StatelessWidget {
       children: [
         Text(
           formatLongDate(dateOfDayKey(dayKey), locale),
-          style: textTheme.headlineSmall!.copyWith(fontSize: compact ? 22 : 28),
+          style: textTheme.headlineSmall!.copyWith(fontSize: compact ? 21 : 26),
         ),
         SizedBox(height: compact ? 4 : 10),
-        Row(
-          // The button sits on the status line, at the bottom of the block.
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        ExcludeSemantics(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            // The total, orange once the goal is reached, then the
+            // goal, smaller and lighter: 120 g / 140 g.
+            child: Text.rich(
+              TextSpan(
+                text: grams(total),
                 children: [
-                  ExcludeSemantics(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text.rich(
-                        TextSpan(
-                          text: grams(total),
-                          children: [
-                            TextSpan(
-                              text: ' ${l10n.gramsUnit}',
-                              style: textTheme.displayLarge!.copyWith(
-                                fontSize: 26,
-                              ),
-                            ),
-                          ],
-                        ),
-                        style: textTheme.displayLarge!.copyWith(
-                          fontSize: compact ? 54 : 68,
-                        ),
-                      ),
+                  TextSpan(
+                    text: ' ${l10n.gramsUnit}',
+                    style: textTheme.displayLarge!.copyWith(
+                      fontSize: 26,
+                      color: reached ? colors.accentText : null,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    l10n.todayGoal(grams(goal)),
-                    style: textTheme.bodyLarge!.copyWith(
-                      fontSize: 15,
+                  TextSpan(
+                    text: ' / ${grams(goal)}',
+                    style: textTheme.displayLarge!.copyWith(
+                      fontSize: compact ? 28 : 34,
+                      fontWeight: FontWeight.w600,
                       color: colors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(text: l10n.todayEntryCount(entries.length)),
-                        const TextSpan(text: ' · '),
-                        if (reached) ...[
-                          WidgetSpan(
-                            alignment: PlaceholderAlignment.middle,
-                            child: Icon(
-                              LucideIcons.circleCheck,
-                              size: 16,
-                              color: colors.accentText,
-                            ),
-                          ),
-                          const TextSpan(text: ' '),
-                          TextSpan(
-                            text: l10n.todayGoalReached,
-                            style: status.copyWith(
-                              color: colors.accentText,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ] else
-                          // From the total as shown, truncated, so both agree.
-                          TextSpan(
-                            text: l10n.todayRemaining(
-                              grams(goal - truncateGrams(total)),
-                            ),
-                          ),
-                      ],
+                  TextSpan(
+                    text: ' ${l10n.gramsUnit}',
+                    style: textTheme.displayLarge!.copyWith(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w600,
+                      color: colors.textSecondary,
                     ),
-                    style: status,
                   ),
                 ],
               ),
+              style: textTheme.displayLarge!.copyWith(
+                fontSize: compact ? 54 : 68,
+                color: reached ? colors.accentText : null,
+              ),
             ),
-            if (favorite case final favorite?) ...[
-              const SizedBox(width: 12),
-              QuickAddButton(
-                product: favorite,
-                locale: locale,
-                onPressed: (button) => onQuickAdd(favorite, button),
-              ),
-            ] else if (!compact) ...[
-              const SizedBox(width: 12),
-              FilledButton.icon(
-                onPressed: () => context.push(AppRoutes.newEntry),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 64),
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  textStyle: textTheme.labelLarge!.copyWith(fontSize: 19),
-                ),
-                icon: const Icon(LucideIcons.plus, size: 26),
-                label: Text(l10n.addEntry),
-              ),
-            ],
-          ],
+          ),
         ),
+        const SizedBox(height: 6),
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: l10n.todayEntryCount(entries.length)),
+              const TextSpan(text: ' · '),
+              if (reached) ...[
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Icon(
+                    LucideIcons.circleCheck,
+                    size: 16,
+                    color: colors.accentText,
+                  ),
+                ),
+                const TextSpan(text: ' '),
+                TextSpan(
+                  text: l10n.todayGoalReached,
+                  style: status.copyWith(
+                    color: colors.accentText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ] else
+                // From the total as shown, truncated, so both agree.
+                TextSpan(
+                  text: l10n.todayRemaining(grams(goal - truncateGrams(total))),
+                ),
+            ],
+          ),
+          style: status,
+        ),
+        // The add button under the summary, as wide as its content, so the
+        // total keeps its room: the quick add of the favorite, or else the form,
+        // which landscape leaves to the tab bar.
+        if (favorite case final favorite?) ...[
+          SizedBox(height: compact ? 8 : 12),
+          QuickAddButton(
+            product: favorite,
+            locale: locale,
+            onPressed: (from) => onQuickAdd(favorite, from),
+          ),
+        ] else if (!compact) ...[
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: () => context.push(AppRoutes.newEntry),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 52),
+              padding: const EdgeInsets.fromLTRB(14, 10, 18, 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              textStyle: textTheme.labelLarge!.copyWith(fontSize: 16),
+            ),
+            icon: const Icon(LucideIcons.plus, size: 24),
+            label: Text(l10n.addEntry),
+          ),
+        ],
       ],
     );
   }

@@ -68,6 +68,21 @@ void main() {
       );
     });
 
+    test('reads the protein content as prepared when the other is missing', () {
+      expect(
+        read({
+          'nutriments': {'proteins_prepared_100g': 7.6},
+        }).proteinPer100,
+        7.6,
+      );
+      expect(
+        read({
+          'nutriments': {'proteins_100g': 20, 'proteins_prepared_100g': 7.6},
+        }).proteinPer100,
+        20,
+      );
+    });
+
     test('leaves out a protein content missing or out of range', () {
       expect(read({}).proteinPer100, isNull);
       expect(read({'nutriments': <String, Object>{}}).proteinPer100, isNull);
@@ -150,7 +165,12 @@ void main() {
       expect(request.url.path, '/api/v3/product/3017620422003');
       expect(
         request.url.queryParameters['fields']!.split(','),
-        containsAll(['product_name', 'brands', 'nutriments.proteins_100g']),
+        containsAll([
+          'product_name',
+          'brands',
+          'nutriments.proteins_100g',
+          'nutriments.proteins_prepared_100g',
+        ]),
       );
       expect(
         request.headers['User-Agent'],

@@ -28,9 +28,12 @@ class FoodFacts {
       return value is String && value.trim().isNotEmpty ? value.trim() : null;
     }
 
+    // The values of the product as sold, or else as prepared: some products,
+    // often ready to eat, only have the latter filled in.
     final nutriments = product['nutriments'];
     final protein = nutriments is Map
-        ? _number(nutriments['proteins_100g'])
+        ? _number(nutriments['proteins_100g']) ??
+              _number(nutriments['proteins_prepared_100g'])
         : null;
 
     // Its unit is given apart, also when the quantity is unknown.

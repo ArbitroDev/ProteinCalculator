@@ -35,10 +35,6 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   /// Heights of the months, from the top of the list, as last laid out.
   List<double> _heights = const [];
 
-  /// Height of the initials laid over the top of the list, which scrolls
-  /// behind them.
-  double _topInset = 0;
-
   /// Height of the legend laid over the bottom of the list.
   double _bottomInset = 0;
 
@@ -58,11 +54,11 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   void _updateFocus() {
     if (!_scroll.hasClients) return;
     final position = _scroll.position;
-    // What the initials and the legend do not hide.
-    final viewTop = position.pixels + _topInset;
+    // What the fade and the legend do not hide.
+    final viewTop = position.pixels + _Fade.height;
     final viewBottom =
         position.pixels + position.viewportDimension - _bottomInset;
-    var top = max(0.0, _topInset - _Fade.height);
+    var top = 0.0;
     var focused = 0;
     var mostVisible = 0.0;
     for (final (index, height) in _heights.indexed) {
@@ -89,8 +85,13 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     }
 
     final today = dateOfDayKey(todayKey);
+    // From the first day the app was used, or the oldest entry, added
+    // afterwards for an earlier day.
     final first = dateOfDayKey(
-      goals.isEmpty ? todayKey : min(goals.first.dayKey, todayKey),
+      days.fold(
+        goals.isEmpty ? todayKey : min(goals.first.dayKey, todayKey),
+        (first, day) => min(first, day.dayKey),
+      ),
     );
     final count =
         (today.year - first.year) * 12 + today.month - first.month + 1;
@@ -102,6 +103,12 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Above the list rather than over it: laid out with the list, the
+        // first month shows right away where it stays.
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: _WeekdayRow(),
+        ),
         Expanded(
           child: Stack(
             children: [
@@ -125,7 +132,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                       // the list scrolls. Ends right on the legend.
                       padding: EdgeInsets.fromLTRB(
                         _sidePadding,
-                        max(0, _topInset - _Fade.height),
+                        0,
                         _sidePadding,
                         _bottomInset,
                       ),
@@ -149,42 +156,22 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                   },
                 ),
               ),
-              // The initials on the page background, fading downwards, so the
-              // days scrolling behind them disappear softly.
+              // The top of the list fading into the page background, so the
+              // days scrolling under the initials disappear softly. Shows as
+              // the list scrolls, so it never fades the first title at rest.
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                child: _Measured(
-                  onHeight: (height) {
-                    if (mounted) setState(() => _topInset = height);
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      AbsorbPointer(
-                        child: ColoredBox(
-                          color: background,
-                          child: const Padding(
-                            padding: EdgeInsets.fromLTRB(16, 2, 16, 0),
-                            child: _WeekdayRow(),
-                          ),
-                        ),
-                      ),
-                      // Shows as the list scrolls, so it never fades the first
-                      // title at rest.
-                      ListenableBuilder(
-                        listenable: _scroll,
-                        builder: (context, child) => Opacity(
-                          opacity: _scroll.hasClients
-                              ? (_scroll.offset / _Fade.height).clamp(0, 1)
-                              : 0,
-                          child: child,
-                        ),
-                        child: _Fade(color: background),
-                      ),
-                    ],
+                child: ListenableBuilder(
+                  listenable: _scroll,
+                  builder: (context, child) => Opacity(
+                    opacity: _scroll.hasClients
+                        ? (_scroll.offset / _Fade.height).clamp(0, 1)
+                        : 0,
+                    child: child,
                   ),
+                  child: _Fade(color: background),
                 ),
               ),
               // The legend over the bottom of the list: the days pass
@@ -418,9 +405,12 @@ class _MonthSection extends StatelessWidget {
   Widget _dayCell(int dayKey, {required int? start}) {
     final total = totals[dayKey];
     final goal = goalOn(dayKey, goals);
-    // Days to come, and those before the app was used, have no color.
+    // Days to come, and those before the app was used, have no color, but
+    // for the days given entries afterwards: they count with the first goal.
     final tracked =
-        dayKey <= todayKey && start != null && dayKey >= start && goal != null;
+        dayKey <= todayKey &&
+        goal != null &&
+        (total != null || start != null && dayKey >= start);
     return _DayCell(
       dayKey: dayKey,
       progress: tracked ? DayProgress.of(total ?? 0, goal) : null,
