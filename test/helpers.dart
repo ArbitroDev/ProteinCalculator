@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/app.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
@@ -24,11 +25,13 @@ AppDatabase openTestDatabase() {
 /// streams (`watch`): streams never emit in the fake time of widget tests.
 ///
 /// Starts on the first launch screen if the database has no daily goal.
+/// [overrides] replace other providers, such as Open Food Facts.
 Future<void> pumpApp(
   WidgetTester tester,
   AppDatabase database, {
   DateTime? now,
   List<Locale> locales = const [Locale('en', 'US')],
+  List<Override> overrides = const [],
 }) async {
   // A blinking cursor would keep pumpAndSettle waiting forever.
   EditableText.debugDeterministicCursor = true;
@@ -49,6 +52,7 @@ Future<void> pumpApp(
         initialLocationProvider.overrideWithValue(
           goal == null ? AppRoutes.onboarding : AppRoutes.today,
         ),
+        ...overrides,
       ],
       child: const ProteinCalculatorApp(),
     ),

@@ -47,7 +47,6 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      # Gradle 9.6 and later reject the Android Gradle plugin 8.
       - dependency-name: "gradle-wrapper"
       - dependency-name: "com.android.*"
       # Kotlin and its plugins, not the kotlinx libraries.

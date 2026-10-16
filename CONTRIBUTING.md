@@ -70,7 +70,8 @@ the updated packages. A third weekly pull request updates the libraries of
 the watch app (`android/gradle/libs.versions.toml`), under the same rules.
 Gradle itself (its wrapper) and the Gradle plugins follow the versions set by
 Flutter: they are updated by hand, together, as the Android Gradle plugin only
-works with some versions of Gradle.
+works with some versions of Gradle. They follow the versions of the project
+template of Flutter (`flutter_tools/lib/src/android/gradle_utils.dart`).
 
 ## Commit messages
 
@@ -150,6 +151,17 @@ The watch app has the application id of the phone app: without
 `ANDROID_SERIAL`, `installDebug` also installs it on a connected phone,
 over the phone app, whose next `flutter run` then uninstalls it and loses
 its data.
+
+Debug builds of both apps, and profile builds of the phone app, have the
+application id `arbitro.android.protein_calculator.dev` and the name
+*Protein Calculator Dev*: they install next to the apps from Google Play,
+with data of their own, and link with each other. Release builds keep
+`arbitro.android.protein_calculator`. A profile build is the light one to
+try on a phone:
+
+```bash
+flutter build apk --profile --split-per-abi --target-platform android-arm64
+```
 
 The watch app takes the version of `pubspec.yaml`; its version code is the
 one of the phone app plus `wear.versionCodeOffset`
@@ -231,8 +243,9 @@ upgrading these packages, replace them with the files of the same versions:
 
 - Protein amounts typed by the user (the amount itself, or the protein
   content of a product) take one decimal at most; quantities of food are
-  whole grams. The protein computed from a quantity is rounded to one
-  decimal when the entry is saved (`computeProtein`).
+  whole grams, or whole milliliters for drinks (`QuantityUnit`), while
+  protein is always in grams. The protein computed from a quantity is
+  rounded to one decimal when the entry is saved (`computeProtein`).
 - Values are stored exactly. Totals, what is left and the goal are shown
   truncated to the unit (`formatGrams`), so the goal only shows as reached
   once it really is; the protein of one entry or one product shows with one

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/food_facts/food_facts.dart';
+import 'package:protein_calculator/core/theme.dart';
 
 import '../../helpers.dart';
 
@@ -138,5 +140,113 @@ void main() {
     expect(find.text('Something went wrong, please try again.'), findsOne);
     expect(find.text('Amandes'), findsOneWidget);
     await disposeApp(tester, db);
+  });
+  group('recent scans', () {
+    const nutella = '3017620422003';
+
+    setUp(() async {
+      final at = DateTime(2026, 9, 30);
+      await db.scansDao.saveScan(
+        const FoodFacts(
+          name: 'Nutella',
+          brands: 'Nutella',
+          proteinPer100: 6.3,
+          servingQuantity: 15,
+        ).toScan(nutella, fetchedAt: at, scannedAt: at).toCompanion(false),
+      );
+    });
+
+    testWidgets('come under the saved products, both lists folding', (
+      tester,
+    ) async {
+      await openProducts(tester);
+
+      expect(find.text('My products'), findsOneWidget);
+      expect(find.text('Recently scanned'), findsOneWidget);
+      expect(find.text('6.3 g / 100 g · 15 g portion'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Nutella')).dy,
+        greaterThan(tester.getTopLeft(find.text('Skyr')).dy),
+      );
+
+      await tester.tap(find.text('My products'));
+      await tester.pumpAndSettle();
+      expect(find.text('Amandes'), findsNothing);
+      expect(find.text('Nutella'), findsOneWidget);
+      final settings = await db.select(db.appSettings).getSingle();
+      expect(settings.savedProductsCollapsed, isTrue);
+
+      await tester.tap(find.text('Recently scanned'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nutella'), findsNothing);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('leave the favorite on top, its list folded', (tester) async {
+      final skyr = await db.productsDao.findByName('Skyr');
+      await db.productsDao.setFavorite(skyr!.id, favorite: true);
+      await openProducts(tester);
+
+      await tester.tap(find.text('My products'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Skyr'), findsOneWidget);
+      expect(find.text('Amandes'), findsNothing);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('start a new entry with their plus button, the values of '
+        'Open Food Facts in green', (tester) async {
+      await openProducts(tester);
+
+      await tester.tap(find.byTooltip('Add to the day').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('New entry'), findsOneWidget);
+      final name = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'Nutella'),
+      );
+      expect(name.decoration!.fillColor, AppColors.light.scanSurface);
+      final consumed = tester.widget<TextField>(
+        find.widgetWithText(TextField, '15'),
+      );
+      expect(consumed.decoration!.fillColor, AppColors.light.scanSurface);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Nutella'),
+        'Spread',
+      );
+      await tester.pump();
+      final edited = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'Spread'),
+      );
+      expect(edited.decoration!.fillColor, isNull);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('open a new product with their barcode on tap', (tester) async {
+      await openProducts(tester);
+
+      await tester.tap(find.text('Nutella'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('New product'), findsWidgets);
+      expect(find.text('Barcode $nutella'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('are deleted with a swipe, and come back', (tester) async {
+      await openProducts(tester);
+
+      await tester.drag(find.text('Nutella'), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('Nutella'), findsNothing);
+      expect(find.text('Scan deleted'), findsOneWidget);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nutella'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
   });
 }

@@ -35,4 +35,57 @@ void main() {
     expect(isValidName('Skyr '), isFalse);
     expect(isValidName('S' * 41), isFalse);
   });
+
+  group('scannedProductName', () {
+    test('adds the first brand to a name too generic', () {
+      expect(
+        scannedProductName('Skyr nature', "Siggi's, Arla"),
+        "Skyr nature (Siggi's)",
+      );
+      expect(
+        scannedProductName('Lait demi-écrémé', 'Lactel'),
+        'Lait demi-écrémé (Lactel)',
+      );
+    });
+
+    test('keeps alone a name one of its brands is part of', () {
+      expect(scannedProductName('Nutella', 'Nutella, Ferrero'), 'Nutella');
+      expect(
+        scannedProductName('Coca-Cola Zero', 'coca-cola'),
+        'Coca-Cola Zero',
+      );
+      expect(
+        scannedProductName('Activia nature', 'Danone, Activia'),
+        'Activia nature',
+      );
+    });
+
+    test('keeps alone a name part of one of its brands', () {
+      expect(
+        scannedProductName('Coca-Cola', 'COCA-COLA SERVICES SA/NV'),
+        'Coca-Cola',
+      );
+    });
+
+    test('matches brands on whole words', () {
+      expect(scannedProductName('Lait UHT', 'U'), 'Lait UHT (U)');
+      expect(scannedProductName('Lait U', 'U'), 'Lait U');
+    });
+
+    test('leaves out the brand when the name would be too long', () {
+      final name = 'S' * 35;
+      expect(scannedProductName(name, 'Brand'), name);
+      expect(isValidName(scannedProductName('S' * 30, 'Brand')!), isTrue);
+    });
+
+    test('cuts a name too long and collapses its spaces', () {
+      expect(scannedProductName('S' * 50, null), 'S' * 40);
+      expect(scannedProductName('  Skyr   nature ', ' '), 'Skyr nature');
+    });
+
+    test('is null without a name', () {
+      expect(scannedProductName(null, 'Brand'), isNull);
+      expect(scannedProductName('  ', 'Brand'), isNull);
+    });
+  });
 }

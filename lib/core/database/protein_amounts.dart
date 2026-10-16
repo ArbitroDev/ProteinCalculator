@@ -3,16 +3,18 @@ import 'package:drift/drift.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 /// Columns holding a [ProteinAmount]: its mode, the protein grams when typed
 /// directly, and the three quantities of the "per quantity" mode, null in
-/// the other mode.
+/// the other mode, with their unit, grams in the other mode.
 typedef AmountColumns = ({
   EntryMode mode,
   double? directGrams,
   double? consumedGrams,
   double? proteinPerReference,
   double? referenceGrams,
+  QuantityUnit unit,
 });
 
 /// Values of the columns holding [amount].
@@ -23,11 +25,13 @@ AmountColumns amountColumns(ProteinAmount amount) => switch (amount) {
     consumedGrams: null,
     proteinPerReference: null,
     referenceGrams: null,
+    unit: QuantityUnit.grams,
   ),
   PerQuantityAmount(
     :final consumedGrams,
     :final proteinPerReference,
     :final referenceGrams,
+    :final unit,
   ) =>
     (
       mode: amount.mode,
@@ -35,6 +39,7 @@ AmountColumns amountColumns(ProteinAmount amount) => switch (amount) {
       consumedGrams: consumedGrams,
       proteinPerReference: proteinPerReference,
       referenceGrams: referenceGrams,
+      unit: unit,
     ),
 };
 
@@ -47,6 +52,7 @@ ProteinAmount _readAmount(
   double? consumedGrams,
   double? proteinPerReference,
   double? referenceGrams,
+  QuantityUnit unit,
 ) {
   switch (mode) {
     case EntryMode.direct:
@@ -59,6 +65,7 @@ ProteinAmount _readAmount(
           consumedGrams: consumedGrams,
           proteinPerReference: proteinPerReference,
           referenceGrams: referenceGrams,
+          unit: unit,
         );
       }
   }
@@ -74,6 +81,7 @@ extension EntryAmount on Entry {
     consumedGrams,
     proteinPerReference,
     referenceGrams,
+    unit,
   );
 
   /// This entry with [amount] instead of its own.
@@ -85,6 +93,7 @@ extension EntryAmount on Entry {
       consumedGrams: Value(columns.consumedGrams),
       proteinPerReference: Value(columns.proteinPerReference),
       referenceGrams: Value(columns.referenceGrams),
+      unit: columns.unit,
     );
   }
 }
@@ -98,6 +107,7 @@ extension ProductAmount on Product {
     consumedGrams,
     proteinPerReference,
     referenceGrams,
+    unit,
   );
 
   /// This product with [amount] instead of its own.
@@ -109,6 +119,7 @@ extension ProductAmount on Product {
       consumedGrams: Value(columns.consumedGrams),
       proteinPerReference: Value(columns.proteinPerReference),
       referenceGrams: Value(columns.referenceGrams),
+      unit: columns.unit,
     );
   }
 }

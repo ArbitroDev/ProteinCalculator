@@ -5,6 +5,7 @@ import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 /// Protein entries. Each entry keeps a full copy of the values it was created
 /// with, so editing or deleting a product never changes the history.
@@ -38,9 +39,15 @@ class Entries extends Table {
 
   /// Whether the entry was added on the watch, see `WatchDao.add`.
   BoolColumn get fromWatch => boolean().withDefault(const Constant(false))();
+
+  /// Unit of [consumedGrams] and [referenceGrams], despite their names:
+  /// grams, or milliliters for drinks.
+  TextColumn get unit =>
+      textEnum<QuantityUnit>().withDefault(Constant(QuantityUnit.grams.name))();
 }
 
 /// Products saved by the user to fill in entries quickly.
+@TableIndex(name: 'products_barcode', columns: {#barcode}, unique: true)
 class Products extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
@@ -77,6 +84,48 @@ class Products extends Table {
   /// next ones come after it. Set when the routine is chosen, so it never
   /// adds entries for the days before.
   DateTimeColumn get routineCheckedAt => dateTime().nullable()();
+
+  /// Unit of [consumedGrams] and [referenceGrams], despite their names:
+  /// grams, or milliliters for drinks.
+  TextColumn get unit =>
+      textEnum<QuantityUnit>().withDefault(Constant(QuantityUnit.grams.name))();
+
+  /// Barcode of the product, see `normalizeBarcode`; null without one. Two
+  /// products never share one: the index is unique.
+  TextColumn get barcode => text().nullable()();
+}
+
+/// What Open Food Facts said of the products scanned, by barcode, and when.
+///
+/// The latest ones no product has the barcode of are the recent scans. For
+/// the others, it keeps the values Open Food Facts gave, to tell when they
+/// change. Specific to the phone: not in the backups.
+class ScannedProducts extends Table {
+  /// See `normalizeBarcode`.
+  TextColumn get barcode => text()();
+
+  /// Name and brands of the product, in the language of the app when Open
+  /// Food Facts has it; null when it has none.
+  TextColumn get name => text().nullable()();
+  TextColumn get brands => text().nullable()();
+
+  /// Protein grams per 100 [unit]; null when Open Food Facts does not know.
+  RealColumn get proteinPer100 => real().nullable()();
+
+  /// Quantity of one serving, in [unit]; null when Open Food Facts does not
+  /// know.
+  RealColumn get servingQuantity => real().nullable()();
+  TextColumn get unit =>
+      textEnum<QuantityUnit>().withDefault(Constant(QuantityUnit.grams.name))();
+
+  /// When Open Food Facts was last asked about the product.
+  DateTimeColumn get fetchedAt => dateTime()();
+
+  /// When the product was last scanned: the recent scans come latest first.
+  DateTimeColumn get scannedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {barcode};
 }
 
 /// Daily goals over time: each row holds the goal set on an app day, which
@@ -127,6 +176,18 @@ class AppSettings extends Table {
   /// Whether a notification reminds the user to add entries in a part of the
   /// day left empty, see `SlotReminder`; off until the user turns it on.
   BoolColumn get slotReminders =>
+      boolean().withDefault(const Constant(false))();
+
+  /// Whether the products page folds its list of saved products, and its
+  /// list of recent scans.
+  BoolColumn get savedProductsCollapsed =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get recentScansCollapsed =>
+      boolean().withDefault(const Constant(false))();
+
+  /// Whether the user read, before a first scan, what is sent to Open Food
+  /// Facts. Specific to the phone: not in the backups.
+  BoolColumn get scanNoticeSeen =>
       boolean().withDefault(const Constant(false))();
 
   @override

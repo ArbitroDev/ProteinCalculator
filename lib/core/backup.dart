@@ -6,6 +6,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/barcode.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
@@ -14,6 +15,7 @@ import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
 
 /// Identifies Protein Calculator backup files.
 const backupFormat = 'protein-calculator';
@@ -25,7 +27,9 @@ const backupFormat = 'protein-calculator';
 /// 4: the goals set over time, how the history shows the days and the
 /// start hour of the day.
 /// 5: entries tell whether they were added on the watch.
-const backupVersion = 5;
+/// 6: entries and products hold the unit of their quantities.
+/// 7: products hold their barcode.
+const backupVersion = 7;
 
 /// Thrown when a file is not a valid Protein Calculator backup.
 class InvalidBackupException implements Exception {
@@ -96,6 +100,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'consumedGrams': e.consumedGrams,
           'proteinPerReference': e.proteinPerReference,
           'referenceGrams': e.referenceGrams,
+          'unit': e.unit.name,
           'createdAt': e.createdAt.toUtc().toIso8601String(),
           'dayKey': e.dayKey,
           'slot': e.slot.name,
@@ -112,12 +117,14 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'consumedGrams': p.consumedGrams,
           'proteinPerReference': p.proteinPerReference,
           'referenceGrams': p.referenceGrams,
+          'unit': p.unit.name,
           'useCount': p.useCount,
           'lastUsedAt': p.lastUsedAt?.toUtc().toIso8601String(),
           'createdAt': p.createdAt.toUtc().toIso8601String(),
           'isFavorite': p.isFavorite,
           'routine': p.routine.name,
           'routineMinutes': p.routineMinutes,
+          'barcode': p.barcode,
         },
     ],
   });
@@ -156,6 +163,9 @@ Backup parseBackup(String text) {
     }
     if (!_unique(products.map((p) => p.nameKey.value))) {
       throw const InvalidBackupException('duplicate product names');
+    }
+    if (!_unique(products.map((p) => p.barcode.value).nonNulls)) {
+      throw const InvalidBackupException('duplicate barcodes');
     }
     if (products.where((p) => p.isFavorite.value).length > 1) {
       throw const InvalidBackupException('several favorite products');
@@ -245,6 +255,8 @@ Future<void> restoreBackup(
     }
     // Uses follow the restored entries, whatever the file says.
     await db.refreshUses();
+    // The barcodes of the products replaced make recent scans again.
+    await db.scansDao.keepRecent();
     await (db.update(
       db.appSettings,
     )..where((s) => s.id.equals(SettingsDao.rowId))).write(
@@ -290,6 +302,7 @@ EntriesCompanion _entry(Map<String, dynamic> e, int version) {
     consumedGrams: Value(columns.consumedGrams),
     proteinPerReference: Value(columns.proteinPerReference),
     referenceGrams: Value(columns.referenceGrams),
+    unit: Value(columns.unit),
     createdAt: createdAt,
     dayKey: dayKey,
     // Backups made before the part of the day was stored: computed from the
@@ -321,6 +334,11 @@ ProductsCompanion _product(Map<String, dynamic> p) {
       (routineMinutes != null && !isValidRoutineMinutes(routineMinutes))) {
     throw const InvalidBackupException('invalid daily routine');
   }
+  // Absent from backups made before barcodes existed.
+  final barcode = p['barcode'] as String?;
+  if (barcode != null && !isNormalizedBarcode(barcode)) {
+    throw const InvalidBackupException('invalid barcode');
+  }
   return ProductsCompanion.insert(
     id: Value(_id(p['id'])),
     name: name,
@@ -330,6 +348,7 @@ ProductsCompanion _product(Map<String, dynamic> p) {
     consumedGrams: Value(columns.consumedGrams),
     proteinPerReference: Value(columns.proteinPerReference),
     referenceGrams: Value(columns.referenceGrams),
+    unit: Value(columns.unit),
     useCount: Value(useCount),
     lastUsedAt: Value(
       lastUsedAt == null ? null : DateTime.parse(lastUsedAt).toLocal(),
@@ -339,13 +358,14 @@ ProductsCompanion _product(Map<String, dynamic> p) {
     isFavorite: Value(p['isFavorite'] as bool? ?? false),
     routine: Value(routine),
     routineMinutes: Value(routineMinutes),
+    barcode: Value(barcode),
   );
 }
 
 /// Protein amount of an entry or a product, following the rules of the
-/// form: protein amounts with one decimal at most, whole grams of food, a
-/// protein content not above the reference quantity, and nothing from the
-/// other mode.
+/// form: protein amounts with one decimal at most, whole grams or
+/// milliliters of food, a protein content not above the reference
+/// quantity, and nothing from the other mode.
 ///
 /// In "per quantity" mode, an entry also stores the protein it amounts to
 /// ([storesProtein]); it is computed again rather than read.
@@ -358,6 +378,10 @@ ProteinAmount _amount(
   final consumed = _optionalDouble(json['consumedGrams']);
   final perReference = _optionalDouble(json['proteinPerReference']);
   final reference = _optionalDouble(json['referenceGrams']);
+  // Absent from backups made before milliliters existed.
+  final unit = QuantityUnit.values.byName(
+    json['unit'] as String? ?? QuantityUnit.grams.name,
+  );
   switch (mode) {
     case EntryMode.direct:
       if (protein != null &&
@@ -380,6 +404,7 @@ ProteinAmount _amount(
           consumedGrams: consumed,
           proteinPerReference: perReference,
           referenceGrams: reference,
+          unit: unit,
         );
       }
   }

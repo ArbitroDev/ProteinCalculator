@@ -6,6 +6,7 @@ import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
+import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
@@ -22,8 +23,9 @@ import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Products tab. Tap a product to edit it, tap its "+" button to add it to
-/// the day, swipe it to delete it. Products with a daily routine come first,
-/// after the favorite.
+/// the day, swipe it to delete it. The favorite comes first, then the saved
+/// products, those with a daily routine first, then the recent scans, which
+/// tap to save as products. Both lists fold.
 class ProductsPage extends ConsumerStatefulWidget {
   const ProductsPage({super.key});
 
@@ -54,6 +56,16 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
     );
   }
 
+  Future<void> _deleteScan(ScannedProduct scan) {
+    final dao = ref.read(databaseProvider).scansDao;
+    return deleteWithUndo(
+      id: scan.barcode,
+      delete: () => dao.deleteScan(scan.barcode),
+      restore: dao.restoreScan,
+      label: AppLocalizations.of(context).scanDeleted,
+    );
+  }
+
   /// Runs a change of the products, telling the user if it fails.
   Future<void> _run(Future<void> Function() action) => runUserAction(
     ScaffoldMessenger.of(context),
@@ -67,6 +79,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
     final sort =
         ref.watch(productSortProvider).value ?? ProductSort.alphabetical;
     final products = ref.watch(sortedProductsProvider).value;
+    final scans = ref.watch(recentScansProvider).value ?? const [];
     final notifications = ref.watch(notificationStatusProvider).value;
     // Some routines cannot notify, or only late: a banner says so.
     final routines = [
@@ -116,10 +129,17 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
                       ),
                     ),
                   Expanded(
-                    child: _buildList([
-                      for (final product in products)
-                        if (!isDeleted(product.id)) product,
-                    ], sort),
+                    child: _buildList(
+                      [
+                        for (final product in products)
+                          if (!isDeleted(product.id)) product,
+                      ],
+                      [
+                        for (final scan in scans)
+                          if (!isDeleted(scan.barcode)) scan,
+                      ],
+                      sort,
+                    ),
                   ),
                 ],
               ),
@@ -127,28 +147,204 @@ class _ProductsPageState extends ConsumerState<ProductsPage>
     );
   }
 
-  Widget _buildList(List<Product> products, ProductSort sort) {
-    if (products.isEmpty) {
-      return EmptyState(AppLocalizations.of(context).productsEmpty);
+  Widget _buildList(
+    List<Product> products,
+    List<ScannedProduct> scans,
+    ProductSort sort,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    if (products.isEmpty && scans.isEmpty) {
+      return EmptyState(l10n.productsEmpty);
     }
-    return ListView.builder(
+    final settings = ref.read(databaseProvider).settingsDao;
+    final savedCollapsed =
+        ref.watch(savedProductsCollapsedProvider).value ?? false;
+    final scansCollapsed =
+        ref.watch(recentScansCollapsedProvider).value ?? false;
+    // Always on top, even with its list folded.
+    final favorite = products.where((p) => p.isFavorite).firstOrNull;
+    final others = [
+      for (final product in products)
+        if (!product.isFavorite) product,
+    ];
+
+    Widget productTile(Product product) => _ProductTile(
+      product: product,
+      showUses: sort == ProductSort.mostUsed,
+      onDelete: () => _delete(product),
+      onToggleFavorite: () => _run(
+        () => ref
+            .read(databaseProvider)
+            .productsDao
+            .setFavorite(product.id, favorite: !product.isFavorite),
+      ),
+    );
+
+    return ListView(
       // Room for the floating button over the last product.
       padding: const EdgeInsets.fromLTRB(6, 0, 6, 88),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final product = products[index];
-        return _ProductTile(
-          product: product,
-          showUses: sort == ProductSort.mostUsed,
-          onDelete: () => _delete(product),
-          onToggleFavorite: () => _run(
-            () => ref
-                .read(databaseProvider)
-                .productsDao
-                .setFavorite(product.id, favorite: !product.isFavorite),
+      children: [
+        if (favorite != null) productTile(favorite),
+        if (others.isNotEmpty) ...[
+          _SectionHeader(
+            key: const ValueKey('saved'),
+            title: l10n.productsSaved,
+            collapsed: savedCollapsed,
+            onToggle: () =>
+                _run(() => settings.setSavedProductsCollapsed(!savedCollapsed)),
           ),
-        );
-      },
+          if (!savedCollapsed) ...others.map(productTile),
+        ],
+        if (scans.isNotEmpty) ...[
+          _SectionHeader(
+            key: const ValueKey('scans'),
+            title: l10n.productsRecentScans,
+            collapsed: scansCollapsed,
+            onToggle: () =>
+                _run(() => settings.setRecentScansCollapsed(!scansCollapsed)),
+          ),
+          if (!scansCollapsed)
+            for (final scan in scans)
+              _ScanTile(scan: scan, onDelete: () => _deleteScan(scan)),
+        ],
+      ],
+    );
+  }
+}
+
+/// Title of a list of the tab, tapped to fold or unfold it.
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    super.key,
+    required this.title,
+    required this.collapsed,
+    required this.onToggle,
+  });
+
+  final String title;
+  final bool collapsed;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Semantics(
+      button: true,
+      expanded: !collapsed,
+      child: InkWell(
+        onTap: onToggle,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall!
+                      .copyWith(color: colors.textSecondary),
+                ),
+              ),
+              Icon(
+                collapsed ? LucideIcons.chevronRight : LucideIcons.chevronDown,
+                size: 18,
+                color: colors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Product scanned and not saved yet, with what Open Food Facts said of
+/// it. Tap it to save it as a product, tap its "+" button to add it to the
+/// day, swipe it to delete it.
+class _ScanTile extends StatelessWidget {
+  const _ScanTile({required this.scan, required this.onDelete});
+
+  final ScannedProduct scan;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final protein = scan.proteinPer100;
+    final serving = scan.servingQuantity;
+    final details = protein == null
+        ? l10n.scanProteinUnknown
+        : [
+            l10n.productPerReference(
+              formatProtein(protein, l10n.localeName),
+              formatQuantity(l10n, 100, scan.unit),
+            ),
+            if (serving != null)
+              l10n.productPortion(formatQuantity(l10n, serving, scan.unit)),
+          ].join(' · ');
+
+    return SwipeToDelete(
+      key: ValueKey(scan.barcode),
+      onDelete: onDelete,
+      child: Material(
+        color: colors.background,
+        child: InkWell(
+          onTap: () => context.push(AppRoutes.newProductFromScan(scan.barcode)),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: colors.divider)),
+            ),
+            child: Row(
+              children: [
+                SizedBox.square(
+                  dimension: 40,
+                  child: Icon(
+                    LucideIcons.scanBarcode,
+                    size: 20,
+                    color: colors.scan,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        scannedProductName(scan.name, scan.brands) ??
+                            scan.barcode,
+                        style: textTheme.bodyLarge!.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(details, style: textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox.square(
+                  dimension: 32,
+                  child: IconButton.filled(
+                    onPressed: () =>
+                        context.push(AppRoutes.newEntryFromScan(scan.barcode)),
+                    tooltip: l10n.addToToday,
+                    padding: EdgeInsets.zero,
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: AppColors.onAccent,
+                    ),
+                    icon: const Icon(LucideIcons.plus, size: 18),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

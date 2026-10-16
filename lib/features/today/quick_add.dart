@@ -11,7 +11,7 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Button adding one portion of the favorite [product] at once.
-class QuickAddButton extends StatelessWidget {
+class QuickAddButton extends StatefulWidget {
   const QuickAddButton({
     super.key,
     required this.product,
@@ -22,29 +22,48 @@ class QuickAddButton extends StatelessWidget {
   final Product product;
   final String locale;
 
-  /// Receives the button's context, where the animation starts from.
-  final ValueChanged<BuildContext> onPressed;
+  /// Receives the global position the animation starts from: where the
+  /// button was touched, or its center when pressed otherwise.
+  final ValueChanged<Offset> onPressed;
+
+  @override
+  State<QuickAddButton> createState() => _QuickAddButtonState();
+}
+
+class _QuickAddButtonState extends State<QuickAddButton> {
+  /// Where the last touch went down, until the press it makes.
+  Offset? _touch;
+
+  void _press() {
+    final box = context.findRenderObject() as RenderBox?;
+    final from =
+        _touch ??
+        box?.localToGlobal(box.size.center(Offset.zero)) ??
+        Offset.zero;
+    _touch = null;
+    widget.onPressed(from);
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
+    final product = widget.product;
     final grams = l10n.grams(
-      formatProtein(product.amount.proteinGrams, locale),
+      formatProtein(product.amount.proteinGrams, widget.locale),
     );
 
-    return ConstrainedBox(
-      // Long names are cut rather than squeezing the summary.
-      constraints: BoxConstraints(
-        maxWidth: min(220, MediaQuery.sizeOf(context).width * 0.45),
-      ),
+    // As wide as its content, under the summary: the name on one line, cut
+    // when too long, and the grams always shown after it.
+    return Listener(
+      onPointerDown: (event) => _touch = event.position,
       child: Tooltip(
         message: l10n.quickAdd(product.name),
         child: FilledButton(
-          onPressed: () => onPressed(context),
+          onPressed: _press,
           style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 72),
-            padding: const EdgeInsets.fromLTRB(12, 10, 16, 10),
+            minimumSize: const Size(0, 52),
+            padding: const EdgeInsets.fromLTRB(14, 10, 18, 10),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -52,32 +71,21 @@ class QuickAddButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(LucideIcons.plus, size: 26),
-              const SizedBox(width: 8),
+              const Icon(LucideIcons.plus, size: 24),
+              const SizedBox(width: 10),
               Flexible(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Two lines, so most names show in full.
-                    Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.labelLarge!.copyWith(
-                        fontSize: 14,
-                        height: 1.15,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      grams,
-                      style: textTheme.labelLarge!.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  product.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.labelLarge!.copyWith(fontSize: 16),
+                ),
+              ),
+              Text(
+                ' · $grams',
+                style: textTheme.labelLarge!.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -88,24 +96,23 @@ class QuickAddButton extends StatelessWidget {
   }
 }
 
-/// Throws a star of [color] from [from] into the mouth of the shaker held
-/// by [shaker], and completes when it lands.
-Future<void> flyToShaker({
-  required BuildContext from,
+/// Throws a star of [color] from [from], a global position, into the mouth
+/// of the shaker held by [shaker], above everything shown in [context], and
+/// completes when it lands.
+Future<void> flyToShaker(
+  BuildContext context, {
+  required Offset from,
   required GlobalKey shaker,
   required Color color,
 }) {
-  final overlay = Overlay.of(from, rootOverlay: true);
+  final overlay = Overlay.of(context, rootOverlay: true);
   final overlayBox = overlay.context.findRenderObject() as RenderBox?;
-  final fromBox = from.findRenderObject() as RenderBox?;
   final shakerBox = shaker.currentContext?.findRenderObject() as RenderBox?;
-  if (overlayBox == null || fromBox == null || shakerBox == null) {
+  if (overlayBox == null || shakerBox == null) {
     return Future.value();
   }
 
-  final start = overlayBox.globalToLocal(
-    fromBox.localToGlobal(fromBox.size.center(Offset.zero)),
-  );
+  final start = overlayBox.globalToLocal(from);
   // The mouth of the shaker, just under the lid.
   final end = overlayBox.globalToLocal(
     shakerBox.localToGlobal(

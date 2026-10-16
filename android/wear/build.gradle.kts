@@ -4,7 +4,8 @@ import java.util.Properties
 // adds its products. The phone app stays the only source of truth.
 plugins {
     id("com.android.application")
-    id("kotlin-android")
+    // Kotlin itself is applied by the Flutter Gradle plugin, as to every
+    // Android project of the build.
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -27,15 +28,11 @@ val keyProperties = Properties().apply {
 
 android {
     namespace = "arbitro.android.protein_calculator.wear"
-    compileSdk = 36
+    compileSdk = 37
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
@@ -61,6 +58,11 @@ android {
     }
 
     buildTypes {
+        // As the phone app: the development builds of both apps link
+        // together, next to the apps from Google Play.
+        debug {
+            applicationIdSuffix = ".dev"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -81,6 +83,12 @@ android {
 
     // The fonts of the phone app, and their licenses.
     sourceSets["main"].assets.srcDir("../../assets/fonts")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
 }
 
 // The Flutter tool builds the phone app with tasks run in every project
@@ -106,12 +114,16 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.coroutines.play.services)
     implementation(libs.datastore.preferences)
+    // Not used by the app: play-services-wearable brings fragment 1.1.0,
+    // reported as outdated by Google Play.
+    implementation(libs.fragment)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.play.services.wearable)
     implementation(libs.protolayout)
     implementation(libs.protolayout.expression)
     implementation(libs.protolayout.material3)
+    implementation(libs.splashscreen)
     implementation(libs.tiles)
     implementation(libs.wear.compose.foundation)
     implementation(libs.wear.compose.material3)

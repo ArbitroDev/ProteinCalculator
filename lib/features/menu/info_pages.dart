@@ -11,11 +11,12 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/pick_backup.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
+import 'package:protein_calculator/features/menu/food_facts_credit.dart';
 import 'package:protein_calculator/features/menu/github_link.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// Data and privacy page of the menu: where the data lives, and how to
-/// export it to a file or import a backup.
+/// Data and privacy page of the menu: how to export the data to a file or
+/// import a backup, the crash reports setting, then where the data lives.
 class DataPrivacyPage extends ConsumerStatefulWidget {
   const DataPrivacyPage({super.key});
 
@@ -112,9 +113,31 @@ class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
 
     return _InfoScaffold(
       title: l10n.menuPrivacy,
-      paragraphs: [l10n.privacyLocal, l10n.privacyBackup],
-      footer: [
+      // The backup and the settings first, then the explanations.
+      header: [
+        Text(l10n.backupTitle, style: textTheme.titleMedium),
+        const SizedBox(height: 6),
+        Text(
+          l10n.backupBody,
+          style: textTheme.bodyLarge!.copyWith(
+            fontSize: 14,
+            color: colors.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        _ActionTile(
+          icon: LucideIcons.download,
+          label: l10n.exportData,
+          onTap: _busy ? null : _export,
+        ),
+        _ActionTile(
+          icon: LucideIcons.upload,
+          label: l10n.importData,
+          onTap: _busy ? null : _import,
+        ),
         if (crashReportingAvailable) ...[
+          const SizedBox(height: 24),
           Text(l10n.crashReportsTitle, style: textTheme.titleMedium),
           const SizedBox(height: 6),
           Text(
@@ -144,30 +167,10 @@ class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
         ],
-        Text(l10n.backupTitle, style: textTheme.titleMedium),
-        const SizedBox(height: 6),
-        Text(
-          l10n.backupBody,
-          style: textTheme.bodyLarge!.copyWith(
-            fontSize: 14,
-            color: AppColors.of(context).textSecondary,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _ActionTile(
-          icon: LucideIcons.download,
-          label: l10n.exportData,
-          onTap: _busy ? null : _export,
-        ),
-        _ActionTile(
-          icon: LucideIcons.upload,
-          label: l10n.importData,
-          onTap: _busy ? null : _import,
-        ),
       ],
+      paragraphsTitle: l10n.privacyDataTitle,
+      paragraphs: [l10n.privacyLocal, l10n.privacyScan, l10n.privacyBackup],
     );
   }
 }
@@ -192,8 +195,9 @@ class AboutPage extends ConsumerWidget {
         l10n.aboutDescription,
         l10n.aboutLicense,
         l10n.aboutContribute,
+        l10n.aboutFoodFacts,
       ],
-      footer: const [GitHubLink()],
+      footer: const [GitHubLink(), SizedBox(height: 10), FoodFactsCredit()],
     );
   }
 }
@@ -247,11 +251,13 @@ class _InfoScaffold extends StatelessWidget {
     required this.title,
     required this.paragraphs,
     this.header = const [],
+    this.paragraphsTitle,
     this.footer = const [],
   });
 
   final String title;
   final List<Widget> header;
+  final String? paragraphsTitle;
   final List<String> paragraphs;
   final List<Widget> footer;
 
@@ -267,7 +273,15 @@ class _InfoScaffold extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
           children: [
             ...header,
-            if (header.isNotEmpty) const SizedBox(height: 18),
+            if (header.isNotEmpty)
+              SizedBox(height: paragraphsTitle == null ? 18 : 24),
+            if (paragraphsTitle case final paragraphsTitle?) ...[
+              Text(
+                paragraphsTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 6),
+            ],
             for (final paragraph in paragraphs)
               Padding(
                 padding: const EdgeInsets.only(bottom: 14),

@@ -20,8 +20,8 @@ void main() {
   testWidgets('shows an empty day', (tester) async {
     await pumpApp(tester, db);
 
-    expect(find.text('0 g'), findsOneWidget);
-    expect(find.text('Goal 140 g'), findsOneWidget);
+    // The total and the goal, on one line.
+    expect(find.text('0 g / 140 g'), findsOneWidget);
     expect(find.text('No entries · 140 g left to shake'), findsOneWidget);
     await disposeApp(tester, db);
   });
@@ -33,7 +33,7 @@ void main() {
     await pumpApp(tester, db);
 
     // 59.6 g shows truncated, and what is left follows the shown total.
-    expect(find.text('59 g'), findsOneWidget);
+    expect(find.text('59 g / 140 g'), findsOneWidget);
     expect(find.text('2 entries · 81 g left to shake'), findsOneWidget);
     await disposeApp(tester, db);
   });
@@ -49,7 +49,7 @@ void main() {
     );
     await pumpApp(tester, db);
 
-    expect(find.text('43 g'), findsOneWidget);
+    expect(find.text('43 g / 140 g'), findsOneWidget);
     expect(find.text('12.5 g'), findsOneWidget);
     expect(find.text('30.8 g'), findsOneWidget);
     expect(find.text('2 entries · 97 g left to shake'), findsOneWidget);
@@ -83,7 +83,8 @@ void main() {
     await pumpApp(tester, db);
 
     // The total, and the label of the entry next to the shaker.
-    expect(find.text('150 g'), findsNWidgets(2));
+    expect(find.text('150 g / 140 g'), findsOneWidget);
+    expect(find.text('150 g'), findsOneWidget);
     expect(find.textContaining('goal reached'), findsOneWidget);
     await disposeApp(tester, db);
   });
@@ -94,7 +95,7 @@ void main() {
     await pumpApp(tester, db, now: DateTime(2026, 10, 2, 1, 30));
 
     expect(find.text('Thursday, October 1'), findsOneWidget);
-    expect(find.text('30 g'), findsOneWidget);
+    expect(find.text('30 g / 140 g'), findsOneWidget);
     await disposeApp(tester, db);
   });
 

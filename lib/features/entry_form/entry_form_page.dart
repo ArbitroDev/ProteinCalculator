@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,11 +10,15 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
+import 'package:protein_calculator/core/domain/quantity_unit.dart';
+import 'package:protein_calculator/core/food_facts/open_food_facts.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
+import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
@@ -26,13 +32,184 @@ import 'package:protein_calculator/features/entry_form/entry_form_state.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Form adding or editing an entry, or creating or editing a product.
-class EntryFormPage extends ConsumerWidget {
+class EntryFormPage extends ConsumerStatefulWidget {
   const EntryFormPage({super.key, required this.args});
 
   final EntryFormArgs args;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EntryFormPage> createState() => _EntryFormPageState();
+}
+
+/// Holds what lasts while the form view is built again with new values,
+/// such as a scan and what follows it.
+class _EntryFormPageState extends ConsumerState<EntryFormPage> {
+  /// Whether the product of a barcode scanned is being looked up.
+  bool _lookingUp = false;
+
+  EntryFormNotifier get _notifier =>
+      ref.read(entryFormProvider(widget.args).notifier);
+
+  /// Scans a barcode and fills the form from its product, then tells what
+  /// is worth knowing: a value Open Food Facts lacks, a product of the user
+  /// with the same name, newer values.
+  Future<void> _scan() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final router = GoRouter.of(context);
+    final products = ref.read(databaseProvider).productsDao;
+    final language = Localizations.localeOf(context).languageCode;
+    if (!await _readScanNotice() || !mounted) return;
+    final barcode = await context.push<String>(AppRoutes.scan);
+    if (barcode == null || !mounted) return;
+
+    setState(() => _lookingUp = true);
+    final outcome = await runUserAction(
+      messenger,
+      l10n,
+      () => _notifier.scanned(barcode, language: language),
+    );
+    if (!mounted) return;
+    setState(() => _lookingUp = false);
+
+    // A message with an action goes away after a while like the others,
+    // rather than staying on the next pages once the form is closed; its
+    // action, tapped maybe after, works without the form.
+    void tell(String message, {SnackBarAction? action}) =>
+        messenger.showSnackBar(
+          SnackBar(content: Text(message), action: action, persist: false),
+        );
+
+    switch (outcome) {
+      case null || ScanKept():
+        break;
+      case ScanFoundProduct(:final product, :final update):
+        final facts = await update;
+        if (facts == null || !mounted) return;
+        tell(
+          l10n.scanProductChanged(
+            product.name,
+            l10n.productPerReference(
+              formatProtein(facts.proteinPer100!, l10n.localeName),
+              formatQuantity(l10n, 100, facts.unit),
+            ),
+          ),
+          action: SnackBarAction(
+            label: l10n.scanTakeChange,
+            onPressed: () => runUserAction(messenger, l10n, () async {
+              if (mounted) return _notifier.takeFoodFacts(product, facts);
+              await products.setProteinPer100(
+                product.id,
+                facts.proteinPer100!,
+                unit: facts.unit,
+              );
+            }),
+          ),
+        );
+      case ScanFilled(:final scan, :final sameName, :final update):
+        if (sameName != null) {
+          tell(
+            l10n.scanNameTaken(sameName.name),
+            action: SnackBarAction(
+              label: l10n.scanGiveBarcode,
+              onPressed: () =>
+                  _giveBarcode(sameName, barcode, messenger, l10n, products),
+            ),
+          );
+        } else if (scan.proteinPer100 == null) {
+          tell(l10n.scanNoProtein);
+        } else if (scan.proteinPer100 == 0) {
+          tell(l10n.scanZeroProtein);
+        }
+        final fresh = await update;
+        if (fresh == null || !mounted) return;
+        _notifier.refreshFromFoodFacts(fresh);
+        tell(l10n.scanUpdated);
+      case ScanBarcodeTaken(:final product):
+        tell(
+          l10n.scanBarcodeTaken(product.name),
+          action: SnackBarAction(
+            label: l10n.scanOpenProduct,
+            onPressed: () {
+              final edit = AppRoutes.editProduct(product.id);
+              if (mounted) {
+                context.pushReplacement(edit);
+              } else {
+                unawaited(router.push(edit));
+              }
+            },
+          ),
+        );
+      case ScanNotFound(:final problem, :final storeCode):
+        tell(switch (problem) {
+          null when storeCode => l10n.scanStoreCode,
+          null => l10n.scanNotFound,
+          FoodFactsProblem.offline => l10n.scanOffline,
+          FoodFactsProblem.busy => l10n.scanBusy,
+          FoodFactsProblem.timeout ||
+          FoodFactsProblem.failed => l10n.scanUnavailable,
+        });
+    }
+  }
+
+  /// Before the first scan, tells what is sent to Open Food Facts. Returns
+  /// whether the user goes on, which is not asked again.
+  Future<bool> _readScanNotice() async {
+    final settings = ref.read(databaseProvider).settingsDao;
+    if (await settings.getScanNoticeSeen()) return true;
+    if (!mounted) return false;
+    final l10n = AppLocalizations.of(context);
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.scanBarcode),
+        content: Text(l10n.scanNotice),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.scanNoticeAccept),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true) return false;
+    await settings.setScanNoticeSeen();
+    return true;
+  }
+
+  /// Gives [barcode] to [product], the user's product of the same name, in
+  /// place of the values of Open Food Facts. A new product is then not
+  /// needed: its form closes. Once the form is closed, the product still
+  /// takes the barcode, with [products].
+  Future<void> _giveBarcode(
+    Product product,
+    String barcode,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+    ProductsDao products,
+  ) async {
+    final given = await runUserAction(messenger, l10n, () async {
+      if (mounted) {
+        await _notifier.giveBarcode(product, barcode);
+      } else {
+        await products.setBarcode(product.id, barcode);
+      }
+      return true;
+    });
+    if (given == null) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.scanBarcodeGiven(product.name))),
+    );
+    if (mounted && widget.args is NewProductArgs) context.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final args = widget.args;
     final l10n = AppLocalizations.of(context);
     final form = ref.watch(entryFormProvider(args)).value;
     final title = switch (args) {
@@ -54,19 +231,37 @@ class EntryFormPage extends ConsumerWidget {
       body: ContentWidth(
         child: form == null
             ? const SizedBox.shrink()
-            : _FormView(key: ValueKey(form.revision), args: args, form: form),
+            : _FormView(
+                key: ValueKey(form.revision),
+                args: args,
+                form: form,
+                onScan: _scan,
+                lookingUp: _lookingUp,
+              ),
       ),
     );
   }
 }
 
 class _FormView extends ConsumerStatefulWidget {
-  const _FormView({super.key, required this.args, required this.form});
+  const _FormView({
+    super.key,
+    required this.args,
+    required this.form,
+    required this.onScan,
+    required this.lookingUp,
+  });
 
   final EntryFormArgs args;
 
   /// Values the text fields start with.
   final EntryFormState form;
+
+  /// Scans a barcode and fills the form from its product.
+  final Future<void> Function() onScan;
+
+  /// Whether the product of a barcode scanned is being looked up.
+  final bool lookingUp;
 
   @override
   ConsumerState<_FormView> createState() => _FormViewState();
@@ -194,6 +389,16 @@ class _FormViewState extends ConsumerState<_FormView> {
     if (mounted) await askExactAlarms(context, ref);
   }
 
+  /// Whether the form offers to scan a barcode: not for an entry being
+  /// edited, nor on the web, which only serves to try the app.
+  bool get _canScan => !kIsWeb && widget.args is! EditEntryArgs;
+
+  /// Hides the suggestions, then scans a barcode, see [_FormView.onScan].
+  Future<void> _scan() async {
+    _dismissSuggestions();
+    await widget.onScan();
+  }
+
   Future<void> _submit() async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
@@ -224,7 +429,14 @@ class _FormViewState extends ConsumerState<_FormView> {
       EntryFormError.nameRequired => l10n.errorNameRequired,
       EntryFormError.nameTaken => l10n.errorNameTaken,
       EntryFormError.future => l10n.errorFutureTime,
+      EntryFormError.barcodeTaken => l10n.errorBarcodeTaken,
     };
+
+    /// Background of the fields Open Food Facts filled in, like the scan
+    /// button; the theme's for the others.
+    Color? fill(EntryFormField field) => form.fromFoodFacts.contains(field)
+        ? AppColors.of(context).scanSurface
+        : null;
 
     final notifications = ref.watch(notificationStatusProvider).value;
     bool notified(DailyRoutine routine) =>
@@ -251,25 +463,50 @@ class _FormViewState extends ConsumerState<_FormView> {
                         ? l10n.formName
                         : l10n.formNameOptional,
                   ),
-                  TextField(
-                    controller: _name,
-                    focusNode: _nameFocus,
-                    textCapitalization: TextCapitalization.sentences,
-                    inputFormatters: [
-                      LengthLimitingTextInputFormatter(maxNameLength),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _name,
+                          focusNode: _nameFocus,
+                          textCapitalization: TextCapitalization.sentences,
+                          inputFormatters: [
+                            LengthLimitingTextInputFormatter(maxNameLength),
+                          ],
+                          textInputAction: TextInputAction.next,
+                          onChanged: (value) {
+                            if (_hideSuggestions) {
+                              setState(() => _hideSuggestions = false);
+                            }
+                            _notifier.setName(value);
+                          },
+                          decoration: InputDecoration(
+                            hintText: l10n.formNameHint,
+                            errorText: error(EntryFormField.name),
+                            fillColor: fill(EntryFormField.name),
+                          ),
+                        ),
+                      ),
+                      if (_canScan) ...[
+                        const SizedBox(width: 10),
+                        _ScanButton(
+                          onPressed: widget.lookingUp ? null : _scan,
+                          busy: widget.lookingUp,
+                        ),
+                      ],
                     ],
-                    textInputAction: TextInputAction.next,
-                    onChanged: (value) {
-                      if (_hideSuggestions) {
-                        setState(() => _hideSuggestions = false);
-                      }
-                      _notifier.setName(value);
-                    },
-                    decoration: InputDecoration(
-                      hintText: l10n.formNameHint,
-                      errorText: error(EntryFormField.name),
-                    ),
                   ),
+                  // Always one slot, like the suggestions below.
+                  if (form.barcode case final barcode?
+                      when args.isProduct || form.saveAsProduct)
+                    _BarcodeLine(
+                      barcode: barcode,
+                      errorText: error(EntryFormField.barcode),
+                      onRemove: () => _notifier.setBarcode(null),
+                    )
+                  else
+                    const SizedBox.shrink(),
                   // Always one slot, even when empty: the fields after it keep
                   // their place in the list, so the field being tapped is not
                   // rebuilt (it would lose the focus, which would go back to
@@ -304,6 +541,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                       decimal: true,
                       onChanged: _dismissing(_notifier.setProtein),
                       errorText: error(EntryFormField.protein),
+                      fillColor: fill(EntryFormField.protein),
                     ),
                   ] else ...[
                     _Label(
@@ -311,8 +549,11 @@ class _FormViewState extends ConsumerState<_FormView> {
                     ),
                     _GramsField(
                       controller: _consumed,
+                      unit: form.unit,
+                      onUnitChanged: _dismissing(_notifier.setUnit),
                       onChanged: _dismissing(_notifier.setConsumed),
                       errorText: error(EntryFormField.consumed),
+                      fillColor: fill(EntryFormField.consumed),
                     ),
                     _Label(l10n.formProductProtein),
                     Row(
@@ -328,6 +569,7 @@ class _FormViewState extends ConsumerState<_FormView> {
                             errorText: error(
                               EntryFormField.proteinPerReference,
                             ),
+                            fillColor: fill(EntryFormField.proteinPerReference),
                           ),
                         ),
                         Padding(
@@ -343,8 +585,10 @@ class _FormViewState extends ConsumerState<_FormView> {
                         Expanded(
                           child: _GramsField(
                             controller: _reference,
+                            unit: form.unit,
                             onChanged: _dismissing(_notifier.setReference),
                             errorText: error(EntryFormField.reference),
+                            fillColor: fill(EntryFormField.reference),
                           ),
                         ),
                       ],
@@ -445,6 +689,100 @@ class _FormViewState extends ConsumerState<_FormView> {
   }
 }
 
+/// Opens the camera to scan the barcode of a product. Its green tells the
+/// values it fills in.
+class _ScanButton extends StatelessWidget {
+  const _ScanButton({required this.onPressed, required this.busy});
+
+  /// Null while [busy].
+  final VoidCallback? onPressed;
+
+  /// Whether the product of the barcode scanned is being looked up.
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: AppLocalizations.of(context).scanBarcode,
+      style: IconButton.styleFrom(
+        backgroundColor: colors.scanSurface,
+        foregroundColor: colors.scan,
+        disabledBackgroundColor: colors.scanSurface,
+        // As tall as the name field beside it.
+        fixedSize: const Size.square(54),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      icon: busy
+          ? SizedBox.square(
+              dimension: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: colors.scan,
+              ),
+            )
+          : const Icon(LucideIcons.scanBarcode),
+    );
+  }
+}
+
+/// Barcode the product takes, with a button taking it away.
+class _BarcodeLine extends StatelessWidget {
+  const _BarcodeLine({
+    required this.barcode,
+    required this.errorText,
+    required this.onRemove,
+  });
+
+  final String barcode;
+  final String? errorText;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(LucideIcons.barcode, size: 18, color: colors.scan),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.formBarcode(barcode),
+                  style: textTheme.bodyMedium!.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: onRemove,
+                tooltip: l10n.formRemoveBarcode,
+                icon: Icon(
+                  LucideIcons.x,
+                  size: 18,
+                  color: colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          if (errorText case final error?)
+            Text(
+              error,
+              style: Theme.of(context).inputDecorationTheme.errorStyle,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Label extends StatelessWidget {
   const _Label(this.text);
 
@@ -467,28 +805,108 @@ class _GramsField extends StatelessWidget {
     required this.onChanged,
     required this.errorText,
     this.decimal = false,
+    this.unit = QuantityUnit.grams,
+    this.onUnitChanged,
+    this.fillColor,
   });
 
   final TextEditingController controller;
 
   /// Allows one decimal: protein amounts take one, quantities of food none.
   final bool decimal;
+
+  /// Unit shown after the value: protein amounts are always in grams.
+  final QuantityUnit unit;
+
+  /// Lets the user pick the [unit] in a list, shown in place of its symbol.
+  final ValueChanged<QuantityUnit>? onUnitChanged;
+
+  /// Background of the field, the theme's if null.
+  final Color? fillColor;
   final ValueChanged<String> onChanged;
   final String? errorText;
 
   @override
-  Widget build(BuildContext context) => TextField(
-    controller: controller,
-    onChanged: onChanged,
-    keyboardType: TextInputType.numberWithOptions(decimal: decimal),
-    inputFormatters: [GramsInputFormatter(maxDecimals: decimal ? 1 : 0)],
-    textInputAction: TextInputAction.next,
-    decoration: InputDecoration(
-      suffixText: AppLocalizations.of(context).gramsUnit,
-      errorText: errorText,
-      errorMaxLines: 2,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final onUnitChanged = this.onUnitChanged;
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+      inputFormatters: [GramsInputFormatter(maxDecimals: decimal ? 1 : 0)],
+      textInputAction: TextInputAction.next,
+      decoration: InputDecoration(
+        suffixText: onUnitChanged == null
+            ? quantityUnitSymbol(AppLocalizations.of(context), unit)
+            : null,
+        suffixIcon: onUnitChanged == null
+            ? null
+            : _UnitList(unit: unit, onChanged: onUnitChanged),
+        errorText: errorText,
+        errorMaxLines: 2,
+        fillColor: fillColor,
+      ),
+    );
+  }
+}
+
+/// List of the units of a quantity, at the end of its field.
+class _UnitList extends StatelessWidget {
+  const _UnitList({required this.unit, required this.onChanged});
+
+  final QuantityUnit unit;
+  final ValueChanged<QuantityUnit> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    return Semantics(
+      label: l10n.formUnit,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Sets the list apart from the value: only the unit opens it.
+          Container(
+            width: 1,
+            height: 24,
+            color: colors.textSecondary.withValues(alpha: 0.3),
+          ),
+          const SizedBox(width: 14),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 10),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<QuantityUnit>(
+                value: unit,
+                isDense: true,
+                borderRadius: BorderRadius.circular(10),
+                dropdownColor: colors.surfaceRaised,
+                icon: Padding(
+                  padding: const EdgeInsetsDirectional.only(start: 6),
+                  child: Icon(
+                    LucideIcons.chevronDown,
+                    size: 16,
+                    color: colors.textSecondary,
+                  ),
+                ),
+                style: Theme.of(context).textTheme.bodyLarge,
+                items: [
+                  for (final value in QuantityUnit.values)
+                    DropdownMenuItem(
+                      value: value,
+                      child: Text(quantityUnitSymbol(l10n, value)),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) onChanged(value);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Options of equal width, the selected one on a sliding pill.

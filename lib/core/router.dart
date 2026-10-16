@@ -9,6 +9,7 @@ import 'package:protein_calculator/features/menu/info_pages.dart';
 import 'package:protein_calculator/features/menu/menu_page.dart';
 import 'package:protein_calculator/features/onboarding/onboarding_page.dart';
 import 'package:protein_calculator/features/products/products_page.dart';
+import 'package:protein_calculator/features/scan/scan_page.dart';
 import 'package:protein_calculator/features/today/today_page.dart';
 
 abstract final class AppRoutes {
@@ -22,6 +23,11 @@ abstract final class AppRoutes {
   /// New entry prefilled with a product.
   static String newEntryFrom(int productId) => '$newEntry?productId=$productId';
 
+  /// New entry prefilled with what Open Food Facts said of the product
+  /// scanned with [barcode].
+  static String newEntryFromScan(String barcode) =>
+      '$newEntry?barcode=$barcode';
+
   static String editEntry(int entryId) => '/entries/$entryId';
 
   static String historyDay(int dayKey) => '$history/$dayKey';
@@ -31,7 +37,15 @@ abstract final class AppRoutes {
 
   static const newProduct = '/products/new';
 
+  /// New product prefilled with what Open Food Facts said of the product
+  /// scanned with [barcode].
+  static String newProductFromScan(String barcode) =>
+      '$newProduct?barcode=$barcode';
+
   static String editProduct(int productId) => '$products/$productId';
+
+  /// Camera reading a barcode, giving it back to the page that opened it.
+  static const scan = '/scan';
 }
 
 /// First page shown: the first launch screen until a daily goal is saved.
@@ -113,13 +127,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             productId: int.tryParse(
               state.uri.queryParameters['productId'] ?? '',
             ),
+            barcode: state.uri.queryParameters['barcode'],
           ),
         ),
       ),
       GoRoute(
+        path: AppRoutes.scan,
+        builder: (context, state) => const ScanPage(),
+      ),
+      GoRoute(
         path: AppRoutes.newProduct,
-        builder: (context, state) =>
-            const EntryFormPage(args: NewProductArgs()),
+        builder: (context, state) => EntryFormPage(
+          args: NewProductArgs(barcode: state.uri.queryParameters['barcode']),
+        ),
       ),
       GoRoute(
         path: '/products/:id',

@@ -33,11 +33,15 @@
       }
     }
   },
-  "todayGoal": "Objectif {goal} g",
-  "@todayGoal": {
-    "description": "Daily goal shown above the total on the today screen.",
+  "millilitersUnit": "ml",
+  "@millilitersUnit": {
+    "description": "Unit symbol for milliliters."
+  },
+  "milliliters": "{milliliters} ml",
+  "@milliliters": {
+    "description": "A quantity in milliliters, already formatted.",
     "placeholders": {
-      "goal": {
+      "milliliters": {
         "type": "String"
       }
     }
@@ -164,6 +168,178 @@
   "@formPer": {
     "description": "Between the protein content and the reference quantity, as in '10 g for 100 g'."
   },
+  "formUnit": "Unité",
+  "@formUnit": {
+    "description": "Name read by screen readers for the list of units of a quantity of food."
+  },
+  "scanBarcode": "Scanner un code-barres",
+  "@scanBarcode": {
+    "description": "Tooltip of the button opening the camera to scan the barcode of a product."
+  },
+  "productsSaved": "Mes produits",
+  "@productsSaved": {
+    "description": "Title of the list of saved products, which folds."
+  },
+  "productsRecentScans": "Derniers produits scannés",
+  "@productsRecentScans": {
+    "description": "Title of the list of the latest products scanned and not saved, which folds."
+  },
+  "scanProteinUnknown": "Protéines non renseignées",
+  "@scanProteinUnknown": {
+    "description": "A recent scan whose protein content Open Food Facts does not know."
+  },
+  "scanDeleted": "Scan supprimé",
+  "@scanDeleted": {
+    "description": "Snack bar after deleting a recent scan, which can be undone."
+  },
+  "scanNoProtein": "Open Food Facts n'indique pas les protéines de ce produit : remplis-les à la main.",
+  "@scanNoProtein": {
+    "description": "After a scan, when Open Food Facts knows the product but not its protein content."
+  },
+  "scanZeroProtein": "Selon Open Food Facts, ce produit ne contient pas de protéines.",
+  "@scanZeroProtein": {
+    "description": "After a scan, when Open Food Facts says the product has no protein."
+  },
+  "scanNameTaken": "« {name} » est déjà dans tes produits.",
+  "@scanNameTaken": {
+    "description": "After a scan, when a saved product without barcode has the name of the product scanned.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scanGiveBarcode": "Lui donner ce code",
+  "@scanGiveBarcode": {
+    "description": "Action giving the barcode scanned to the saved product of the same name."
+  },
+  "scanBarcodeGiven": "Code-barres ajouté à « {name} ».",
+  "@scanBarcodeGiven": {
+    "description": "Once a saved product took the barcode scanned.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scanBarcodeTaken": "Ce code-barres est déjà celui de « {name} ».",
+  "@scanBarcodeTaken": {
+    "description": "After a scan, when another saved product has the barcode.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scanOpenProduct": "Ouvrir",
+  "@scanOpenProduct": {
+    "description": "Action opening the saved product that has the barcode scanned."
+  },
+  "scanProductChanged": "Open Food Facts indique maintenant {protein} pour « {name} ».",
+  "@scanProductChanged": {
+    "description": "After a scan of a saved product, when Open Food Facts changed its protein content since it was last asked.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "protein": {
+        "type": "String"
+      }
+    }
+  },
+  "scanTakeChange": "Mettre à jour",
+  "@scanTakeChange": {
+    "description": "Action taking the new protein content of Open Food Facts into the saved product."
+  },
+  "scanUpdated": "Valeurs mises à jour depuis Open Food Facts.",
+  "@scanUpdated": {
+    "description": "When newer values of Open Food Facts replaced those it gave before in the form."
+  },
+  "formBarcode": "Code-barres {barcode}",
+  "@formBarcode": {
+    "description": "Barcode the product takes, under its name.",
+    "placeholders": {
+      "barcode": {
+        "type": "String"
+      }
+    }
+  },
+  "formRemoveBarcode": "Retirer le code-barres",
+  "@formRemoveBarcode": {
+    "description": "Tooltip of the button taking the barcode away from the product."
+  },
+  "errorBarcodeTaken": "Un autre produit a déjà ce code-barres.",
+  "@errorBarcodeTaken": {
+    "description": "Error when saving a product whose barcode another product has."
+  },
+  "scanNotFound": "Open Food Facts ne connaît pas ce produit : remplis les valeurs à la main.",
+  "@scanNotFound": {
+    "description": "After a scan, when neither the user nor Open Food Facts knows the product."
+  },
+  "scanStoreCode": "Code propre au magasin, souvent avec le poids ou le prix : il n'est pas envoyé à Open Food Facts. Remplis les valeurs à la main.",
+  "@scanStoreCode": {
+    "description": "After a scan, for a code a shop gives to its own goods (restricted circulation number), which Open Food Facts is not asked about."
+  },
+  "scanOffline": "Pas de connexion : remplis les valeurs à la main.",
+  "@scanOffline": {
+    "description": "After a scan, when Open Food Facts cannot be asked without a connection."
+  },
+  "scanBusy": "Open Food Facts reçoit trop de demandes : réessaie dans une minute, ou remplis les valeurs à la main.",
+  "@scanBusy": {
+    "description": "After a scan, when Open Food Facts refuses requests for a while."
+  },
+  "scanUnavailable": "Open Food Facts ne répond pas : remplis les valeurs à la main.",
+  "@scanUnavailable": {
+    "description": "After a scan, when Open Food Facts gives no answer in time or fails."
+  },
+  "scanNotice": "L'image de la caméra est lue sur ton téléphone et n'en sort jamais. Seuls les codes-barres que tu scannes sont envoyés à Open Food Facts, une base de données libre, pour trouver les produits que ton téléphone ne connaît pas encore, ou dont il a reçu les valeurs il y a plus de 30 jours. Rien d'autre n'est envoyé.",
+  "@scanNotice": {
+    "description": "Told once, before the first scan: what is sent to Open Food Facts."
+  },
+  "scanNoticeAccept": "Continuer",
+  "@scanNoticeAccept": {
+    "description": "Button going on to the first scan once its notice is read."
+  },
+  "scanHint": "Place le code-barres dans le cadre",
+  "@scanHint": {
+    "description": "Hint over the camera picture while scanning."
+  },
+  "scanTorchOn": "Allumer la lampe",
+  "@scanTorchOn": {
+    "description": "Tooltip of the button lighting the flashlight while scanning."
+  },
+  "scanTorchOff": "Éteindre la lampe",
+  "@scanTorchOff": {
+    "description": "Tooltip of the button turning the flashlight off while scanning."
+  },
+  "scanTypeCode": "Saisir le code",
+  "@scanTypeCode": {
+    "description": "Button to type the digits of the barcode instead of scanning it."
+  },
+  "scanTypeTitle": "Code-barres",
+  "@scanTypeTitle": {
+    "description": "Title of the dialog where the barcode is typed."
+  },
+  "scanTypeHint": "Les chiffres sous le code-barres",
+  "@scanTypeHint": {
+    "description": "Hint of the field where the barcode is typed."
+  },
+  "scanTypeInvalid": "Ce code n'est pas valide : vérifie les chiffres.",
+  "@scanTypeInvalid": {
+    "description": "Error when the typed barcode has the wrong length or check digit."
+  },
+  "scanTypeConfirm": "Valider",
+  "@scanTypeConfirm": {
+    "description": "Button confirming the typed barcode."
+  },
+  "scanCameraDenied": "L'app n'a pas accès à la caméra. Autorise-la dans les réglages d'Android, ou saisis le code à la main.",
+  "@scanCameraDenied": {
+    "description": "Shown in place of the camera picture when the camera was refused."
+  },
+  "scanCameraUnavailable": "La caméra n'est pas disponible. Tu peux saisir le code à la main.",
+  "@scanCameraUnavailable": {
+    "description": "Shown in place of the camera picture when the phone has no camera or it cannot open."
+  },
   "formResult": "de protéines",
   "@formResult": {
     "description": "After the computed protein amount, as in '15 g of protein'."
@@ -232,9 +408,9 @@
   "@errorFutureTime": {
     "description": "Error when the moment chosen for an entry is yet to come."
   },
-  "productPerReference": "{protein} g / {reference} g",
+  "productPerReference": "{protein} g / {reference}",
   "@productPerReference": {
-    "description": "Protein content of a product per reference quantity.",
+    "description": "Protein content of a product per reference quantity, given with its unit ('100 g', '100 ml').",
     "placeholders": {
       "protein": {
         "type": "String"
@@ -305,11 +481,11 @@
   "@sortRecentlyUsed": {
     "description": "Sort products by last use."
   },
-  "productPortion": "portion {grams} g",
+  "productPortion": "portion {quantity}",
   "@productPortion": {
-    "description": "Usual portion of a product.",
+    "description": "Usual portion of a product, given with its unit ('150 g', '250 ml').",
     "placeholders": {
-      "grams": {
+      "quantity": {
         "type": "String"
       }
     }
@@ -394,6 +570,10 @@
   "@goalSheetBody": {
     "description": "Explanation when editing the daily goal."
   },
+  "privacyDataTitle": "Tes données",
+  "@privacyDataTitle": {
+    "description": "Privacy page: title of the section on where the data lives and goes."
+  },
   "privacyLocal": "Tes données restent sur ton téléphone. Protein Calculator ne demande pas de compte, et tes entrées et tes produits ne quittent jamais ton téléphone, sauf vers ta montre Wear OS si tu en utilises une : ils y passent directement, sans serveur.",
   "@privacyLocal": {
     "description": "Privacy page: data stays on the device."
@@ -417,6 +597,14 @@
   "onboardingCrashReportsHint": "Tes entrées, tes produits et ton objectif ne quittent jamais ton téléphone, sauf vers ta montre. Modifiable à tout moment dans le menu.",
   "@onboardingCrashReportsHint": {
     "description": "First launch: note under the crash reports checkbox."
+  },
+  "privacyScan": "Quand tu scannes un code-barres, l'image est lue sur ton téléphone et n'en sort jamais. Si le produit n'y est pas déjà, seul son code-barres est envoyé à Open Food Facts, une base de données libre, pour en trouver les valeurs.",
+  "@privacyScan": {
+    "description": "Paragraph of the data and privacy page about barcode scanning."
+  },
+  "aboutFoodFacts": "Les valeurs des produits scannés viennent d'Open Food Facts, une base de données libre et collaborative, sous licence Open Database License (ODbL). Ses contributeurs les fournissent et elles peuvent contenir des erreurs : vérifie-les.",
+  "@aboutFoodFacts": {
+    "description": "Paragraph of the about page crediting Open Food Facts, as its license asks."
   },
   "privacyBackup": "Si la sauvegarde Google est activée sur ton appareil, Android peut inclure les données de l'app dans cette sauvegarde, chiffrée et accessible à toi seul. Tu peux la désactiver dans les réglages de ton téléphone.",
   "@privacyBackup": {
