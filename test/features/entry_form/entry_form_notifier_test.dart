@@ -276,6 +276,73 @@ void main() {
     });
   });
 
+  group('creatine', () {
+    const args = NewEntryArgs();
+
+    test('0 g is accepted with a dose', () async {
+      final form = await open(args);
+      form
+        ..setProtein('0')
+        ..setCreatineDoses(1);
+
+      expect(stateOf(args).amount, const DirectAmount(0));
+      expect(stateOf(args).validate(nameRequired: false, now: now), isEmpty);
+    });
+
+    test('0 g without doses is not positive', () async {
+      final form = await open(args);
+      form
+        ..setProtein('0')
+        ..setCreatineDoses(1)
+        ..setCreatineDoses(0);
+
+      expect(await form.submit(), isFalse);
+      expect(
+        stateOf(args).errors[EntryFormField.protein],
+        EntryFormError.notPositive,
+      );
+      expect(await todayEntries(), isEmpty);
+    });
+
+    test('a product prefills its doses', () async {
+      final id = await db.productsDao.insertProduct(
+        name: 'Whey',
+        amount: const DirectAmount(24),
+        createdAt: DateTime(2026, 9, 1),
+        creatineDoses: 2,
+      );
+      await open(NewEntryArgs(productId: id));
+
+      expect(stateOf(NewEntryArgs(productId: id)).creatineDoses, 2);
+    });
+
+    test('saving a new entry stores its doses', () async {
+      await db.settingsDao.setCreatineEnabled(true);
+      final form = await open(args);
+      form
+        ..setName('Pre-workout')
+        ..setProtein('0')
+        ..setCreatineDoses(1)
+        ..setSaveAsProduct(true);
+
+      expect(await form.submit(), isTrue);
+
+      final entry = (await todayEntries()).single;
+      expect(entry.proteinGrams, 0);
+      expect(entry.creatineDoses, 1);
+      expect(entry.creatineDoseGrams, 5);
+      expect((await products()).single.creatineDoses, 1);
+    });
+
+    test('the doses stop at 0 and 9', () async {
+      final form = await open(args);
+      form.setCreatineDoses(-1);
+      expect(stateOf(args).creatineDoses, 0);
+      form.setCreatineDoses(12);
+      expect(stateOf(args).creatineDoses, 9);
+    });
+  });
+
   group('daily routine', () {
     const args = NewEntryArgs();
 
@@ -512,6 +579,19 @@ void main() {
           }),
           200,
         );
+
+    test('a scan leaves no creatine doses', () async {
+      answer(protein: 6.3, serving: 15);
+      const args = NewEntryArgs();
+      final form = await open(args);
+      // The doses of a product picked before.
+      form.setCreatineDoses(1);
+
+      final outcome = await form.scanned(nutella, language: 'fr');
+
+      expect(outcome, isA<ScanFilled>());
+      expect(stateOf(args).creatineDoses, 0);
+    });
 
     test(
       'fills a new entry with what Open Food Facts says, in green',

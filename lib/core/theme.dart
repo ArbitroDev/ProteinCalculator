@@ -21,6 +21,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.accentText,
     required this.scan,
     required this.scanSurface,
+    required this.creatineText,
   });
 
   final Color background;
@@ -43,6 +44,13 @@ class AppColors extends ThemeExtension<AppColors> {
   /// the background of the scan button and of the values it filled in.
   final Color scan;
   final Color scanSurface;
+
+  /// Blue of creatine readable as text and icons on the background: the
+  /// check of the days it was taken, the marks of the entries holding it.
+  final Color creatineText;
+
+  /// Blue of creatine: its button, its dot and its veil in the shaker.
+  static const creatine = Color(0xFF3FA9F5);
 
   /// Frame the barcode is placed in, over the camera picture.
   static const scanFrame = Color(0xFF5FD38F);
@@ -72,6 +80,7 @@ class AppColors extends ThemeExtension<AppColors> {
     accentText: Color(0xFFB8440F),
     scan: Color(0xFF17703F),
     scanSurface: Color(0xFFCDEFD9),
+    creatineText: Color(0xFF1A64A3),
   );
 
   static const dark = AppColors(
@@ -86,6 +95,7 @@ class AppColors extends ThemeExtension<AppColors> {
     accentText: Color(0xFFFF8A3D),
     scan: Color(0xFF5FD38F),
     scanSurface: Color(0xFF1B3B34),
+    creatineText: creatine,
   );
 
   /// Color of the entries added during [slot].
@@ -111,6 +121,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? accentText,
     Color? scan,
     Color? scanSurface,
+    Color? creatineText,
   }) => AppColors(
     background: background ?? this.background,
     surface: surface ?? this.surface,
@@ -123,6 +134,7 @@ class AppColors extends ThemeExtension<AppColors> {
     accentText: accentText ?? this.accentText,
     scan: scan ?? this.scan,
     scanSurface: scanSurface ?? this.scanSurface,
+    creatineText: creatineText ?? this.creatineText,
   );
 
   @override
@@ -141,6 +153,7 @@ class AppColors extends ThemeExtension<AppColors> {
       accentText: mix(accentText, other.accentText),
       scan: mix(scan, other.scan),
       scanSurface: mix(scanSurface, other.scanSurface),
+      creatineText: mix(creatineText, other.creatineText),
     );
   }
 }

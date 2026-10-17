@@ -1,0 +1,24 @@
+Protein Calculator does one thing: tell you how much protein you have eaten today, and how much is left to reach your goal.
+
+You set a daily goal in grams, then add what you eat during the day. For each food, you can enter the grams of protein directly, or the amount eaten and the content shown on the package (for example 26 g per 100 g): the app does the math.
+
+Foods you eat often can be saved as products. You find them in a list, or as suggestions while typing their name, and add them without typing everything again. A product can be set as your favorite to add it straight from the main screen.
+
+The history keeps each day with its total, and the detail of what you ate in the morning, afternoon and evening. An entry can be edited or deleted at any time.
+
+A day starts at 3 a.m.: what you eat after midnight counts for the day before.
+
+With a Wear OS watch:
+• the watch app shows your day and its entries, and adds a saved product or grams of protein from your wrist, even away from your phone;
+• the "Today's goal" tile shows how far you are from your goal, and adds your favorite product in one tap;
+• the "Protein of the day" complication shows your progress on your watch face.
+
+Privacy:
+• no account, no ads;
+• your data stays on your phone;
+• you can export it to a file, to keep it or move to another phone;
+• crash reports, used to fix bugs, are off by default.
+
+The app is available in English and French.
+
+Protein Calculator does not give medical advice. To set a goal that suits you, ask a health professional.

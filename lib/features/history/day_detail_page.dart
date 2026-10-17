@@ -10,6 +10,7 @@ import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
@@ -112,6 +113,27 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
           },
           goal: goal,
         ),
+        if (entries.creatineDoses > 0) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const CreatineCheck(size: 16),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  l10n.creatineDayLine(
+                    l10n.creatineDoses(entries.creatineDoses),
+                    l10n.grams(formatProtein(entries.creatineGrams, locale)),
+                  ),
+                  style: textTheme.bodyLarge!.copyWith(
+                    color: colors.creatineText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ])
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -142,7 +164,6 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
               _DismissibleEntry(
                 entry: entry,
                 color: AppColors.slot(slot),
-                grams: l10n.grams(formatProtein(entry.proteinGrams, locale)),
                 time: formatTime(entry.createdAt, locale),
                 onDelete: () => _delete(entry),
               ),
@@ -278,7 +299,6 @@ class _DismissibleEntry extends StatelessWidget {
   const _DismissibleEntry({
     required this.entry,
     required this.color,
-    required this.grams,
     required this.time,
     required this.onDelete,
   });
@@ -287,7 +307,6 @@ class _DismissibleEntry extends StatelessWidget {
 
   /// Color of the card the entry sits on.
   final Color color;
-  final String grams;
   final String time;
   final VoidCallback onDelete;
 
@@ -297,6 +316,8 @@ class _DismissibleEntry extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     const ink = AppColors.onAccent;
     final faded = ink.withValues(alpha: 0.7);
+    final creatineOnly = entry.isCreatineOnly;
+    final name = shownEntryName(entry, l10n);
 
     return SwipeToDelete(
       key: ValueKey(entry.id),
@@ -314,14 +335,30 @@ class _DismissibleEntry extends StatelessWidget {
                 Expanded(
                   child: Text.rich(
                     TextSpan(
-                      text: entry.name ?? l10n.unnamedEntry,
-                      style: entry.name == null
+                      style: name == null
                           ? textTheme.bodyMedium!.copyWith(
                               color: faded,
                               fontStyle: FontStyle.italic,
                             )
                           : textTheme.bodyMedium!.copyWith(color: ink),
                       children: [
+                        // The blue dot of creatine taken on its own.
+                        if (creatineOnly) ...[
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Container(
+                              width: 9,
+                              height: 9,
+                              decoration: BoxDecoration(
+                                color: AppColors.creatine,
+                                borderRadius: BorderRadius.circular(3),
+                                border: Border.all(color: faded),
+                              ),
+                            ),
+                          ),
+                          const TextSpan(text: ' '),
+                        ],
+                        TextSpan(text: name ?? l10n.unnamedEntry),
                         TextSpan(
                           text: '  $time',
                           style: textTheme.bodySmall!.copyWith(color: faded),
@@ -338,12 +375,23 @@ class _DismissibleEntry extends StatelessWidget {
                             ),
                           ),
                         ],
+                        if (entry.creatineDoses > 0 && !creatineOnly) ...[
+                          const TextSpan(text: ' '),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: CreatineMark(
+                              doses: entry.creatineDoses,
+                              size: 12,
+                              color: faded,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ),
-                Text(
-                  grams,
+                EntryGrams(
+                  entry: entry,
                   style: textTheme.bodyMedium!.copyWith(
                     color: ink,
                     fontWeight: FontWeight.w600,

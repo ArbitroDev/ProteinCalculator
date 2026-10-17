@@ -6,10 +6,10 @@ and, from android/, for the watch app:
     ./gradlew :wear:testDebugUnitTest -PstoreScreenshots --tests '*StoreScreenshotsTest'
 with:
     python tool/store_screenshots/compose.py
-Needs Pillow (pip install pillow). Writes, for the version of pubspec.yaml,
-store/<language>/screenshots/<n>_<language>_<version>.png (1080 x 1920),
-store/<language>/feature-graphic_<language>_<version>.png (1024 x 500) and
-store/<language>/wear/<n>_<language>_<version>.png (384 x 384).
+Needs Pillow (pip install pillow). Writes store/<language>/screenshots/<n>.png
+(1080 x 1920), store/<language>/feature-graphic.png (1024 x 500) and
+store/<language>/wear/<n>.png (384 x 384), in place of the images of the
+previous version, which the screenshot folders lose first.
 """
 import os
 import re
@@ -27,20 +27,20 @@ WHITE = (255, 255, 255)
 # Raw screenshot, theme, caption on two lines.
 SCREENS = {
     'fr': [
-        ('1-today', 'dark', 'Ton objectif protéines,', 'dans un shaker'),
-        ('2-day', 'dark', 'Chaque moment', 'de ta journée'),
-        ('3-history', 'dark', 'Ton historique', "d'un coup d'œil"),
-        ('4-products', 'dark', 'Tes produits,', 'ajoutés en un geste'),
-        ('5-entry', 'dark', 'Le calcul', 'est fait pour toi'),
-        ('1-today', 'light', 'Clair ou sombre,', 'comme tu préfères'),
+        ('1-today', 'light', 'Ton objectif et', 'ta progression du jour'),
+        ('2-day', 'light', 'Suis du matin', 'au soir'),
+        ('3-calendar', 'light', 'Ton mois', "en un coup d'œil"),
+        ('4-products', 'light', 'Tes aliments,', 'toujours sous la main'),
+        ('5-scan', 'light', 'Scanne un produit,', 'tout est rempli'),
+        ('6-entry', 'light', 'Les protéines', 'calculées pour toi'),
     ],
     'en': [
-        ('1-today', 'dark', 'Your protein goal,', 'in a shaker'),
-        ('2-day', 'dark', 'Every part', 'of your day'),
-        ('3-history', 'dark', 'Your history', 'at a glance'),
-        ('4-products', 'dark', 'Your foods,', 'added in one tap'),
-        ('5-entry', 'dark', 'The math', 'is done for you'),
-        ('1-today', 'light', 'Light or dark,', 'your choice'),
+        ('1-today', 'light', 'Your goal and', "today's progress"),
+        ('2-day', 'light', 'Track from morning', 'to night'),
+        ('3-calendar', 'light', 'Your month', 'at a glance'),
+        ('4-products', 'light', 'Your foods,', 'always at hand'),
+        ('5-scan', 'light', 'Scan a product,', "it's all filled in"),
+        ('6-entry', 'light', 'Protein,', 'worked out for you'),
     ],
 }
 # Raw screenshots of the watch app, rendered by android/wear
@@ -72,6 +72,49 @@ def rounded(image, radius):
     return out
 
 
+# EAN-13 digit patterns: left half (odd, even parity), right half.
+EAN_L = ['0001101', '0011001', '0010011', '0111101', '0100011',
+         '0110001', '0101111', '0111011', '0110111', '0001011']
+EAN_G = ['0100111', '0110011', '0011011', '0100001', '0011101',
+         '0111001', '0000101', '0010001', '0001001', '0010111']
+EAN_R = ['1110010', '1100110', '1101100', '1000010', '1011100',
+         '1001110', '1010000', '1000100', '1001000', '1110100']
+EAN_PARITY = ['LLLLLL', 'LLGLGG', 'LLGGLG', 'LLGGGL', 'LGLLGG',
+              'LGGLLG', 'LGGGLL', 'LGLGLG', 'LGLGGL', 'LGGLGL']
+
+# A made-up product code, valid but of no real product.
+BARCODE = '3761234567895'
+
+
+def ean13(code):
+    """Modules of the EAN-13 [code], 1 for a bar."""
+    parity = EAN_PARITY[int(code[0])]
+    left = ''.join(
+        (EAN_L if p == 'L' else EAN_G)[int(d)] for p, d in zip(parity, code[1:7])
+    )
+    right = ''.join(EAN_R[int(d)] for d in code[7:])
+    return '101' + left + '01010' + right + '101'
+
+
+def barcode_in_frame(raw):
+    """[raw], the scan screen without camera, with the label of a product
+    held in its frame, as the camera would show it."""
+    draw = ImageDraw.Draw(raw)
+    draw.rounded_rectangle((210, 700, 870, 1220), 36, fill=(245, 242, 235))
+    modules = ean13(BARCODE)
+    unit = 5
+    left = (1080 - len(modules) * unit) // 2
+    for index, module in enumerate(modules):
+        if module == '1':
+            x = left + index * unit
+            draw.rectangle((x, 790, x + unit - 1, 1090), fill=(20, 20, 20))
+    digits = ImageFont.truetype(OUTFIT, 44)
+    text = f'{BARCODE[0]} {BARCODE[1:7]} {BARCODE[7:]}'
+    width = draw.textlength(text, font=digits)
+    draw.text(((1080 - width) / 2, 1110), text, font=digits, fill=(20, 20, 20))
+    return raw
+
+
 def screenshot(language, shot, theme, line1, line2, path):
     canvas = Image.new('RGB', (1080, 1920), COBALT)
     draw = ImageDraw.Draw(canvas)
@@ -81,6 +124,8 @@ def screenshot(language, shot, theme, line1, line2, path):
         draw.text(((1080 - width) / 2, 90 + row * 110), text, font=title, fill=color)
 
     raw = Image.open(f'tool/store_screenshots/{language}/{theme}-{shot}.png')
+    if shot == '5-scan':
+        raw = barcode_in_frame(raw.convert('RGB'))
     height = 1560
     width = round(1080 * height / 1920)
     raw = raw.convert('RGB').resize((width, height), Image.LANCZOS)
@@ -117,19 +162,25 @@ def feature_graphic(language, path):
 with open('pubspec.yaml', encoding='utf-8') as pubspec:
     VERSION = re.search(r'^version: *([^+\s]+)', pubspec.read(), re.M).group(1)
 
+def empty(folder):
+    """Creates [folder], or removes its images: a screenshot dropped since
+    the previous version does not stay behind."""
+    os.makedirs(folder, exist_ok=True)
+    for name in os.listdir(folder):
+        if name.endswith('.png'):
+            os.remove(os.path.join(folder, name))
+
+
 for language, screens in SCREENS.items():
     folder = f'store/{language}/screenshots'
-    os.makedirs(folder, exist_ok=True)
+    empty(folder)
     for index, (shot, theme, line1, line2) in enumerate(screens, 1):
-        path = f'{folder}/{index}_{language}_{VERSION}.png'
-        screenshot(language, shot, theme, line1, line2, path)
-    feature_graphic(
-        language, f'store/{language}/feature-graphic_{language}_{VERSION}.png'
-    )
+        screenshot(language, shot, theme, line1, line2, f'{folder}/{index}.png')
+    feature_graphic(language, f'store/{language}/feature-graphic.png')
     wear = f'store/{language}/wear'
-    os.makedirs(wear, exist_ok=True)
+    empty(wear)
     for index, shot in enumerate(WATCH_SCREENS, 1):
-        watch_screenshot(language, shot, f'{wear}/{index}_{language}_{VERSION}.png')
+        watch_screenshot(language, shot, f'{wear}/{index}.png')
     print(
         f'{language} {VERSION}: {len(screens)} screenshots, the feature graphic '
         f'and {len(WATCH_SCREENS)} screenshots of the watch app'

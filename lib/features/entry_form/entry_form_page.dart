@@ -11,6 +11,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
+import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
@@ -21,6 +22,7 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/notifications_off.dart';
@@ -287,6 +289,10 @@ class _FormViewState extends ConsumerState<_FormView> {
   int _pointersDown = 0;
   bool _deactivatePending = false;
 
+  /// Whether the creatine counter shows: while creatine is tracked, or for
+  /// values holding doses. Once shown, it stays, even back to zero.
+  bool _creatineShown = false;
+
   void _onNameFocus() {
     if (_nameFocus.hasFocus) {
       _deactivatePending = false;
@@ -442,6 +448,12 @@ class _FormViewState extends ConsumerState<_FormView> {
     bool notified(DailyRoutine routine) =>
         notifications?.shows(routine) ?? true;
 
+    final creatine = ref.watch(creatineSettingsProvider).value;
+    _creatineShown =
+        _creatineShown ||
+        (creatine?.enabled ?? false) ||
+        form.creatineDoses > 0;
+
     final suggestions = args.isProduct || _hideSuggestions || !_nameActive
         ? const <Product>[]
         : ref.watch(productSuggestionsProvider(form.name));
@@ -595,6 +607,18 @@ class _FormViewState extends ConsumerState<_FormView> {
                     ),
                     const SizedBox(height: 14),
                     _Result(grams: form.amount?.proteinGrams, locale: locale),
+                  ],
+                  if (_creatineShown) ...[
+                    _Label(l10n.creatine, icon: creatineIcon),
+                    _CreatineCounter(
+                      doses: form.creatineDoses,
+                      doseGrams:
+                          form.creatineDoseGrams ??
+                          creatine?.doseGrams ??
+                          defaultCreatineDoseGrams,
+                      locale: locale,
+                      onChanged: _dismissing(_notifier.setCreatineDoses),
+                    ),
                   ],
                   if (!args.isProduct) ...[
                     _Label(l10n.formWhen),
@@ -783,20 +807,106 @@ class _BarcodeLine extends StatelessWidget {
   }
 }
 
+/// Creatine doses of the entry or of one portion of the product, with
+/// buttons to take one off or add one, and the grams they amount to.
+class _CreatineCounter extends StatelessWidget {
+  const _CreatineCounter({
+    required this.doses,
+    required this.doseGrams,
+    required this.locale,
+    required this.onChanged,
+  });
+
+  final int doses;
+
+  /// Grams of one dose.
+  final double doseGrams;
+  final String locale;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: doses > 0 ? () => onChanged(doses - 1) : null,
+            tooltip: l10n.lessCreatine,
+            icon: const Icon(LucideIcons.minus, size: 20),
+          ),
+          SizedBox(
+            width: 28,
+            child: Text(
+              '$doses',
+              textAlign: TextAlign.center,
+              style: textTheme.titleMedium,
+            ),
+          ),
+          IconButton(
+            onPressed: doses < maxCreatineDoses
+                ? () => onChanged(doses + 1)
+                : null,
+            tooltip: l10n.moreCreatine,
+            icon: const Icon(LucideIcons.plus, size: 20),
+          ),
+          const Spacer(),
+          if (doses > 0) ...[
+            CreatineMark(doses: 1, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              '${l10n.creatineDoses(doses)} · '
+              '${l10n.grams(formatProtein(doses * doseGrams, locale))}',
+              style: textTheme.bodyMedium!.copyWith(
+                color: colors.creatineText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _Label extends StatelessWidget {
-  const _Label(this.text);
+  const _Label(this.text, {this.icon});
 
   final String text;
 
+  /// Shown before the text, in the blue of creatine: only creatine has one.
+  final IconData? icon;
+
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 12, bottom: 6),
-    child: Text(
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final label = Text(
       text,
       style: Theme.of(context).textTheme.bodyMedium!
-          .copyWith(color: AppColors.of(context).textSecondary),
-    ),
-  );
+          .copyWith(color: colors.textSecondary),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 6),
+      child: icon == null
+          ? label
+          : Row(
+              children: [
+                Icon(icon, size: 16, color: colors.creatineText),
+                const SizedBox(width: 6),
+                label,
+              ],
+            ),
+    );
+  }
 }
 
 class _GramsField extends StatelessWidget {

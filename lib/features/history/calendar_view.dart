@@ -11,14 +11,16 @@ import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Calendar view of the history: the days of each month, colored by how far
-/// each went towards the goal it had. The current month comes first; the
-/// months before follow below it, back to the first goal. The month being
-/// read, the one taking the most room on screen, shows fully; the others
-/// are dimmed. Tap a day with entries to see them.
+/// each went towards the goal it had. The current month comes last, right
+/// above the legend, and shows first; the months before go up above it, back
+/// to the first goal. The month being read, the one taking the most room on
+/// screen, shows fully; the others are dimmed. Tap a day with entries to see
+/// them.
 class CalendarView extends ConsumerStatefulWidget {
   const CalendarView({super.key});
 
@@ -32,43 +34,57 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   /// Index of the month being read, 0 for the current month.
   int _focused = 0;
 
-  /// Heights of the months, from the top of the list, as last laid out.
+  /// Heights of the months, from the bottom of the list, as last laid out.
   List<double> _heights = const [];
 
   /// Height of the legend laid over the bottom of the list.
   double _bottomInset = 0;
 
+  /// Space under the current month: the legend, and the room the months
+  /// leave when they do not fill the screen.
+  double _bottomPadding = 0;
+
+  /// How far the list can still scroll up, towards the oldest month.
+  final _scrollLeft = ValueNotifier<double>(0);
+
   @override
   void initState() {
     super.initState();
-    _scroll.addListener(_updateFocus);
+    _scroll.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _scroll.dispose();
+    _scrollLeft.dispose();
     super.dispose();
   }
 
-  /// The month being read is the one taking the most room on screen.
-  void _updateFocus() {
-    if (!_scroll.hasClients) return;
+  /// On a scroll, and once the list knows its length.
+  void _onScroll() {
+    if (!_scroll.hasClients || !_scroll.position.hasContentDimensions) return;
     final position = _scroll.position;
-    // What the fade and the legend do not hide.
-    final viewTop = position.pixels + _Fade.height;
-    final viewBottom =
-        position.pixels + position.viewportDimension - _bottomInset;
-    var top = 0.0;
+    _scrollLeft.value = position.maxScrollExtent - position.pixels;
+    _updateFocus(position);
+  }
+
+  /// The month being read is the one taking the most room on screen.
+  void _updateFocus(ScrollPosition position) {
+    // The list runs upwards from the legend: its offsets count from the
+    // bottom. What the legend and the fade do not hide.
+    final viewBottom = position.pixels + _bottomInset;
+    final viewTop = position.pixels + position.viewportDimension - _Fade.height;
+    var bottom = _bottomPadding;
     var focused = 0;
     var mostVisible = 0.0;
     for (final (index, height) in _heights.indexed) {
-      final visible = min(top + height, viewBottom) - max(top, viewTop);
+      final visible = min(bottom + height, viewTop) - max(bottom, viewBottom);
       if (visible > mostVisible) {
         mostVisible = visible;
         focused = index;
       }
-      top += height;
-      if (top > viewBottom) break;
+      bottom += height;
+      if (bottom > viewTop) break;
     }
     if (focused != _focused) setState(() => _focused = focused);
   }
@@ -96,6 +112,14 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final count =
         (today.year - first.year) * 12 + today.month - first.month + 1;
     final totals = {for (final day in days) day.dayKey: day.proteinGrams};
+    final creatineDays = {
+      for (final day in days)
+        if (day.creatineDoses > 0) day.dayKey,
+    };
+    // Shown to those who track creatine, or did.
+    final creatineLegend =
+        (ref.watch(creatineSettingsProvider).value?.everEnabled ?? false) ||
+        creatineDays.isNotEmpty;
     final firstWeekday = MaterialLocalizations.of(context).firstDayOfWeekIndex;
     DateTime monthAt(int index) => DateTime(today.year, today.month - index);
 
@@ -103,8 +127,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Above the list rather than over it: laid out with the list, the
-        // first month shows right away where it stays.
+        // Above the list rather than over it: the oldest month, once
+        // reached, stops right under it.
         const Padding(
           padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: _WeekdayRow(),
@@ -126,30 +150,48 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           cell,
                         ),
                     ];
-                    return ListView.builder(
-                      controller: _scroll,
-                      // Starts right under the initials: the fade only shows once
-                      // the list scrolls. Ends right on the legend.
-                      padding: EdgeInsets.fromLTRB(
-                        _sidePadding,
-                        0,
-                        _sidePadding,
-                        _bottomInset,
-                      ),
-                      itemCount: count,
-                      // The same heights as the focus uses, so both agree.
-                      itemExtentBuilder: (index, _) =>
-                          index < count ? _heights[index] : null,
-                      itemBuilder: (context, index) => AnimatedOpacity(
-                        opacity: index == _focused ? 1 : 0.45,
-                        duration: MediaQuery.disableAnimationsOf(context)
-                            ? Duration.zero
-                            : const Duration(milliseconds: 220),
-                        child: _MonthSection(
-                          month: monthAt(index),
-                          todayKey: todayKey,
-                          totals: totals,
-                          goals: goals,
+                    // The months not filling the screen stay right under the
+                    // initials rather than on the legend: the room left goes
+                    // under the current month, where the list starts.
+                    final space =
+                        constraints.maxHeight -
+                        _bottomInset -
+                        _heights.fold(0.0, (sum, height) => sum + height);
+                    _bottomPadding = _bottomInset + max(0, space);
+                    return NotificationListener<ScrollMetricsNotification>(
+                      onNotification: (_) {
+                        _onScroll();
+                        return false;
+                      },
+                      child: ListView.builder(
+                        controller: _scroll,
+                        // From the current month, at the bottom, up to the
+                        // oldest one.
+                        reverse: true,
+                        // Ends right under the initials: the fade goes once
+                        // the oldest month shows.
+                        padding: EdgeInsets.fromLTRB(
+                          _sidePadding,
+                          0,
+                          _sidePadding,
+                          _bottomPadding,
+                        ),
+                        itemCount: count,
+                        // The same heights as the focus uses, so both agree.
+                        itemExtentBuilder: (index, _) =>
+                            index < count ? _heights[index] : null,
+                        itemBuilder: (context, index) => AnimatedOpacity(
+                          opacity: index == _focused ? 1 : 0.45,
+                          duration: MediaQuery.disableAnimationsOf(context)
+                              ? Duration.zero
+                              : const Duration(milliseconds: 220),
+                          child: _MonthSection(
+                            month: monthAt(index),
+                            todayKey: todayKey,
+                            totals: totals,
+                            creatineDays: creatineDays,
+                            goals: goals,
+                          ),
                         ),
                       ),
                     );
@@ -157,18 +199,16 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                 ),
               ),
               // The top of the list fading into the page background, so the
-              // days scrolling under the initials disappear softly. Shows as
-              // the list scrolls, so it never fades the first title at rest.
+              // days scrolling under the initials disappear softly. Goes as
+              // the oldest month comes in, so it never fades its title.
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                child: ListenableBuilder(
-                  listenable: _scroll,
-                  builder: (context, child) => Opacity(
-                    opacity: _scroll.hasClients
-                        ? (_scroll.offset / _Fade.height).clamp(0, 1)
-                        : 0,
+                child: ValueListenableBuilder(
+                  valueListenable: _scrollLeft,
+                  builder: (context, scrollLeft, child) => Opacity(
+                    opacity: (scrollLeft / _Fade.height).clamp(0, 1),
                     child: child,
                   ),
                   child: _Fade(color: background),
@@ -199,9 +239,11 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           child: ColoredBox(color: background),
                         ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: AbsorbPointer(child: _Legend()),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: AbsorbPointer(
+                          child: _Legend(creatine: creatineLegend),
+                        ),
                       ),
                     ],
                   ),
@@ -315,6 +357,7 @@ class _MonthSection extends StatelessWidget {
     required this.month,
     required this.todayKey,
     required this.totals,
+    required this.creatineDays,
     required this.goals,
   });
 
@@ -323,6 +366,9 @@ class _MonthSection extends StatelessWidget {
 
   /// Protein grams of each app day having entries.
   final Map<int, double> totals;
+
+  /// App days creatine was taken.
+  final Set<int> creatineDays;
   final List<({int dayKey, double grams})> goals;
 
   /// Height of the title above the weeks.
@@ -417,6 +463,7 @@ class _MonthSection extends StatelessWidget {
       isToday: dayKey == todayKey,
       isFuture: dayKey > todayKey,
       hasEntries: total != null,
+      creatineTaken: creatineDays.contains(dayKey),
     );
   }
 }
@@ -447,6 +494,7 @@ class _DayCell extends StatelessWidget {
     required this.isToday,
     required this.isFuture,
     required this.hasEntries,
+    required this.creatineTaken,
   });
 
   final int dayKey;
@@ -456,6 +504,7 @@ class _DayCell extends StatelessWidget {
   final bool isToday;
   final bool isFuture;
   final bool hasEntries;
+  final bool creatineTaken;
 
   @override
   Widget build(BuildContext context) {
@@ -474,12 +523,15 @@ class _DayCell extends StatelessWidget {
       if (progress == DayProgress.reached)
         // The mark of the days reaching their goal in the history.
         Icon(LucideIcons.circleCheck, size: 12, color: colors.accentText),
+      // The mark of the days creatine was taken.
+      if (creatineTaken) const CreatineCheck(size: 12),
     ];
 
     return Semantics(
       label: [
         formatLongDate(dateOfDayKey(dayKey), context.localeName),
         if (progress != null) _progressLabel(l10n, progress),
+        if (creatineTaken) l10n.creatineTaken,
       ].join(', '),
       button: hasEntries,
       excludeSemantics: true,
@@ -537,7 +589,10 @@ String _progressLabel(AppLocalizations l10n, DayProgress progress) =>
     };
 
 class _Legend extends StatelessWidget {
-  const _Legend();
+  const _Legend({required this.creatine});
+
+  /// Whether it tells the mark of the days creatine was taken.
+  final bool creatine;
 
   @override
   Widget build(BuildContext context) {
@@ -594,6 +649,32 @@ class _Legend extends StatelessWidget {
                 spacing: 12,
                 children: [
                   for (final progress in pair) Expanded(child: item(progress)),
+                ],
+              ),
+            if (creatine)
+              Row(
+                spacing: 12,
+                children: [
+                  Expanded(
+                    // No color of its own: lined up with the others, the
+                    // room of their dot left empty.
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 22),
+                        Flexible(
+                          child: Text(
+                            l10n.calendarCreatine,
+                            style: style,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const CreatineCheck(size: 12),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
                 ],
               ),
           ],

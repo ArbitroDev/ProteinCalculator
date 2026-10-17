@@ -72,6 +72,16 @@ class NotificationStatusNotifier extends AsyncNotifier<NotificationStatus> {
   }
 }
 
+/// The automatic additions of [products] adding protein, which fill a part
+/// of the day before it is over: no reminder for it. Creatine taken on its
+/// own fills none.
+List<AutoAddRoutine> slotFillingAutoAdds(Iterable<Product> products) => [
+  for (final product in products)
+    if (product.routineMinutes case final minutes?
+        when product.amount.proteinGrams > 0)
+      (minutes: minutes, checkedAt: product.routineCheckedAt),
+];
+
 /// Keeps the daily routines of the products running while the app runs:
 /// plans their notifications, and adds the products added automatically at
 /// their time and when the app comes back to the foreground. Also plans the
@@ -208,12 +218,9 @@ class _RoutineRunner {
               slotReminderDayKeys(current).first,
             )
           : const {},
-      autoAdds: [
-        if (enabled)
-          for (final product in await db.productsDao.getAutoAdds())
-            if (product.routineMinutes case final minutes?)
-              (minutes: minutes, checkedAt: product.routineCheckedAt),
-      ],
+      autoAdds: enabled
+          ? slotFillingAutoAdds(await db.productsDao.getAutoAdds())
+          : const [],
     );
     if (_disposed) return;
     // The texts follow the language of the phone, and the reminders show

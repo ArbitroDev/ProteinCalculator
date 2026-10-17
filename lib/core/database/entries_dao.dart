@@ -5,21 +5,30 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/tables.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 
 part 'entries_dao.g.dart';
 
-/// Protein total of one app day, split by part of the day.
+/// Protein total of one app day, split by part of the day, and its creatine
+/// doses.
 @immutable
 class DaySummary {
-  const DaySummary({required this.dayKey, required this.bySlot});
+  const DaySummary({
+    required this.dayKey,
+    required this.bySlot,
+    this.creatineDoses = 0,
+  });
 
   final int dayKey;
 
   /// Protein grams per part of the day; parts without entries are absent.
   final Map<DaySlot, double> bySlot;
+
+  /// Creatine doses of all the entries of the day.
+  final int creatineDoses;
 
   double get proteinGrams => bySlot.values.sum;
 
@@ -27,14 +36,18 @@ class DaySummary {
   bool operator ==(Object other) =>
       other is DaySummary &&
       other.dayKey == dayKey &&
-      const MapEquality<DaySlot, double>().equals(other.bySlot, bySlot);
+      const MapEquality<DaySlot, double>().equals(other.bySlot, bySlot) &&
+      other.creatineDoses == creatineDoses;
 
   @override
-  int get hashCode =>
-      Object.hash(dayKey, const MapEquality<DaySlot, double>().hash(bySlot));
+  int get hashCode => Object.hash(
+    dayKey,
+    const MapEquality<DaySlot, double>().hash(bySlot),
+    creatineDoses,
+  );
 
   @override
-  String toString() => 'DaySummary($dayKey, $bySlot)';
+  String toString() => 'DaySummary($dayKey, $bySlot, $creatineDoses doses)';
 }
 
 @DriftAccessor(tables: [Entries, Products])
@@ -42,24 +55,34 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   EntriesDao(super.attachedDatabase);
 
   /// Days having at least one entry, most recent first, with their protein
-  /// totals by part of the day, summed by the database.
+  /// totals by part of the day and their creatine doses, summed by the
+  /// database.
   Stream<List<DaySummary>> watchHistory() {
     final total = entries.proteinGrams.sum();
+    final doses = entries.creatineDoses.sum();
     final query = selectOnly(entries)
-      ..addColumns([entries.dayKey, entries.slot, total])
+      ..addColumns([entries.dayKey, entries.slot, total, doses])
       ..groupBy([entries.dayKey, entries.slot])
       ..orderBy([OrderingTerm.desc(entries.dayKey)]);
     return query.watch().map((rows) {
       final days = <int, Map<DaySlot, double>>{};
+      final dosesByDay = <int, int>{};
       for (final row in rows) {
-        days.putIfAbsent(row.read(entries.dayKey)!, () => {})[row
-            .readWithConverter(entries.slot)!] = row.read(
+        final dayKey = row.read(entries.dayKey)!;
+        days.putIfAbsent(dayKey, () => {})[row.readWithConverter(
+          entries.slot,
+        )!] = row.read(
           total,
         )!;
+        dosesByDay[dayKey] = (dosesByDay[dayKey] ?? 0) + row.read(doses)!;
       }
       return [
         for (final MapEntry(key: dayKey, value: bySlot) in days.entries)
-          DaySummary(dayKey: dayKey, bySlot: bySlot),
+          DaySummary(
+            dayKey: dayKey,
+            bySlot: bySlot,
+            creatineDoses: dosesByDay[dayKey]!,
+          ),
       ];
     });
   }
@@ -75,12 +98,16 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     return query.watch();
   }
 
-  /// Parts of the days from [dayKey] onwards having at least one entry, as
-  /// `(dayKey, slot)`.
+  /// Parts of the days from [dayKey] onwards having at least one entry of
+  /// protein, as `(dayKey, slot)`: creatine taken on its own does not fill
+  /// them.
   Future<Set<(int, DaySlot)>> filledSlotsFrom(int dayKey) async {
     final query = selectOnly(entries, distinct: true)
       ..addColumns([entries.dayKey, entries.slot])
-      ..where(entries.dayKey.isBiggerOrEqualValue(dayKey));
+      ..where(
+        entries.dayKey.isBiggerOrEqualValue(dayKey) &
+            entries.proteinGrams.isBiggerThanValue(0),
+      );
     return {
       for (final row in await query.get())
         (row.read(entries.dayKey)!, row.readWithConverter(entries.slot)!),
@@ -90,12 +117,14 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
   Future<Entry?> getEntry(int id) =>
       (select(entries)..where((e) => e.id.equals(id))).getSingleOrNull();
 
-  /// Adds an entry, a use of the product having the same name.
+  /// Adds an entry, a use of the product having the same name. Its
+  /// [creatineDoses] take the grams of the dose in force.
   Future<int> insertEntry({
     String? name,
     required ProteinAmount amount,
     required DateTime createdAt,
     bool fromWatch = false,
+    int creatineDoses = 0,
   }) {
     final columns = amountColumns(amount);
     return transaction(() async {
@@ -113,12 +142,29 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
           dayKey: dayKeyOf(createdAt),
           slot: Value(DaySlot.of(createdAt)),
           fromWatch: Value(fromWatch),
+          creatineDoses: Value(creatineDoses),
+          creatineDoseGrams: Value(
+            creatineDoses > 0 ? await _creatineDoseGrams() : null,
+          ),
         ),
       );
       await attachedDatabase.refreshUses(entryNameKey(name));
       return id;
     });
   }
+
+  /// Grams of one creatine dose, for the doses added now.
+  Future<double> _creatineDoseGrams() async =>
+      (await attachedDatabase.settingsDao.getCreatine()).doseGrams ??
+      defaultCreatineDoseGrams;
+
+  /// Adds one creatine dose taken on its own: an entry without a name nor
+  /// protein.
+  Future<int> addCreatineDose({required DateTime createdAt}) => insertEntry(
+    amount: const DirectAmount(0),
+    createdAt: createdAt,
+    creatineDoses: 1,
+  );
 
   /// Adds one portion of [product] at [createdAt], as the product says.
   Future<int> addPortion(
@@ -130,12 +176,14 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     amount: product.amount,
     createdAt: createdAt,
     fromWatch: fromWatch,
+    creatineDoses: product.creatineDoses,
   );
 
   /// Saves the edited values of an existing entry, and the uses of products
   /// follow a name change. Its time, app day and part of the day are kept,
   /// unless [createdAt] moves it to another minute, as times are picked:
-  /// they then follow it.
+  /// they then follow it. Its creatine doses keep the grams of their dose,
+  /// or take the dose in force if they had none.
   Future<void> updateEntry(Entry entry, {DateTime? createdAt}) {
     return transaction(() async {
       final previous = await getEntry(entry.id);
@@ -150,6 +198,11 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
         createdAt: time,
         dayKey: moved ? dayKeyOf(time) : previous.dayKey,
         slot: moved ? DaySlot.of(time) : previous.slot,
+        creatineDoseGrams: Value(
+          entry.creatineDoses == 0
+              ? null
+              : entry.creatineDoseGrams ?? await _creatineDoseGrams(),
+        ),
       );
       await update(entries).replace(updated);
       await _refreshUses({previous.nameKey, updated.nameKey});
