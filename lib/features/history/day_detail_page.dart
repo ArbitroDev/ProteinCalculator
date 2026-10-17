@@ -117,11 +117,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
           const SizedBox(height: 10),
           Row(
             children: [
-              Icon(
-                LucideIcons.circleCheck,
-                size: 16,
-                color: colors.creatineText,
-              ),
+              const CreatineCheck(size: 16),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
@@ -168,10 +164,6 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
               _DismissibleEntry(
                 entry: entry,
                 color: AppColors.slot(slot),
-                // Creatine taken on its own shows its own grams.
-                grams: entry.isCreatineOnly
-                    ? l10n.grams(formatProtein(entry.creatineGrams, locale))
-                    : l10n.grams(formatProtein(entry.proteinGrams, locale)),
                 time: formatTime(entry.createdAt, locale),
                 onDelete: () => _delete(entry),
               ),
@@ -307,7 +299,6 @@ class _DismissibleEntry extends StatelessWidget {
   const _DismissibleEntry({
     required this.entry,
     required this.color,
-    required this.grams,
     required this.time,
     required this.onDelete,
   });
@@ -316,7 +307,6 @@ class _DismissibleEntry extends StatelessWidget {
 
   /// Color of the card the entry sits on.
   final Color color;
-  final String grams;
   final String time;
   final VoidCallback onDelete;
 
@@ -327,7 +317,7 @@ class _DismissibleEntry extends StatelessWidget {
     const ink = AppColors.onAccent;
     final faded = ink.withValues(alpha: 0.7);
     final creatineOnly = entry.isCreatineOnly;
-    final name = entry.name ?? (creatineOnly ? l10n.creatine : null);
+    final name = shownEntryName(entry, l10n);
 
     return SwipeToDelete(
       key: ValueKey(entry.id),
@@ -400,16 +390,11 @@ class _DismissibleEntry extends StatelessWidget {
                     ),
                   ),
                 ),
-                Semantics(
-                  // Grams of creatine, not of protein, for screen readers.
-                  label: creatineOnly ? l10n.creatineGrams(grams) : null,
-                  excludeSemantics: creatineOnly,
-                  child: Text(
-                    grams,
-                    style: textTheme.bodyMedium!.copyWith(
-                      color: ink,
-                      fontWeight: FontWeight.w600,
-                    ),
+                EntryGrams(
+                  entry: entry,
+                  style: textTheme.bodyMedium!.copyWith(
+                    color: ink,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],

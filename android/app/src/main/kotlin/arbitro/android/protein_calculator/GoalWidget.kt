@@ -30,8 +30,8 @@ import org.json.JSONObject
  * Widget "Today's goal" of the home screen, 1 x 1: a ring filling towards
  * the goal of the day, open at the bottom, the protein total alone in its
  * middle, orange once the goal is reached, and the goal in the opening,
- * followed by a blue check once creatine is taken. An empty shaker until the first launch is done. A tap
- * opens the app.
+ * followed by a blue check once creatine is taken. An empty shaker until the
+ * first launch is done. A tap opens the app.
  *
  * The app writes the day each time it changes, see `updateHomeWidget` in
  * lib/core/home_widget.dart. At the hour the app days start, the widget starts
@@ -55,7 +55,11 @@ class GoalWidget : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action == ACTION_NEW_DAY) updateAll(context)
+        if (intent.action == ACTION_NEW_DAY) {
+            val manager = AppWidgetManager.getInstance(context)
+            val ids = manager.getAppWidgetIds(ComponentName(context, GoalWidget::class.java))
+            if (ids.isNotEmpty()) onUpdate(context, manager, ids)
+        }
     }
 
     override fun onDisabled(context: Context) {
@@ -252,18 +256,6 @@ class GoalWidget : AppWidgetProvider() {
             creatine = 0xFF3FA9F5.toInt(),
         )
 
-        /** Updates every widget placed, with the day the app wrote last. */
-        fun updateAll(context: Context) {
-            val manager = AppWidgetManager.getInstance(context)
-            val ids = manager.getAppWidgetIds(ComponentName(context, GoalWidget::class.java))
-            if (ids.isEmpty()) return
-            context.sendBroadcast(
-                Intent(context, GoalWidget::class.java)
-                    .setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
-                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids),
-            )
-        }
-
         /** App day of now, as `yyyymmdd`: it starts at [dayStartHour]. */
         private fun currentDayKey(dayStartHour: Int): Int {
             val date = LocalDateTime.now().minusHours(dayStartHour.toLong()).toLocalDate()
@@ -276,11 +268,16 @@ class GoalWidget : AppWidgetProvider() {
         private fun grams(grams: Double): String =
             NumberFormat.getIntegerInstance().format(truncate(grams).toLong())
 
+        /** Fonts of the app, read once from its assets. */
+        private val fonts = mutableMapOf<String, Typeface>()
+
         private fun font(context: Context, name: String, fallback: Typeface): Typeface =
-            try {
-                Typeface.createFromAsset(context.assets, "flutter_assets/assets/fonts/$name")
-            } catch (_: RuntimeException) {
-                fallback
+            fonts.getOrPut(name) {
+                try {
+                    Typeface.createFromAsset(context.assets, "flutter_assets/assets/fonts/$name")
+                } catch (_: RuntimeException) {
+                    fallback
+                }
             }
 
         private fun alarms(context: Context) = context.getSystemService(AlarmManager::class.java)

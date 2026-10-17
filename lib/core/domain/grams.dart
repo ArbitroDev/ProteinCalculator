@@ -23,8 +23,10 @@ bool isValidFoodGrams(double grams) =>
 /// Whether [grams] is a protein amount the forms accept: above zero, at
 /// most [maxProteinGrams], with one decimal at most.
 bool isValidProteinGrams(double grams) =>
-    grams > 0 &&
-    grams <= maxProteinGrams &&
+    grams > 0 && grams <= maxProteinGrams && hasOneDecimalAtMost(grams);
+
+/// Whether [grams] has one decimal at most, as the forms let type.
+bool hasOneDecimalAtMost(double grams) =>
     (grams * 10 - (grams * 10).roundToDouble()).abs() < 1e-6;
 
 /// Whether [grams] is the protein amount of an entry or a product holding

@@ -70,7 +70,6 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
         return tile.build()
     }
 
-    /** Layout of the tile showing [screen]; also drawn by the store screenshots. */
     /**
      * Whether creatine was taken today, while the user tracks it: nothing
      * otherwise.
@@ -93,6 +92,7 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
         else -> emptyArray()
     }
 
+    /** Layout of the tile showing [screen]; also drawn by the store screenshots. */
     internal fun MaterialScope.layout(screen: WatchScreen, addedId: Long?): LayoutElement {
         val open = clickable(launchAction(ComponentName(context, MainActivity::class.java)), OPEN)
         if (screen !is WatchScreen.Day) {

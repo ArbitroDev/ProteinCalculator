@@ -11,6 +11,7 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/empty_state.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/pill_tabs.dart';
@@ -126,12 +127,7 @@ class _DayTile extends StatelessWidget {
                 // The mark of the days creatine was taken, then that of the
                 // goal reached.
                 if (day.creatineDoses > 0) ...[
-                  Icon(
-                    LucideIcons.circleCheck,
-                    size: 16,
-                    color: colors.creatineText,
-                    semanticLabel: l10n.creatineTaken,
-                  ),
+                  const CreatineCheck(size: 16, labelled: true),
                   const SizedBox(width: 5),
                 ],
                 if (reached) ...[

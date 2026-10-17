@@ -336,12 +336,7 @@ class _Summary extends StatelessWidget {
                 const TextSpan(text: ' · '),
                 WidgetSpan(
                   alignment: PlaceholderAlignment.middle,
-                  child: Icon(
-                    LucideIcons.circleCheck,
-                    size: 16,
-                    color: colors.creatineText,
-                    semanticLabel: l10n.creatineTaken,
-                  ),
+                  child: const CreatineCheck(size: 16, labelled: true),
                 ),
               ],
             ],
@@ -524,7 +519,7 @@ class _EntryLabel extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     // Creatine taken on its own is named so, and shows its own grams.
     final creatineOnly = entry.isCreatineOnly;
-    final name = entry.name ?? (creatineOnly ? l10n.creatine : null);
+    final name = shownEntryName(entry, l10n);
 
     // Clipped, so the red background of the swipe keeps the rounded corners.
     return ClipRRect(
@@ -600,22 +595,7 @@ class _EntryLabel extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  if (creatineOnly)
-                    Semantics(
-                      label: l10n.creatineGrams(
-                        l10n.grams(formatProtein(entry.creatineGrams, locale)),
-                      ),
-                      excludeSemantics: true,
-                      child: Text(
-                        l10n.grams(formatProtein(entry.creatineGrams, locale)),
-                        style: textTheme.titleMedium,
-                      ),
-                    )
-                  else
-                    Text(
-                      l10n.grams(formatProtein(entry.proteinGrams, locale)),
-                      style: textTheme.titleMedium,
-                    ),
+                  EntryGrams(entry: entry, style: textTheme.titleMedium),
                 ],
               ),
             ),

@@ -16,7 +16,11 @@ name=$1
 
 current=$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *//' | tr -d '\r')
 current_name=${current%%+*}
-build=${current#*+}
+if [[ ! "$current" =~ \+([0-9]+)$ ]]; then
+  echo "The version of pubspec.yaml, $current, has no build number." >&2
+  exit 1
+fi
+build=${BASH_REMATCH[1]}
 newer=$(printf '%s\n%s\n' "$current_name" "$name" | sort -V | tail -n 1)
 if [[ "$name" == "$current_name" || "$newer" != "$name" ]]; then
   echo "Version $name must be greater than the current one, $current_name." >&2

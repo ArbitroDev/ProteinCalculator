@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:protein_calculator/core/domain/grams.dart';
 
 /// Smallest and largest creatine dose, in grams with one decimal at most,
 /// and the dose offered when creatine is first turned on.
@@ -15,7 +16,7 @@ const maxCreatineDoses = 9;
 bool isValidCreatineDoseGrams(double grams) =>
     grams >= minCreatineDoseGrams &&
     grams <= maxCreatineDoseGrams &&
-    (grams * 10 - (grams * 10).roundToDouble()).abs() < 1e-6;
+    hasOneDecimalAtMost(grams);
 
 /// Whether [doses] is a number of creatine doses an entry or a product can
 /// hold: from 0 to [maxCreatineDoses].

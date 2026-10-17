@@ -72,11 +72,6 @@ class NotificationStatusNotifier extends AsyncNotifier<NotificationStatus> {
   }
 }
 
-/// Keeps the daily routines of the products running while the app runs:
-/// plans their notifications, and adds the products added automatically at
-/// their time and when the app comes back to the foreground. Also plans the
-/// reminders of the parts of the day left empty, see [SlotReminder], each
-/// time the data changes.
 /// The automatic additions of [products] adding protein, which fill a part
 /// of the day before it is over: no reminder for it. Creatine taken on its
 /// own fills none.
@@ -87,6 +82,11 @@ List<AutoAddRoutine> slotFillingAutoAdds(Iterable<Product> products) => [
       (minutes: minutes, checkedAt: product.routineCheckedAt),
 ];
 
+/// Keeps the daily routines of the products running while the app runs:
+/// plans their notifications, and adds the products added automatically at
+/// their time and when the app comes back to the foreground. Also plans the
+/// reminders of the parts of the day left empty, see [SlotReminder], each
+/// time the data changes.
 final dailyRoutinesProvider = Provider<void>((ref) {
   final runner = _RoutineRunner(
     db: ref.watch(databaseProvider),

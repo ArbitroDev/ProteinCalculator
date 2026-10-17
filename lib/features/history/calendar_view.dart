@@ -11,15 +11,16 @@ import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Calendar view of the history: the days of each month, colored by how far
 /// each went towards the goal it had. The current month comes last, right
 /// above the legend, and shows first; the months before go up above it, back
-/// to the first goal. The month being
-/// read, the one taking the most room on screen, shows fully; the others
-/// are dimmed. Tap a day with entries to see them.
+/// to the first goal. The month being read, the one taking the most room on
+/// screen, shows fully; the others are dimmed. Tap a day with entries to see
+/// them.
 class CalendarView extends ConsumerStatefulWidget {
   const CalendarView({super.key});
 
@@ -523,8 +524,7 @@ class _DayCell extends StatelessWidget {
         // The mark of the days reaching their goal in the history.
         Icon(LucideIcons.circleCheck, size: 12, color: colors.accentText),
       // The mark of the days creatine was taken.
-      if (creatineTaken)
-        Icon(LucideIcons.circleCheck, size: 12, color: colors.creatineText),
+      if (creatineTaken) const CreatineCheck(size: 12),
     ];
 
     return Semantics(
@@ -670,11 +670,7 @@ class _Legend extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(
-                          LucideIcons.circleCheck,
-                          size: 12,
-                          color: colors.creatineText,
-                        ),
+                        const CreatineCheck(size: 12),
                       ],
                     ),
                   ),
