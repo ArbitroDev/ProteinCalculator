@@ -56,14 +56,20 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    /// Scrolls down to the month before.
+    /// The list of the months, the current one at the bottom: the only
+    /// scrollable going up, the weeks of each month not scrolling.
+    final months = find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable && widget.axisDirection == AxisDirection.up,
+    );
+
+    /// Scrolls up to the month before, its title last.
     Future<void> showSeptember(WidgetTester tester) async {
       await tester.scrollUntilVisible(
         find.text('September 2026'),
         300,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: months,
       );
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -300));
       await tester.pumpAndSettle();
     }
 
@@ -126,7 +132,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.text('August 2026'),
         300,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: months,
       );
       expect(find.text('August 2026'), findsOneWidget);
       await disposeApp(tester, db);
@@ -136,9 +142,12 @@ void main() {
       await addEntry('Skyr', 15, DateTime(2026, 10, 1, 8));
       await openCalendar(tester);
 
-      await tester.tap(
-        find.bySemanticsLabel(RegExp('^Thursday, October 1')).first,
-      );
+      // The first week, above the screen of the tests.
+      final october1 = find.bySemanticsLabel(RegExp('^Thursday, October 1'));
+      await tester.scrollUntilVisible(october1.first, 100, scrollable: months);
+      await tester.drag(months, const Offset(0, 100));
+      await tester.pumpAndSettle();
+      await tester.tap(october1.first);
       await tester.pumpAndSettle();
 
       // The entry, in the detail of the day.
