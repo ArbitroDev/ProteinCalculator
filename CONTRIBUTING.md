@@ -49,6 +49,13 @@ request can only be merged once all checks pass.
   the changelog.
 - The full changelog of the GitHub release is generated from the commit
   titles since the previous version: keep them meaningful.
+- The Google Play listing comes from the `store` folder: for each language
+  (`fr`, `en`), `title.txt`, `short_description.txt`, `full_description.txt`,
+  `feature-graphic.png`, `screenshots/<n>.png` and `wear/<n>.png`, with
+  `icon-512.png` for both. `python tool/store_screenshots/compose.py` writes
+  the images, in place of the previous ones. The **Store listing** workflow,
+  run by hand only, sends them to Google Play and replaces the listing shown;
+  its dry run checks it without publishing.
 
 ### Actions used by the workflows
 

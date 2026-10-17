@@ -6,10 +6,10 @@ and, from android/, for the watch app:
     ./gradlew :wear:testDebugUnitTest -PstoreScreenshots --tests '*StoreScreenshotsTest'
 with:
     python tool/store_screenshots/compose.py
-Needs Pillow (pip install pillow). Writes, for the version of pubspec.yaml,
-store/<language>/screenshots/<n>_<language>_<version>.png (1080 x 1920),
-store/<language>/feature-graphic_<language>_<version>.png (1024 x 500) and
-store/<language>/wear/<n>_<language>_<version>.png (384 x 384).
+Needs Pillow (pip install pillow). Writes store/<language>/screenshots/<n>.png
+(1080 x 1920), store/<language>/feature-graphic.png (1024 x 500) and
+store/<language>/wear/<n>.png (384 x 384), in place of the images of the
+previous version, which the screenshot folders lose first.
 """
 import os
 import re
@@ -117,19 +117,25 @@ def feature_graphic(language, path):
 with open('pubspec.yaml', encoding='utf-8') as pubspec:
     VERSION = re.search(r'^version: *([^+\s]+)', pubspec.read(), re.M).group(1)
 
+def empty(folder):
+    """Creates [folder], or removes its images: a screenshot dropped since
+    the previous version does not stay behind."""
+    os.makedirs(folder, exist_ok=True)
+    for name in os.listdir(folder):
+        if name.endswith('.png'):
+            os.remove(os.path.join(folder, name))
+
+
 for language, screens in SCREENS.items():
     folder = f'store/{language}/screenshots'
-    os.makedirs(folder, exist_ok=True)
+    empty(folder)
     for index, (shot, theme, line1, line2) in enumerate(screens, 1):
-        path = f'{folder}/{index}_{language}_{VERSION}.png'
-        screenshot(language, shot, theme, line1, line2, path)
-    feature_graphic(
-        language, f'store/{language}/feature-graphic_{language}_{VERSION}.png'
-    )
+        screenshot(language, shot, theme, line1, line2, f'{folder}/{index}.png')
+    feature_graphic(language, f'store/{language}/feature-graphic.png')
     wear = f'store/{language}/wear'
-    os.makedirs(wear, exist_ok=True)
+    empty(wear)
     for index, shot in enumerate(WATCH_SCREENS, 1):
-        watch_screenshot(language, shot, f'{wear}/{index}_{language}_{VERSION}.png')
+        watch_screenshot(language, shot, f'{wear}/{index}.png')
     print(
         f'{language} {VERSION}: {len(screens)} screenshots, the feature graphic '
         f'and {len(WATCH_SCREENS)} screenshots of the watch app'

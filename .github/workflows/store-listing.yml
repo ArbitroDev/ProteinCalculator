@@ -1,0 +1,45 @@
+name: Store listing
+
+# Updates the main Google Play listing, French and English, from the store
+# folder: titles, descriptions, icon, feature graphic and the screenshots of
+# the phone and of the watch, which replace those shown. Run by hand only,
+# once the store folder is up to date on the branch it runs on.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Check the listing with Google Play without publishing it
+        type: boolean
+        default: false
+
+concurrency:
+  group: store-listing
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  listing:
+    name: Update the listing
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install the Google Play client
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --quiet \
+            google-api-python-client==2.149.0 google-auth==2.35.0
+
+      - name: Show what is sent
+        run: .venv/bin/python .github/scripts/update_store_listing.py --plan
+
+      - name: Update the listing on Google Play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          .venv/bin/python .github/scripts/update_store_listing.py \
+            ${{ inputs.dry_run && '--dry-run' || '' }}
