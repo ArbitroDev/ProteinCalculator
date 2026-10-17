@@ -175,6 +175,7 @@ private fun dayStateOf(arguments: Any?): DayState? {
                 )
             },
             handled = (map["handled"] as List<*>).map { it as String },
+            creatineEnabled = map["creatineEnabled"] as Boolean,
         )
     } catch (_: ClassCastException) {
         null

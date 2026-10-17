@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Protein Calculator</string>
-    <string name="tile_label">Protein of the day</string>
-    <string name="tile_title">Protein</string>
+    <string name="tile_label">Today\'s goal</string>
+    <string name="tile_title">Today\'s goal</string>
+    <string name="tile_creatine_taken">✓ Creatine</string>
+    <string name="tile_creatine_to_take">Creatine to take</string>
     <string name="complication_label">Protein of the day</string>
     <string name="complication_description">%1$s g of protein out of %2$s g</string>
     <string name="grams">%1$s g</string>

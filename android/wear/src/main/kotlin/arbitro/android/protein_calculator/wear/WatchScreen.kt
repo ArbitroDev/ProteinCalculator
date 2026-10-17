@@ -28,6 +28,9 @@ sealed interface WatchScreen {
         /** When the phone sent this day, in milliseconds since the epoch. */
         val updatedAt: Long,
         val phoneNearby: Boolean,
+        /** Whether the user tracks creatine, and whether a dose was taken today. */
+        val creatineEnabled: Boolean = false,
+        val creatineTaken: Boolean = false,
     ) : WatchScreen
 }
 
@@ -76,26 +79,29 @@ fun watchScreenOf(saved: Saved, phoneNearby: Boolean, now: Long, zone: ZoneId): 
     val deleted = saved.deletions.map { it.entryId }.toSet()
     val (gone, sent) = (if (today > state.day) emptyList() else state.entries).partition { it.id in deleted }
     val total = if (today > state.day) 0.0 else (state.total - gone.sumOf { it.protein }).coerceAtLeast(0.0)
+    val entries = (
+        sent.map {
+            DayEntry(
+                it.id, null, it.name, it.protein, it.time, it.fromWatch, pending = false,
+                creatineDoses = it.creatineDoses, creatineGrams = it.creatineGrams,
+            )
+        } +
+            waiting.map {
+                DayEntry(
+                    null, it.id, it.name, it.protein, it.addedAt, fromWatch = true, pending = true,
+                    creatineDoses = it.creatineDoses,
+                )
+            }
+        ).sortedByDescending { it.time }
     return WatchScreen.Day(
         total = total + pending,
         pending = pending,
         goal = goal,
-        entries = (
-            sent.map {
-                DayEntry(
-                    it.id, null, it.name, it.protein, it.time, it.fromWatch, pending = false,
-                    creatineDoses = it.creatineDoses, creatineGrams = it.creatineGrams,
-                )
-            } +
-                waiting.map {
-                    DayEntry(
-                        null, it.id, it.name, it.protein, it.addedAt, fromWatch = true, pending = true,
-                        creatineDoses = it.creatineDoses,
-                    )
-                }
-            ).sortedByDescending { it.time },
+        entries = entries,
         products = state.products,
         updatedAt = saved.receivedAt ?: now,
         phoneNearby = phoneNearby,
+        creatineEnabled = state.creatineEnabled,
+        creatineTaken = entries.any { it.creatineDoses > 0 },
     )
 }

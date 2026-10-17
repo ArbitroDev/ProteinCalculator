@@ -71,6 +71,28 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
     }
 
     /** Layout of the tile showing [screen]; also drawn by the store screenshots. */
+    /**
+     * Whether creatine was taken today, while the user tracks it: nothing
+     * otherwise.
+     */
+    private fun MaterialScope.creatine(screen: WatchScreen.Day): Array<LayoutElement> = when {
+        screen.creatineTaken -> arrayOf(
+            text(
+                LayoutString(context.getString(R.string.tile_creatine_taken)),
+                typography = Typography.BODY_SMALL,
+                color = LayoutColor(WatchColors.creatine.toArgb()),
+            ),
+        )
+        screen.creatineEnabled -> arrayOf(
+            text(
+                LayoutString(context.getString(R.string.tile_creatine_to_take)),
+                typography = Typography.BODY_SMALL,
+                color = LayoutColor(TEXT_SECONDARY),
+            ),
+        )
+        else -> emptyArray()
+    }
+
     internal fun MaterialScope.layout(screen: WatchScreen, addedId: Long?): LayoutElement {
         val open = clickable(launchAction(ComponentName(context, MainActivity::class.java)), OPEN)
         if (screen !is WatchScreen.Day) {
@@ -101,6 +123,7 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
                         typography = Typography.BODY_SMALL,
                         color = LayoutColor(TEXT_SECONDARY),
                     ),
+                    *creatine(screen),
                 )
             },
             bottomSlot = favorite?.let { product ->

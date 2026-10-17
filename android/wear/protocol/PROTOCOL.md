@@ -64,6 +64,7 @@ reads the states and the answers of version 2 only.
 | `entries[].creatineGrams` | Grams of creatine of those doses, from the dose they were taken with. |
 | `products[].protein` | Protein grams of one portion: above zero, or zero with at least one dose. |
 | `products[].creatineDoses` | Creatine doses of one portion, from 0 to 9. |
+| `creatineEnabled` | Whether the user tracks creatine: the tile then tells whether a dose was taken that day. |
 
 ```json
 {

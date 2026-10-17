@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget "Today's goal", 1 x 1, on the home screen and, where the phone
+     allows it, on the lock screen. The app updates it at each change; every
+     30 minutes, it also checks whether a new app day started. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:resizeMode="none"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/goal_widget"
+    android:previewImage="@drawable/goal_widget_preview"
+    android:description="@string/goal_widget_description"
+    android:widgetCategory="home_screen|keyguard" />

@@ -62,6 +62,18 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Widget "Today's goal" of the home screen, see GoalWidget. -->
+        <receiver
+            android:name=".GoalWidget"
+            android:exported="false"
+            android:label="@string/goal_widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/goal_widget_info" />
+        </receiver>
         <!-- Notifications of the daily routines: shown at their time, planned
              again after a restart, and their buttons. -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />

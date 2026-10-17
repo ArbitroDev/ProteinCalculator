@@ -38,6 +38,8 @@ data class DayState(
      * too.
      */
     val handled: List<String>,
+    /** Whether the user tracks creatine: the tile tells whether it was taken. */
+    val creatineEnabled: Boolean = false,
 ) {
     internal fun isValid(): Boolean =
         isValidDay(day) &&

@@ -19,6 +19,7 @@ class WatchState {
     required this.entries,
     required this.products,
     required this.handled,
+    this.creatineEnabled = false,
   });
 
   /// State of the app day [dayKey], from its [entries], its [goal] and the
@@ -30,6 +31,7 @@ class WatchState {
     required double? goal,
     required Iterable<Product> products,
     required List<String> handled,
+    bool creatineEnabled = false,
   }) => WatchState(
     dayKey: dayKey,
     dayStartHour: dayStartHour,
@@ -58,6 +60,7 @@ class WatchState {
         ),
     ],
     handled: handled,
+    creatineEnabled: creatineEnabled,
   );
 
   final int dayKey;
@@ -80,6 +83,10 @@ class WatchState {
   /// [handledSince]: the watch stops sending those whose answer it did not
   /// get.
   final List<String> handled;
+
+  /// Whether the user tracks creatine: the tile of the watch then tells
+  /// whether it was taken.
+  final bool creatineEnabled;
 
   /// Values taken by `sendWatchState` of the plugin `watch_link`.
   Map<String, Object?> toChannel() => {
@@ -110,6 +117,7 @@ class WatchState {
         },
     ],
     'handled': handled,
+    'creatineEnabled': creatineEnabled,
   };
 
   @override
@@ -121,7 +129,8 @@ class WatchState {
       other.goal == goal &&
       const ListEquality<WatchEntry>().equals(other.entries, entries) &&
       const ListEquality<WatchProduct>().equals(other.products, products) &&
-      const ListEquality<String>().equals(other.handled, handled);
+      const ListEquality<String>().equals(other.handled, handled) &&
+      other.creatineEnabled == creatineEnabled;
 
   @override
   int get hashCode => Object.hash(
@@ -132,6 +141,7 @@ class WatchState {
     const ListEquality<WatchEntry>().hash(entries),
     const ListEquality<WatchProduct>().hash(products),
     const ListEquality<String>().hash(handled),
+    creatineEnabled,
   );
 }
 
@@ -237,6 +247,7 @@ Future<WatchState> readWatchState(AppDatabase db, DateTime now) async {
         await db.settingsDao.getDailyGoal(),
     products: await db.productsDao.watchAll(sort).first,
     handled: await db.watchDao.watchHandledSince(handledSince(dayKey)).first,
+    creatineEnabled: (await db.settingsDao.getCreatine()).enabled,
   );
 }
 

@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/core/background_changes.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/home_widget.dart';
 import 'package:protein_calculator/core/notifications.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/watch/watch_addition.dart';
@@ -66,7 +67,10 @@ final watchStateProvider = Provider<WatchState?>((ref) {
   if (dayKey == null || dayStartHour == null || products == null) return null;
   final entries = ref.watch(dayEntriesProvider(dayKey)).value;
   final handled = ref.watch(watchHandledProvider(dayKey)).value;
-  if (entries == null || handled == null || !goalsLoaded) return null;
+  final creatine = ref.watch(creatineSettingsProvider).value;
+  if (entries == null || handled == null || creatine == null || !goalsLoaded) {
+    return null;
+  }
   return WatchState.of(
     dayKey: dayKey,
     dayStartHour: dayStartHour,
@@ -74,25 +78,31 @@ final watchStateProvider = Provider<WatchState?>((ref) {
     goal: ref.watch(dayGoalProvider(dayKey)),
     products: products,
     handled: handled,
+    creatineEnabled: creatine.enabled,
   );
 });
 
-/// Sends the state of the day to the watch while the app runs: once the data
-/// is read, then each time it changes, the day included. A watch coming
-/// nearby asks the plugin `watch_link`, even when the app is closed.
+/// Sends the state of the day to the watch, and shows it in the widget of
+/// the home screen, while the app runs: once the data is read, then each
+/// time it changes, the day included. A watch coming nearby asks the plugin
+/// `watch_link`, even when the app is closed.
 final watchSyncProvider = Provider<void>((ref) {
   final link = ref.watch(watchLinkProvider);
   ref.listen(watchStateProvider, (previous, next) {
     if (next == null || next == previous) return;
     unawaited(_report(() => link.send(next)));
+    unawaited(updateHomeWidget(next));
   }, fireImmediately: true);
 });
 
-/// Sends the state of the day of [now] to the watch, from code run apart
-/// from the app, which may be closed: the buttons of the notifications.
-Future<void> updateWatch(AppDatabase db, DateTime now) => _report(
-  () async => WatchLink.platform().send(await readWatchState(db, now)),
-);
+/// Sends the state of the day of [now] to the watch and to the widget of
+/// the home screen, from code run apart from the app, which may be closed:
+/// the buttons of the notifications.
+Future<void> updateWatch(AppDatabase db, DateTime now) => _report(() async {
+  final state = await readWatchState(db, now);
+  await updateHomeWidget(state);
+  await WatchLink.platform().send(state);
+});
 
 /// Runs the Flutter engine the plugin `watch_link` starts apart from the app
 /// to answer the watch, even when the app is closed: each request opens the
@@ -117,10 +127,9 @@ Future<void> watchBackgroundMain() async {
           },
       ];
       await dismissFilledSlotReminders(db, now);
-      return {
-        'results': results,
-        'state': (await readWatchState(db, now)).toChannel(),
-      };
+      final state = await readWatchState(db, now);
+      await updateHomeWidget(state);
+      return {'results': results, 'state': state.toChannel()};
     }),
     deleteEntries: (deletions) => _withData((db, now) async {
       final results = [
@@ -136,10 +145,9 @@ Future<void> watchBackgroundMain() async {
             },
           },
       ];
-      return {
-        'results': results,
-        'state': (await readWatchState(db, now)).toChannel(),
-      };
+      final state = await readWatchState(db, now);
+      await updateHomeWidget(state);
+      return {'results': results, 'state': state.toChannel()};
     }),
   );
 }
