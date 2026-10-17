@@ -8,9 +8,13 @@ L'historique garde chaque journée avec son total, et le détail de ce que tu as
 
 Une journée commence à 3 h du matin : ce que tu manges après minuit compte pour la veille.
 
+Tu prends de la créatine ? Active son suivi dans le menu et choisis ta dose : tu l'ajoutes d'une touche depuis l'écran principal, ou avec un produit qui en contient, et l'historique marque les jours où tu l'as prise.
+
+Le widget « Objectif du jour » affiche ta progression sur l'écran d'accueil de ton téléphone.
+
 Avec une montre Wear OS :
 • l'app de la montre affiche ta journée et ses entrées, et ajoute un produit enregistré ou des grammes de protéines depuis ton poignet, même loin de ton téléphone ;
-• la tuile « Objectif du jour » montre où tu en es de ton objectif, et ajoute ton produit favori d'une touche ;
+• la tuile « Objectif du jour » montre où tu en es de ton objectif et si tu as pris ta créatine, et ajoute ton produit favori d'une touche ;
 • la complication « Protéines du jour » affiche ta progression sur le cadran de ta montre.
 
 Confidentialité :

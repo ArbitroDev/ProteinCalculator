@@ -65,7 +65,14 @@ class StoreScreenshotsTest {
         val entries: List<Entry>,
     )
 
-    private class Entry(val name: String, val protein: Double, val hour: Int, val minute: Int)
+    /** An entry of the day; without a name nor protein, a creatine dose taken on its own. */
+    private class Entry(
+        val name: String?,
+        val protein: Double,
+        val hour: Int,
+        val minute: Int,
+        val creatineDoses: Int = 0,
+    )
 
     private val french = Texts(
         language = "fr",
@@ -78,6 +85,7 @@ class StoreScreenshotsTest {
             "Whey vanille" to 23.4,
         ),
         entries = listOf(
+            Entry(null, 0.0, 8, 5, creatineDoses = 1),
             Entry("Œufs", 15.0, 8, 10),
             Entry("Skyr nature", 15.0, 10, 30),
             Entry("Blanc de poulet", 31.2, 12, 45),
@@ -97,6 +105,7 @@ class StoreScreenshotsTest {
             "Vanilla whey" to 23.4,
         ),
         entries = listOf(
+            Entry(null, 0.0, 8, 5, creatineDoses = 1),
             Entry("Eggs", 15.0, 8, 10),
             Entry("Plain skyr", 15.0, 10, 30),
             Entry("Chicken breast", 31.2, 12, 45),
@@ -162,16 +171,19 @@ class StoreScreenshotsTest {
                 protein = entry.protein,
                 time = at(entry.hour, entry.minute),
                 fromWatch = false,
+                creatineDoses = entry.creatineDoses,
+                creatineGrams = entry.creatineDoses * CREATINE_DOSE_GRAMS,
             )
         }.reversed()
         val state = DayState(
-            day = 20261001,
+            day = 20261022,
             dayStartHour = 3,
             total = texts.entries.sumOf { it.protein },
             goal = 140.0,
             entries = entries,
             products = products,
             handled = emptyList(),
+            creatineEnabled = true,
         )
         return Saved(
             state = state,
@@ -255,13 +267,16 @@ class StoreScreenshotsTest {
         const val SIZE_PX = 384
         const val RENDERER_MINOR = 403
 
+        /** Grams of one creatine dose, as on the phone. */
+        const val CREATINE_DOSE_GRAMS = 5.0
+
         val ZONE: ZoneId = ZoneId.of("Europe/Paris")
 
-        /** Thursday 1 October 2026, 7:40 p.m., as in the screenshots of the phone app. */
+        /** Thursday 22 October 2026, 7:40 p.m., as in the screenshots of the phone app. */
         val NOW = at(19, 40)
 
         fun at(hour: Int, minute: Int): Long =
-            LocalDateTime.of(2026, 10, 1, hour, minute).atZone(ZONE).toInstant().toEpochMilli()
+            LocalDateTime.of(2026, 10, 22, hour, minute).atZone(ZONE).toInstant().toEpochMilli()
     }
 }
 

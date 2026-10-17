@@ -7,11 +7,19 @@
 Log the protein you eat each day and see how much is left to reach your goal.
 No account, no ads, and your data stays on your phone.
 
-[![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=arbitro.android.protein_calculator)
+<a href="https://play.google.com/store/apps/details?id=arbitro.android.protein_calculator"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="60"></a>
 
 [![Checks](https://github.com/ArbitroDev/ProteinCalculator/actions/workflows/checks.yml/badge.svg?branch=develop)](https://github.com/ArbitroDev/ProteinCalculator/actions/workflows/checks.yml)
 [![Release](https://img.shields.io/github/v/release/ArbitroDev/ProteinCalculator)](https://github.com/ArbitroDev/ProteinCalculator/releases)
 [![License: source-available](https://img.shields.io/badge/license-source--available-lightgrey)](LICENSE.md)
+
+<img src="store/en/screenshots/1.png" alt="The day, its goal and its entries in a shaker" width="240">
+<img src="store/en/screenshots/3.png" alt="The calendar of the history" width="240">
+<img src="store/en/screenshots/5.png" alt="Scanning the barcode of a product" width="240">
+
+<img src="store/en/wear/1.png" alt="The day on the watch" width="180">
+<img src="store/en/wear/3.png" alt="The products on the watch" width="180">
+<img src="store/en/wear/4.png" alt="The tile of the watch" width="180">
 
 </div>
 
@@ -38,6 +46,14 @@ No account, no ads, and your data stays on your phone.
   picking its day and time.
 - A day starts at 3 a.m. by default (you can change it): what you eat after
   midnight counts for the day before.
+- A home screen widget shows the progress of the day toward the goal.
+
+**Creatine**
+- Turn creatine tracking on in the menu and set the grams of one dose.
+- Add a dose in one tap from the main screen, or with an entry or a product
+  that holds some.
+- The days creatine was taken are marked in the history, the calendar, the
+  widget and the watch tile.
 
 **Products**
 - Save the foods you eat often and add them in one tap, from a list sorted
@@ -74,7 +90,7 @@ The app is available in **English** and **French**.
 | Platform | Status |
 |---|---|
 | **Android** (7.0 and later) | Main platform, published on [Google Play](https://play.google.com/store/apps/details?id=arbitro.android.protein_calculator). |
-| **Wear OS** (3 and later) | Companion app for the watch, installed from Google Play along with the phone app: the day and its entries, a tile, a complication, quick additions of saved products or of protein grams, and deletions of entries, even away from the phone. The phone stays the only source of truth. |
+| **Wear OS** (3 and later) | Companion app for the watch, installed from Google Play along with the phone app: the day and its entries, a tile telling the progress and whether creatine was taken, a complication, quick additions of saved products or of protein grams, and deletions of entries, even away from the phone. The phone stays the only source of truth. |
 | **Web** | Used for development and debugging only. |
 
 ## Privacy

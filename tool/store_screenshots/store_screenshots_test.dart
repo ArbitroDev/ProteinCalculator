@@ -124,6 +124,13 @@ Future<AppDatabase> _seed(_Texts texts) async {
   Future<void> add(String name, double grams, DateTime at) => db.entriesDao
       .insertEntry(name: name, amount: DirectAmount(grams), createdAt: at);
 
+  // Creatine tracked, a dose taken each morning but a few.
+  await db.settingsDao.setCreatineEnabled(true);
+  Future<void> creatine(DateTime date) => db.entriesDao.addCreatineDose(
+    createdAt: date.add(const Duration(hours: 8, minutes: 5)),
+  );
+
+  await creatine(_today);
   for (final (name, grams, hour, minute) in texts.entries) {
     await add(name, grams, _today.add(Duration(hours: hour, minutes: minute)));
   }
@@ -135,6 +142,7 @@ Future<AppDatabase> _seed(_Texts texts) async {
     final date = DateTime(_today.year, _today.month, _today.day - day);
     final total = totals[day % totals.length];
     final names = texts.earlierDays;
+    if (day % 4 != 0) await creatine(date);
     await add(names[0], total * 0.25, date.add(const Duration(hours: 8)));
     await add(names[1], total * 0.35, date.add(const Duration(hours: 13)));
     await add(names[2], total * 0.2, date.add(const Duration(hours: 17)));
