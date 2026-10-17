@@ -162,43 +162,32 @@ class MenuPage extends ConsumerWidget {
   }
 
   Future<void> _editGoal(BuildContext context, double goal) =>
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: AppColors.of(context).background,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-        ),
-        builder: (context) => _GoalSheet(goal: goal),
-      );
+      _showSheet(context, _GoalSheet(goal: goal));
 }
 
 Future<void> _editStartHour(BuildContext context, int hour) =>
-    showModalBottomSheet<void>(
-      context: context,
-      // Above the tab bar, which would hide the slider.
-      useRootNavigator: true,
-      // As tall as its content, which scrolls on short screens.
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: AppColors.of(context).background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => _StartHourSheet(hour: hour),
-    );
+    _showSheet(context, _StartHourSheet(hour: hour));
 
 Future<void> _editCreatineDose(BuildContext context, double grams) =>
+    _showSheet(context, _CreatineDoseSheet(grams: grams));
+
+/// Shows [sheet] at the bottom of the screen, over the tab bar, which would
+/// otherwise stay around it and take taps, and as tall as its content,
+/// which scrolls on short screens.
+Future<void> _showSheet(BuildContext context, Widget sheet) =>
     showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: AppColors.of(context).background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (context) => _CreatineDoseSheet(grams: grams),
+      // The safe area of the sheet leaves its bottom to it: its content
+      // keeps clear of the Android navigation bar, the sheet itself going
+      // under it.
+      builder: (context) => SafeArea(top: false, child: sheet),
     );
 
 /// Switch of creatine tracking, with the grams of one dose, edited with a

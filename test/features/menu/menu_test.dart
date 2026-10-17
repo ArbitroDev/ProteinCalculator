@@ -145,6 +145,63 @@ void main() {
     });
   });
 
+  group('sheets', () {
+    /// Opens each sheet of the menu in turn, with [check] run on it open.
+    Future<void> eachSheet(
+      WidgetTester tester,
+      Future<void> Function() check,
+    ) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await openMenu(tester);
+      for (final open in [
+        () => tester.tap(find.text('Edit').first),
+        () => tester.tap(find.text('Creatine')),
+        () => tester.tap(find.text('Edit').last),
+      ]) {
+        await open();
+        await tester.pumpAndSettle();
+        expect(find.text('Save'), findsOneWidget);
+        await check();
+        // Closes the sheet, if it is still open.
+        if (find.text('Save').evaluate().isNotEmpty) {
+          await tester.tapAt(const Offset(400, 20));
+          await tester.pumpAndSettle();
+        }
+      }
+      await disposeApp(tester, db);
+    }
+
+    testWidgets('cover the tab bar', (tester) async {
+      await eachSheet(tester, () async {
+        // A tap on the tab bar closes the sheet instead of changing tab.
+        await tester.tap(find.byTooltip('History'), warnIfMissed: false);
+        await tester.pumpAndSettle();
+        expect(find.text('History'), findsNothing);
+        expect(find.text('Save'), findsNothing);
+      });
+    });
+
+    testWidgets('keep clear of the Android navigation bar', (tester) async {
+      // A navigation bar of 48 logical pixels at the bottom of the screen.
+      tester.view.padding = FakeViewPadding(
+        bottom: 48 * tester.view.devicePixelRatio,
+      );
+      tester.view.viewPadding = FakeViewPadding(
+        bottom: 48 * tester.view.devicePixelRatio,
+      );
+      addTearDown(tester.view.reset);
+      final height =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+
+      await eachSheet(tester, () async {
+        expect(
+          tester.getRect(find.text('Save')).bottom,
+          lessThanOrEqualTo(height - 48),
+        );
+      });
+    });
+  });
+
   testWidgets('chooses when the day starts', (tester) async {
     addTearDown(() => appDayStartHour = defaultAppDayStartHour);
     await openMenu(tester);
