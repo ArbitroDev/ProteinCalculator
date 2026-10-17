@@ -20,6 +20,8 @@
     <string name="unnamed">Sans nom</string>
     <string name="entry_waiting">en attente</string>
     <string name="from_watch">Ajoutée depuis la montre</string>
+    <string name="creatine">Créatine</string>
+    <string name="creatine_mark">Contient de la créatine</string>
     <string name="delete">Supprimer</string>
     <string name="undo">Annuler</string>
     <string name="free_entry">Entrée libre</string>

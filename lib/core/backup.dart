@@ -7,6 +7,7 @@ import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/barcode.dart';
+import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
@@ -29,7 +30,9 @@ const backupFormat = 'protein-calculator';
 /// 5: entries tell whether they were added on the watch.
 /// 6: entries and products hold the unit of their quantities.
 /// 7: products hold their barcode.
-const backupVersion = 7;
+/// 8: entries and products hold their creatine doses, and the settings
+/// whether creatine is tracked and the grams of one dose.
+const backupVersion = 8;
 
 /// Thrown when a file is not a valid Protein Calculator backup.
 class InvalidBackupException implements Exception {
@@ -51,6 +54,8 @@ class Backup {
     this.historyView = HistoryView.list,
     this.dayStartHour = defaultAppDayStartHour,
     this.goalChanges = const [],
+    this.creatineEnabled = false,
+    this.creatineDoseGrams,
   });
 
   final List<EntriesCompanion> entries;
@@ -62,6 +67,11 @@ class Backup {
   final ProductSort productSort;
   final HistoryView historyView;
   final int dayStartHour;
+
+  /// Whether creatine is tracked, and the grams of one dose; null until it
+  /// was first turned on.
+  final bool creatineEnabled;
+  final double? creatineDoseGrams;
 }
 
 /// File name suggested for a backup made on [date].
@@ -86,6 +96,8 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
       'productSort': settings.productSort.name,
       'historyView': settings.historyView.name,
       'dayStartHour': settings.dayStartHour,
+      'creatineEnabled': settings.creatineEnabled,
+      'creatineDoseGrams': settings.creatineDoseGrams,
     },
     'goalChanges': [
       for (final g in goalChanges) {'dayKey': g.dayKey, 'grams': g.grams},
@@ -105,6 +117,8 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'dayKey': e.dayKey,
           'slot': e.slot.name,
           'fromWatch': e.fromWatch,
+          'creatineDoses': e.creatineDoses,
+          'creatineDoseGrams': e.creatineDoseGrams,
         },
     ],
     'products': [
@@ -125,6 +139,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'routine': p.routine.name,
           'routineMinutes': p.routineMinutes,
           'barcode': p.barcode,
+          'creatineDoses': p.creatineDoses,
         },
     ],
   });
@@ -153,7 +168,7 @@ Backup parseBackup(String text) {
     ];
     final products = [
       for (final p in json['products'] as List)
-        _product(p as Map<String, dynamic>),
+        _product(p as Map<String, dynamic>, version),
     ];
     if (!_unique(entries.map((e) => e.id.value))) {
       throw const InvalidBackupException('duplicate entry ids');
@@ -181,6 +196,17 @@ Backup parseBackup(String text) {
     if (!isValidAppDayStartHour(dayStartHour)) {
       throw const InvalidBackupException('invalid start hour');
     }
+    // Absent from backups made before creatine was tracked: off, never
+    // turned on.
+    final creatineEnabled = version >= 8 && settings['creatineEnabled'] as bool;
+    final creatineDoseGrams = version < 8
+        ? null
+        : _optionalDouble(settings['creatineDoseGrams']);
+    if ((creatineDoseGrams != null &&
+            !isValidCreatineDoseGrams(creatineDoseGrams)) ||
+        (creatineEnabled && creatineDoseGrams == null)) {
+      throw const InvalidBackupException('invalid creatine dose');
+    }
     final goalChanges = [
       for (final g in json['goalChanges'] as List? ?? const [])
         _goalChange(g as Map<String, dynamic>),
@@ -200,6 +226,8 @@ Backup parseBackup(String text) {
       ),
       dayStartHour: dayStartHour,
       goalChanges: goalChanges,
+      creatineEnabled: creatineEnabled,
+      creatineDoseGrams: creatineDoseGrams,
     );
   } on InvalidBackupException {
     rethrow;
@@ -267,6 +295,8 @@ Future<void> restoreBackup(
         productSort: Value(backup.productSort),
         historyView: Value(backup.historyView),
         dayStartHour: Value(backup.dayStartHour),
+        creatineEnabled: Value(backup.creatineEnabled),
+        creatineDoseGrams: Value(backup.creatineDoseGrams),
       ),
     );
   });
@@ -284,7 +314,16 @@ GoalChangesCompanion _goalChange(Map<String, dynamic> g) {
 }
 
 EntriesCompanion _entry(Map<String, dynamic> e, int version) {
-  final amount = _amount(e, storesProtein: true);
+  final doses = _creatineDoses(e, version);
+  // Absent from backups made before creatine was tracked.
+  final doseGrams = version < 8
+      ? null
+      : _optionalDouble(e['creatineDoseGrams']);
+  if ((doses > 0) != (doseGrams != null) ||
+      (doseGrams != null && !isValidCreatineDoseGrams(doseGrams))) {
+    throw const InvalidBackupException('invalid creatine dose');
+  }
+  final amount = _amount(e, storesProtein: true, creatineDoses: doses);
   final columns = amountColumns(amount);
   final dayKey = e['dayKey'] as int;
   if (!isValidDayKey(dayKey)) throw const InvalidBackupException('invalid day');
@@ -313,15 +352,20 @@ EntriesCompanion _entry(Map<String, dynamic> e, int version) {
           : DaySlot.values.byName(e['slot'] as String),
     ),
     fromWatch: Value(version < 5 ? false : e['fromWatch'] as bool),
+    creatineDoses: Value(doses),
+    creatineDoseGrams: Value(doseGrams),
   );
 }
 
-ProductsCompanion _product(Map<String, dynamic> p) {
+ProductsCompanion _product(Map<String, dynamic> p, int version) {
   final name = p['name'] as String;
   if (!isValidName(name)) {
     throw const InvalidBackupException('invalid product name');
   }
-  final columns = amountColumns(_amount(p, storesProtein: false));
+  final doses = _creatineDoses(p, version);
+  final columns = amountColumns(
+    _amount(p, storesProtein: false, creatineDoses: doses),
+  );
   final useCount = p['useCount'] as int;
   if (useCount < 0) throw const InvalidBackupException('negative use count');
   final lastUsedAt = p['lastUsedAt'] as String?;
@@ -359,19 +403,32 @@ ProductsCompanion _product(Map<String, dynamic> p) {
     routine: Value(routine),
     routineMinutes: Value(routineMinutes),
     barcode: Value(barcode),
+    creatineDoses: Value(doses),
   );
 }
 
+/// Creatine doses of an entry or a product; none in backups made before
+/// creatine was tracked.
+int _creatineDoses(Map<String, dynamic> json, int version) {
+  if (version < 8) return 0;
+  final doses = json['creatineDoses'] as int;
+  if (!isValidCreatineDoses(doses)) {
+    throw const InvalidBackupException('invalid creatine doses');
+  }
+  return doses;
+}
+
 /// Protein amount of an entry or a product, following the rules of the
-/// form: protein amounts with one decimal at most, whole grams or
-/// milliliters of food, a protein content not above the reference
-/// quantity, and nothing from the other mode.
+/// form: protein amounts with one decimal at most, zero only with
+/// [creatineDoses], whole grams or milliliters of food, a protein content
+/// not above the reference quantity, and nothing from the other mode.
 ///
 /// In "per quantity" mode, an entry also stores the protein it amounts to
 /// ([storesProtein]); it is computed again rather than read.
 ProteinAmount _amount(
   Map<String, dynamic> json, {
   required bool storesProtein,
+  required int creatineDoses,
 }) {
   final mode = EntryMode.values.byName(json['mode'] as String);
   final protein = _optionalDouble(json['proteinGrams']);
@@ -385,7 +442,7 @@ ProteinAmount _amount(
   switch (mode) {
     case EntryMode.direct:
       if (protein != null &&
-          isValidProteinGrams(protein) &&
+          isValidEntryProtein(protein, creatineDoses: creatineDoses) &&
           consumed == null &&
           perReference == null &&
           reference == null) {
@@ -396,7 +453,7 @@ ProteinAmount _amount(
           consumed != null &&
           isValidFoodGrams(consumed) &&
           perReference != null &&
-          isValidProteinGrams(perReference) &&
+          isValidEntryProtein(perReference, creatineDoses: creatineDoses) &&
           reference != null &&
           isValidFoodGrams(reference) &&
           perReference <= reference) {

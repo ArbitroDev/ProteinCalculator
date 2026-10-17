@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
+import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
@@ -176,6 +177,131 @@ void main() {
       expect(updated.createdAt, DateTime(2026, 10, 1, 2, 30, 17));
       expect(updated.dayKey, 20260930);
       expect(updated.slot, DaySlot.evening);
+    });
+  });
+
+  group('creatine', () {
+    Future<Entry> entry(int id) async => (await dao.getEntry(id))!;
+
+    test('insertEntry copies the dose grams in force', () async {
+      await db.settingsDao.setCreatineEnabled(true);
+      final id = await dao.insertEntry(
+        amount: const DirectAmount(20),
+        createdAt: DateTime(2026, 10, 1, 8),
+        creatineDoses: 2,
+      );
+      expect((await entry(id)).creatineDoseGrams, 5);
+      expect((await entry(id)).creatineGrams, 10);
+
+      await db.settingsDao.setCreatineDoseGrams(3);
+      expect((await entry(id)).creatineDoseGrams, 5);
+    });
+
+    test('insertEntry without doses stores no dose grams', () async {
+      await db.settingsDao.setCreatineEnabled(true);
+      final id = await addEntry(20, DateTime(2026, 10, 1, 8));
+      expect((await entry(id)).creatineDoses, 0);
+      expect((await entry(id)).creatineDoseGrams, isNull);
+    });
+
+    test('addPortion adds the doses of the product', () async {
+      final productId = await db.productsDao.insertProduct(
+        name: 'Whey',
+        amount: const DirectAmount(24),
+        createdAt: DateTime(2026, 9, 1),
+        creatineDoses: 1,
+      );
+      final product = (await db.productsDao.getProduct(productId))!;
+      expect(product.creatineDoses, 1);
+
+      final id = await dao.addPortion(
+        product,
+        createdAt: DateTime(2026, 10, 1, 8),
+      );
+      expect((await entry(id)).creatineDoses, 1);
+      expect((await entry(id)).creatineDoseGrams, 5);
+    });
+
+    test('addCreatineDose adds a creatine-only entry', () async {
+      final id = await dao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 8));
+      final added = await entry(id);
+      expect(added.name, isNull);
+      expect(added.proteinGrams, 0);
+      expect(added.creatineDoses, 1);
+      expect(added.isCreatineOnly, isTrue);
+    });
+
+    test(
+      'updateEntry takes the dose in force when doses go from 0 to 1',
+      () async {
+        await db.settingsDao.setCreatineEnabled(true);
+        await db.settingsDao.setCreatineDoseGrams(3);
+        final id = await addEntry(20, DateTime(2026, 10, 1, 8));
+        await dao.updateEntry((await entry(id)).copyWith(creatineDoses: 1));
+        expect((await entry(id)).creatineDoseGrams, 3);
+
+        // Changing the dose later leaves it alone.
+        await db.settingsDao.setCreatineDoseGrams(8);
+        await dao.updateEntry((await entry(id)).copyWith(creatineDoses: 2));
+        expect((await entry(id)).creatineDoseGrams, 3);
+      },
+    );
+
+    test('updateEntry clears the dose grams without doses', () async {
+      final id = await dao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 8));
+      await dao.updateEntry(
+        (await entry(id))
+            .withAmount(const DirectAmount(10))
+            .copyWith(creatineDoses: 0),
+      );
+      expect((await entry(id)).creatineDoseGrams, isNull);
+    });
+
+    test('watchHistory sums the doses of a day', () async {
+      await dao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 8));
+      await dao.insertEntry(
+        amount: const DirectAmount(20),
+        createdAt: DateTime(2026, 10, 1, 19),
+        creatineDoses: 1,
+      );
+      await dao.addCreatineDose(createdAt: DateTime(2026, 9, 30, 8));
+
+      final history = await dao.watchHistory().first;
+      expect(history.map((day) => (day.dayKey, day.creatineDoses)), [
+        (20261001, 2),
+        (20260930, 1),
+      ]);
+      // A day of creatine only is listed, without protein.
+      expect(history.last.proteinGrams, 0);
+    });
+
+    test('filledSlotsFrom ignores creatine-only entries', () async {
+      await dao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 8));
+      await addEntry(15, DateTime(2026, 10, 1, 19));
+
+      expect(await dao.filledSlotsFrom(20261001), {
+        (20261001, DaySlot.evening),
+      });
+    });
+
+    test('routine entries carry the doses of the product', () async {
+      final productId = await db.productsDao.insertProduct(
+        name: 'Whey',
+        amount: const DirectAmount(24),
+        createdAt: DateTime(2026, 9, 1),
+        creatineDoses: 1,
+      );
+      await db.productsDao.setRoutine(
+        productId,
+        DailyRoutine.autoAdd,
+        minutes: 8 * 60,
+        now: DateTime(2026, 10, 1, 7),
+      );
+      await dao.addRoutineEntries(DateTime(2026, 10, 1, 9));
+
+      final added = await db.select(db.entries).getSingle();
+      expect(added.creatineDoses, 1);
+      expect(added.creatineDoseGrams, 5);
     });
   });
 

@@ -79,19 +79,72 @@ class WatchMessagesTest {
 
     @Test
     fun `a message of another version is not read`() {
-        val message = WatchMessages.encodeState(state).with("v", JsonPrimitive(2))
+        val message = WatchMessages.encodeState(state).with("v", JsonPrimitive(3))
 
-        assertEquals(Received.OtherVersion(2), WatchMessages.decodeState(message))
-        assertEquals(Received.OtherVersion(2), WatchMessages.decodeSyncRequest(message))
+        assertEquals(Received.OtherVersion(3), WatchMessages.decodeState(message))
+        assertEquals(Received.OtherVersion(3), WatchMessages.decodeSyncRequest(message))
+    }
+
+    @Test
+    fun `ignores a version 1 state`() {
+        val message = WatchMessages.encodeState(state).with("v", JsonPrimitive(1))
+        val reply = WatchMessages.encodeAddReply(AddReply(emptyList(), state)).with("v", JsonPrimitive(1))
+
+        assertEquals(Received.OtherVersion(1), WatchMessages.decodeState(message))
+        assertEquals(Received.OtherVersion(1), WatchMessages.decodeAddReply(reply))
+    }
+
+    @Test
+    fun `decodes a version 1 add request with no doses`() {
+        val request = """{"v":1,"requests":[{"id":"a2","productId":4,"name":"Skyr","protein":15.0,""" +
+            """"addedAt":1790000100000}]}"""
+
+        val read = WatchMessages.decodeAddRequest(request.encodeToByteArray()).value()
+
+        assertEquals(AddRequest(listOf(addition)), read)
+        assertEquals(0, (read as AddRequest).requests.single().creatineDoses)
+        assertEquals(Unit, WatchMessages.decodeSyncRequest("""{"v":1}""".encodeToByteArray()).value())
+    }
+
+    @Test
+    fun `accepts a creatine-only entry`() {
+        val creatine = state.copy(
+            entries = listOf(
+                WatchEntry(
+                    id = 9, name = null, protein = 0.0, time = 1_790_000_200_000, fromWatch = false,
+                    creatineDoses = 1, creatineGrams = 5.0,
+                ),
+            ),
+            products = listOf(WatchProduct(id = 6, name = "Pre-workout", protein = 0.0, favorite = false, creatineDoses = 1)),
+        )
+
+        val read = WatchMessages.decodeState(WatchMessages.encodeState(creatine)).value()
+
+        assertEquals(creatine, read)
+        assertEquals(true, (read as DayState).entries.single().isCreatineOnly)
+        val dose = addition.copy(protein = 0.0, creatineDoses = 1)
+        assertEquals(true, dose.isValid())
+    }
+
+    @Test
+    fun `rejects an entry of 0 g without doses`() {
+        val entry = state.entries.first().copy(protein = 0.0)
+
+        assertEquals(
+            Received.Malformed,
+            WatchMessages.decodeState(WatchMessages.encodeState(state.copy(entries = listOf(entry)))),
+        )
+        assertEquals(false, addition.copy(protein = 0.0).isValid())
+        assertEquals(false, addition.copy(creatineDoses = 10).isValid())
     }
 
     @Test
     fun `the answer to a message of another version lists the versions read`() {
         val answer = WatchMessages.encodeUnsupported()
 
-        assertEquals("""{"unsupported":[1]}""", answer.decodeToString())
-        assertEquals(Received.Unsupported(listOf(1)), WatchMessages.decodeState(answer))
-        assertEquals(Received.Unsupported(listOf(1)), WatchMessages.decodeAddReply(answer))
+        assertEquals("""{"unsupported":[1,2]}""", answer.decodeToString())
+        assertEquals(Received.Unsupported(listOf(1, 2)), WatchMessages.decodeState(answer))
+        assertEquals(Received.Unsupported(listOf(1, 2)), WatchMessages.decodeAddReply(answer))
     }
 
     @Test
@@ -103,7 +156,7 @@ class WatchMessagesTest {
             "[1]".encodeToByteArray(),
             """{"day":20261001}""".encodeToByteArray(),
             """{"v":"one"}""".encodeToByteArray(),
-            """{"v":1}""".encodeToByteArray(),
+            """{"v":2}""".encodeToByteArray(),
             """{"unsupported":1}""".encodeToByteArray(),
             message.with("total", JsonPrimitive("much")),
             JsonObject(message.fields() - "entries").bytes(),
@@ -127,6 +180,9 @@ class WatchMessagesTest {
             state.copy(entries = listOf(entry.copy(id = 0))),
             state.copy(entries = listOf(entry.copy(name = " "))),
             state.copy(entries = listOf(entry.copy(protein = 0.0))),
+            state.copy(entries = listOf(entry.copy(creatineDoses = 10))),
+            state.copy(entries = listOf(entry.copy(creatineGrams = -1.0))),
+            state.copy(products = listOf(product.copy(protein = 0.0))),
             state.copy(entries = listOf(entry.copy(time = 0))),
             state.copy(products = listOf(product.copy(id = 0))),
             state.copy(products = listOf(product.copy(name = ""))),
@@ -149,7 +205,7 @@ class WatchMessagesTest {
     fun `a request for the state holds the version only`() {
         val request = WatchMessages.encodeSyncRequest()
 
-        assertEquals("""{"v":1}""", request.decodeToString())
+        assertEquals("""{"v":2}""", request.decodeToString())
         assertEquals(Unit, WatchMessages.decodeSyncRequest(request).value())
     }
 
@@ -317,7 +373,7 @@ class WatchMessagesTest {
 
     @Test
     fun `the capability of the watch names the version`() {
-        assertEquals("protein_calculator_watch_v1", WatchProtocol.watchCapability())
-        assertEquals("protein_calculator_watch_v2", WatchProtocol.watchCapability(2))
+        assertEquals("protein_calculator_watch_v2", WatchProtocol.watchCapability())
+        assertEquals("protein_calculator_watch_v1", WatchProtocol.watchCapability(1))
     }
 }

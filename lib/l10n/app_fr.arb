@@ -939,5 +939,105 @@
   "slotReminderBody": "Si tu as oublié, ajoute ce que tu as consommé.",
   "@slotReminderBody": {
     "description": "Notification body of the reminders of the parts of the day."
+  },
+  "creatine": "Créatine",
+  "@creatine": {
+    "description": "Name of creatine: card of the menu, entries of creatine taken on its own without a name, label of the form counter."
+  },
+  "creatineTaken": "créatine prise",
+  "@creatineTaken": {
+    "description": "Read by screen readers on the blue check of a day creatine was taken."
+  },
+  "addCreatineDose": "Ajouter une dose de créatine",
+  "@addCreatineDose": {
+    "description": "Tooltip and screen reader text of the blue button adding one creatine dose at once."
+  },
+  "creatineDoseAdded": "Dose de créatine ajoutée",
+  "@creatineDoseAdded": {
+    "description": "Undo banner after one creatine dose was added at once."
+  },
+  "creatineDoses": "{count, plural, =1{1 dose} other{{count} doses}}",
+  "@creatineDoses": {
+    "description": "Number of creatine doses.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "creatineDayLine": "{doses} de créatine · {grams}",
+  "@creatineDayLine": {
+    "description": "Line of the day details: the creatine doses of the day and their grams, both already formatted.",
+    "placeholders": {
+      "doses": {
+        "type": "String"
+      },
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "lessCreatine": "Une dose de moins",
+  "@lessCreatine": {
+    "description": "Screen reader text of the minus button of the creatine counter of the form."
+  },
+  "moreCreatine": "Une dose de plus",
+  "@moreCreatine": {
+    "description": "Screen reader text of the plus button of the creatine counter of the form."
+  },
+  "menuCreatineOff": "Désactivée",
+  "@menuCreatineOff": {
+    "description": "Subtitle of the creatine card of the menu while creatine is not tracked."
+  },
+  "menuCreatineDose": "Dose : {grams}",
+  "@menuCreatineDose": {
+    "description": "Subtitle of the creatine card of the menu: the grams of one dose, already formatted.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "creatineDoseTitle": "Dose de créatine",
+  "@creatineDoseTitle": {
+    "description": "Title of the sheet editing the creatine dose."
+  },
+  "creatineDoseBody": "Les grammes d'une dose. Les doses déjà prises gardent la leur.",
+  "@creatineDoseBody": {
+    "description": "Text of the sheet editing the creatine dose."
+  },
+  "creatineDoseInvalid": "Entre {min} et {max} g",
+  "@creatineDoseInvalid": {
+    "description": "Error under the creatine dose field.",
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarCreatine": "Créatine prise",
+  "@calendarCreatine": {
+    "description": "Calendar legend: the blue check of the days creatine was taken."
+  },
+  "creatineMark": "{count, plural, =1{contient de la créatine} other{contient {count} doses de créatine}}",
+  "@creatineMark": {
+    "description": "Read by screen readers on the creatine mark of an entry or a product: its doses.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "creatineGrams": "{grams} de créatine",
+  "@creatineGrams": {
+    "description": "Read by screen readers on the grams of creatine taken on its own, already formatted with their unit.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -34,6 +34,9 @@ object WatchColors {
 
     /** Lines of the shaker of the logo. */
     val shaker = Color(0xFFDCE3FF)
+
+    /** Blue of creatine, as in the phone app. */
+    val creatine = Color(0xFF3FA9F5)
 }
 
 /** Text styles of the app: Saira Semi Condensed for numbers, Outfit for text. */

@@ -2,7 +2,7 @@
 
 *[English version below](#privacy-policy--protein-calculator)*
 
-**Date d'entrée en vigueur : 14 octobre 2026**
+**Date d'entrée en vigueur : 17 octobre 2026**
 
 Cette politique explique quelles données l'application **Protein Calculator** (Android) traite,
 pourquoi, et quels sont tes droits. Elle s'applique à l'application publiée sur Google Play.
@@ -29,13 +29,13 @@ Contact : <arbitro.contact@gmail.com>.
 
 L'application enregistre localement, dans une base de données sur ton téléphone :
 
-- tes entrées (nom facultatif, quantités, protéines, date et heure) ;
+- tes entrées (nom facultatif, quantités, protéines, doses de créatine, date et heure) ;
 - tes produits enregistrés, ton produit favori et leurs routines quotidiennes (rappel ou ajout
   automatique, et son heure) ;
 - les codes-barres de tes produits, et les derniers produits scannés avec les valeurs données par
   Open Food Facts ;
-- ton objectif quotidien et tes réglages (tri des produits, choix concernant les rapports
-  d'erreur).
+- ton objectif quotidien et tes réglages (tri des produits, suivi de la créatine et sa dose,
+  choix concernant les rapports d'erreur).
 
 Ces données ne sont **ni envoyées à nous ni à un tiers**, à l'exception du code-barres d'un
 produit scanné, envoyé à Open Food Facts (voir la section 2). Tu peux les supprimer à tout moment
@@ -184,7 +184,7 @@ demande de consentement dans l'application.
 
 # Privacy policy — Protein Calculator
 
-**Effective date: October 14, 2026**
+**Effective date: October 17, 2026**
 
 This policy explains what data the **Protein Calculator** Android app processes, why, and what
 your rights are. It applies to the app published on Google Play.
@@ -211,12 +211,13 @@ Contact: <arbitro.contact@gmail.com>.
 
 The app stores locally, in a database on your phone:
 
-- your entries (optional name, quantities, protein, date and time);
+- your entries (optional name, quantities, protein, creatine doses, date and time);
 - your saved products, your favorite product and their daily routines (reminder or automatic
   addition, and its time);
 - the barcodes of your products, and the latest products scanned with the values given by Open Food
   Facts;
-- your daily goal and your settings (product sort, crash report choice).
+- your daily goal and your settings (product sort, creatine tracking and dose, crash report
+  choice).
 
 This data is **never sent to us or to any third party**, except the barcode of a product scanned,
 sent to Open Food Facts (see section 2). You can delete it at any time by deleting entries and

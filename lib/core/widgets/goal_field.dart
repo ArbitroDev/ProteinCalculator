@@ -6,7 +6,8 @@ import 'package:protein_calculator/core/widgets/grams_input_formatter.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// Large field to type the daily goal in grams, underlined in orange.
+/// Large field to type the daily goal in grams, underlined in orange; also
+/// used for other amounts of grams, given their [hint] and [error].
 class GoalField extends StatelessWidget {
   const GoalField({
     super.key,
@@ -15,12 +16,20 @@ class GoalField extends StatelessWidget {
     required this.onChanged,
     required this.onSubmitted,
     this.autofocus = false,
+    this.hint = '140',
+    this.error,
+    this.decimal = false,
   });
 
   final TextEditingController controller;
 
-  /// Shows the "between 1 and 1000" error under the field.
+  /// Shows the [error] under the field, by default "between 1 and 1000".
   final bool showError;
+  final String hint;
+  final String? error;
+
+  /// Allows one decimal, as for a creatine dose; the goal takes none.
+  final bool decimal;
   final ValueChanged<String> onChanged;
   final ValueChanged<String> onSubmitted;
   final bool autofocus;
@@ -39,15 +48,15 @@ class GoalField extends StatelessWidget {
       controller: controller,
       autofocus: autofocus,
       textAlign: TextAlign.center,
-      keyboardType: TextInputType.number,
-      inputFormatters: [GramsInputFormatter()],
+      keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+      inputFormatters: [GramsInputFormatter(maxDecimals: decimal ? 1 : 0)],
       textInputAction: TextInputAction.done,
       onChanged: onChanged,
       onSubmitted: onSubmitted,
       style: textTheme.displayLarge!.copyWith(fontSize: 56),
       decoration: InputDecoration(
         filled: false,
-        hintText: '140',
+        hintText: hint,
         hintStyle: textTheme.displayLarge!.copyWith(
           fontSize: 56,
           color: colors.textSecondary.withValues(alpha: 0.4),
@@ -58,10 +67,11 @@ class GoalField extends StatelessWidget {
           color: colors.textSecondary,
         ),
         errorText: showError
-            ? l10n.goalInvalid(
-                formatGrams(minDailyGoal, locale),
-                formatGrams(maxDailyGoal, locale),
-              )
+            ? error ??
+                  l10n.goalInvalid(
+                    formatGrams(minDailyGoal, locale),
+                    formatGrams(maxDailyGoal, locale),
+                  )
             : null,
         enabledBorder: underline,
         focusedBorder: underline,

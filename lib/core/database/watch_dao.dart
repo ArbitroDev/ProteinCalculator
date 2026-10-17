@@ -51,6 +51,7 @@ class WatchDao extends DatabaseAccessor<AppDatabase> with _$WatchDaoMixin {
           amount: DirectAmount(addition.roundedProtein),
           createdAt: createdAt,
           fromWatch: true,
+          creatineDoses: addition.creatineDoses,
         );
       }
       return WatchAdditionStatus.added;

@@ -27,6 +27,12 @@ bool isValidProteinGrams(double grams) =>
     grams <= maxProteinGrams &&
     (grams * 10 - (grams * 10).roundToDouble()).abs() < 1e-6;
 
+/// Whether [grams] is the protein amount of an entry or a product holding
+/// [creatineDoses]: as [isValidProteinGrams], or zero with at least one dose,
+/// such as creatine taken on its own.
+bool isValidEntryProtein(double grams, {required int creatineDoses}) =>
+    isValidProteinGrams(grams) || (grams == 0 && creatineDoses > 0);
+
 /// Smallest and largest daily goal accepted, in grams.
 const minDailyGoal = 1.0;
 const maxDailyGoal = 1000.0;

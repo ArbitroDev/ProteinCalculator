@@ -156,6 +156,80 @@ void main() {
     });
   });
 
+  group('creatine', () {
+    testWidgets('the list shows the blue check before the orange one', (
+      tester,
+    ) async {
+      await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
+      await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 9));
+      await openHistory(tester);
+
+      final creatine = find.byWidgetPredicate(
+        (widget) => widget is Icon && widget.semanticLabel == 'creatine taken',
+      );
+      expect(creatine, findsOneWidget);
+      final goal = find.byWidgetPredicate(
+        (widget) =>
+            widget is Icon &&
+            widget.icon == LucideIcons.circleCheck &&
+            widget.semanticLabel == null,
+      );
+      expect(
+        tester.getTopLeft(creatine).dx,
+        lessThan(tester.getTopLeft(goal).dx),
+      );
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the calendar legend shows creatine once it was on', (
+      tester,
+    ) async {
+      await addEntry('Skyr', 15, DateTime(2026, 10, 1, 8));
+      await openHistory(tester);
+      await tester.tap(find.text('Calendar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Creatine taken'), findsNothing);
+
+      await db.settingsDao.setCreatineEnabled(true);
+      await tester.pumpAndSettle();
+      expect(find.text('Creatine taken'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the day details show a dose with its decimal', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await db.settingsDao.setCreatineDoseGrams(3.3);
+      for (final hour in [8, 9, 10]) {
+        await db.entriesDao.addCreatineDose(
+          createdAt: DateTime(2026, 10, 1, hour),
+        );
+      }
+      await openHistory(tester);
+      await tester.tap(find.text('Thu, Oct 1'));
+      await tester.pumpAndSettle();
+
+      // 3 × 3.3 g, whatever the rounding of the sum.
+      expect(find.text('3 doses of creatine · 9.9 g'), findsOneWidget);
+      expect(find.text('3.3 g'), findsNWidgets(3));
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the day details tell the doses of the day', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 8));
+      await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 9));
+      await openHistory(tester);
+      await tester.tap(find.text('Thu, Oct 1'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 doses of creatine · 10 g'), findsOneWidget);
+      // Creatine taken on its own shows its own grams, under its name.
+      expect(find.textContaining('Creatine', findRichText: true), findsWidgets);
+      expect(find.text('5 g'), findsNWidgets(2));
+      await disposeApp(tester, db);
+    });
+  });
+
   group('day detail', () {
     setUp(() async {
       await addEntry('Skyr', 15, DateTime(2026, 10, 1, 8));

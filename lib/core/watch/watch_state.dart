@@ -43,6 +43,8 @@ class WatchState {
           protein: entry.proteinGrams,
           time: entry.createdAt,
           fromWatch: entry.fromWatch,
+          creatineDoses: entry.creatineDoses,
+          creatineGrams: entry.creatineGrams,
         ),
     ],
     products: [
@@ -52,6 +54,7 @@ class WatchState {
           name: product.name,
           protein: product.amount.proteinGrams,
           isFavorite: product.isFavorite,
+          creatineDoses: product.creatineDoses,
         ),
     ],
     handled: handled,
@@ -92,6 +95,8 @@ class WatchState {
           'protein': entry.protein,
           'time': entry.time.millisecondsSinceEpoch,
           'fromWatch': entry.fromWatch,
+          'creatineDoses': entry.creatineDoses,
+          'creatineGrams': entry.creatineGrams,
         },
     ],
     'products': [
@@ -101,6 +106,7 @@ class WatchState {
           'name': product.name,
           'protein': product.protein,
           'favorite': product.isFavorite,
+          'creatineDoses': product.creatineDoses,
         },
     ],
     'handled': handled,
@@ -138,6 +144,8 @@ class WatchEntry {
     required this.protein,
     required this.time,
     required this.fromWatch,
+    this.creatineDoses = 0,
+    this.creatineGrams = 0,
   });
 
   final int id;
@@ -150,6 +158,10 @@ class WatchEntry {
   /// Whether it was added on the watch.
   final bool fromWatch;
 
+  /// Creatine doses taken with it, and their grams.
+  final int creatineDoses;
+  final double creatineGrams;
+
   @override
   bool operator ==(Object other) =>
       other is WatchEntry &&
@@ -157,10 +169,20 @@ class WatchEntry {
       other.name == name &&
       other.protein == protein &&
       other.time == time &&
-      other.fromWatch == fromWatch;
+      other.fromWatch == fromWatch &&
+      other.creatineDoses == creatineDoses &&
+      other.creatineGrams == creatineGrams;
 
   @override
-  int get hashCode => Object.hash(id, name, protein, time, fromWatch);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    protein,
+    time,
+    fromWatch,
+    creatineDoses,
+    creatineGrams,
+  );
 }
 
 /// A product the watch adds one portion of.
@@ -171,6 +193,7 @@ class WatchProduct {
     required this.name,
     required this.protein,
     required this.isFavorite,
+    this.creatineDoses = 0,
   });
 
   final int id;
@@ -180,16 +203,20 @@ class WatchProduct {
   final double protein;
   final bool isFavorite;
 
+  /// Creatine doses of one portion.
+  final int creatineDoses;
+
   @override
   bool operator ==(Object other) =>
       other is WatchProduct &&
       other.id == id &&
       other.name == name &&
       other.protein == protein &&
-      other.isFavorite == isFavorite;
+      other.isFavorite == isFavorite &&
+      other.creatineDoses == creatineDoses;
 
   @override
-  int get hashCode => Object.hash(id, name, protein, isFavorite);
+  int get hashCode => Object.hash(id, name, protein, isFavorite, creatineDoses);
 }
 
 /// Reads the state of the app day of [now] from [db], as the app shows it.

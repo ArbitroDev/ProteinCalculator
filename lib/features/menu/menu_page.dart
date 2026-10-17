@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/slot_reminder.dart';
@@ -12,9 +13,11 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/goal_field.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/notifications_off.dart';
+import 'package:protein_calculator/core/widgets/shaker_icon.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -49,6 +52,12 @@ class MenuPage extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
+                      // The protein shaker, as creatine has its sparkles.
+                      IconTheme(
+                        data: IconThemeData(size: 24, color: colors.accentText),
+                        child: const ShakerIcon(),
+                      ),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,6 +86,8 @@ class MenuPage extends ConsumerWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 10),
+            const _CreatineCard(),
             const SizedBox(height: 10),
             Material(
               color: colors.surface,
@@ -177,6 +188,199 @@ Future<void> _editStartHour(BuildContext context, int hour) =>
       ),
       builder: (context) => _StartHourSheet(hour: hour),
     );
+
+Future<void> _editCreatineDose(BuildContext context, double grams) =>
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AppColors.of(context).background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) => _CreatineDoseSheet(grams: grams),
+    );
+
+/// Switch of creatine tracking, with the grams of one dose, edited with a
+/// tap once it is on.
+class _CreatineCard extends ConsumerWidget {
+  const _CreatineCard();
+
+  /// Turns creatine on, the first time asking for the dose at once, or off.
+  Future<void> _set(BuildContext context, WidgetRef ref, bool enabled) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final settings = ref.read(databaseProvider).settingsDao;
+    final first = !(await settings.getCreatine()).everEnabled;
+    final saved = await runUserAction(messenger, l10n, () async {
+      await settings.setCreatineEnabled(enabled);
+      return true;
+    });
+    if (enabled && first && saved != null && context.mounted) {
+      await _editCreatineDose(context, defaultCreatineDoseGrams);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final locale = context.localeName;
+    final creatine = ref.watch(creatineSettingsProvider).value;
+    final dose = creatine?.doseGrams;
+    final enabled = creatine?.enabled ?? false;
+
+    // A tap anywhere turns creatine on, then edits the dose, as the edit
+    // button does, set apart from the switch by a line.
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: ListTile(
+        onTap: creatine == null
+            ? null
+            : enabled && dose != null
+            ? () => _editCreatineDose(context, dose)
+            : () => _set(context, ref, true),
+        leading: Icon(creatineIcon, size: 22, color: colors.creatineText),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        contentPadding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
+        title: Text(
+          l10n.creatine,
+          style: textTheme.bodyLarge!.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          enabled && dose != null
+              ? l10n.menuCreatineDose(l10n.grams(formatProtein(dose, locale)))
+              : l10n.menuCreatineOff,
+          style: textTheme.bodySmall!.copyWith(color: colors.textSecondary),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(
+              onPressed: enabled && dose != null
+                  ? () => _editCreatineDose(context, dose)
+                  : null,
+              // As wide as its text, close to the line.
+              style: TextButton.styleFrom(
+                minimumSize: const Size(0, 40),
+                padding: const EdgeInsets.only(left: 12, right: 5),
+              ),
+              child: Text(l10n.edit),
+            ),
+            const SizedBox(width: 6),
+            Container(width: 1, height: 28, color: colors.divider),
+            const SizedBox(width: 10),
+            // Named by the card for screen readers.
+            Semantics(
+              label: l10n.creatine,
+              child: Switch(
+                value: enabled,
+                onChanged: creatine == null
+                    ? null
+                    : (value) => _set(context, ref, value),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet editing the grams of one creatine dose.
+class _CreatineDoseSheet extends ConsumerStatefulWidget {
+  const _CreatineDoseSheet({required this.grams});
+
+  final double grams;
+
+  @override
+  ConsumerState<_CreatineDoseSheet> createState() => _CreatineDoseSheetState();
+}
+
+class _CreatineDoseSheetState extends ConsumerState<_CreatineDoseSheet> {
+  late final _controller = TextEditingController(
+    text: formatProtein(widget.grams, context.localeName),
+  );
+  bool _showError = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final grams = parseGrams(_controller.text);
+    if (grams == null || !isValidCreatineDoseGrams(grams)) {
+      setState(() => _showError = true);
+      return;
+    }
+    await runUserAction(
+      ScaffoldMessenger.of(context),
+      AppLocalizations.of(context),
+      () => ref.read(databaseProvider).settingsDao.setCreatineDoseGrams(grams),
+    );
+    // Closed even on failure: the message shows under the sheet otherwise.
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final locale = context.localeName;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        22,
+        22,
+        22,
+        18 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.creatineDoseTitle, style: textTheme.headlineSmall),
+          const SizedBox(height: 6),
+          Text(
+            l10n.creatineDoseBody,
+            style: textTheme.bodyLarge!.copyWith(
+              color: AppColors.of(context).textSecondary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          GoalField(
+            controller: _controller,
+            autofocus: true,
+            showError: _showError,
+            hint: formatProtein(defaultCreatineDoseGrams, locale),
+            decimal: true,
+            error: l10n.creatineDoseInvalid(
+              formatGrams(minCreatineDoseGrams, locale),
+              formatGrams(maxCreatineDoseGrams, locale),
+            ),
+            onChanged: (_) => setState(() => _showError = false),
+            onSubmitted: (_) => _save(),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: _save,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+            ),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Switch of the reminders of the parts of the day left empty, see
 /// `SlotReminder`, with a banner when their notifications are off or late.

@@ -123,6 +123,17 @@ class _DayTile extends StatelessWidget {
                     style: textTheme.titleMedium,
                   ),
                 ),
+                // The mark of the days creatine was taken, then that of the
+                // goal reached.
+                if (day.creatineDoses > 0) ...[
+                  Icon(
+                    LucideIcons.circleCheck,
+                    size: 16,
+                    color: colors.creatineText,
+                    semanticLabel: l10n.creatineTaken,
+                  ),
+                  const SizedBox(width: 5),
+                ],
                 if (reached) ...[
                   Icon(
                     LucideIcons.circleCheck,

@@ -23,6 +23,8 @@
     <string name="unnamed">Unnamed</string>
     <string name="entry_waiting">waiting</string>
     <string name="from_watch">Added on the watch</string>
+    <string name="creatine">Creatine</string>
+    <string name="creatine_mark">Contains creatine</string>
     <string name="delete">Delete</string>
     <string name="undo">Undo</string>
     <string name="free_entry">Free entry</string>

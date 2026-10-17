@@ -46,7 +46,14 @@ data class DayEntry(
     val fromWatch: Boolean,
     /** Whether the phone has not made it yet: added on the watch, out of its range or being sent. */
     val pending: Boolean,
+    /** Creatine doses taken with it. */
+    val creatineDoses: Int = 0,
+    /** Grams of creatine of those doses; zero while the phone has not made it. */
+    val creatineGrams: Double = 0.0,
 ) {
+    /** Creatine taken on its own: no protein, but at least one dose. */
+    val isCreatineOnly: Boolean get() = protein == 0.0 && creatineDoses > 0
+
     /** Tells the entries of a list apart. */
     val key: String get() = entryId?.let { "entry $it" } ?: "addition $additionId"
 }
@@ -74,8 +81,18 @@ fun watchScreenOf(saved: Saved, phoneNearby: Boolean, now: Long, zone: ZoneId): 
         pending = pending,
         goal = goal,
         entries = (
-            sent.map { DayEntry(it.id, null, it.name, it.protein, it.time, it.fromWatch, pending = false) } +
-                waiting.map { DayEntry(null, it.id, it.name, it.protein, it.addedAt, fromWatch = true, pending = true) }
+            sent.map {
+                DayEntry(
+                    it.id, null, it.name, it.protein, it.time, it.fromWatch, pending = false,
+                    creatineDoses = it.creatineDoses, creatineGrams = it.creatineGrams,
+                )
+            } +
+                waiting.map {
+                    DayEntry(
+                        null, it.id, it.name, it.protein, it.addedAt, fromWatch = true, pending = true,
+                        creatineDoses = it.creatineDoses,
+                    )
+                }
             ).sortedByDescending { it.time },
         products = state.products,
         updatedAt = saved.receivedAt ?: now,

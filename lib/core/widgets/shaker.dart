@@ -60,12 +60,17 @@ class Shaker extends StatefulWidget {
     this.motion,
     this.maxGrams,
     this.showGoalLine = true,
+    this.creatineDoses = 0,
   });
 
   final List<ShakerLayer> layers;
   final double goal;
   final String semanticLabel;
   final ShakerMotion? motion;
+
+  /// Creatine doses of the day, settled at the bottom as a veil over the
+  /// layers: they never raise the liquid.
+  final int creatineDoses;
 
   /// Grams at the top of the graduations; by default the larger of the
   /// goal and the total. Content above it keeps the shaker full.
@@ -124,6 +129,7 @@ class _ShakerState extends State<Shaker> {
                 motion: widget.motion,
                 maxGrams: widget.maxGrams,
                 showGoalLine: widget.showGoalLine,
+                creatineDoses: widget.creatineDoses,
               ),
             ),
           ),
@@ -142,6 +148,7 @@ class _ShakerPainter extends CustomPainter {
     required this.motion,
     required this.maxGrams,
     required this.showGoalLine,
+    required this.creatineDoses,
   }) : super(repaint: motion);
 
   final List<ShakerLayer> layers;
@@ -151,11 +158,19 @@ class _ShakerPainter extends CustomPainter {
   final ShakerMotion? motion;
   final double? maxGrams;
   final bool showGoalLine;
+  final int creatineDoses;
 
   // Drawing coordinates, in a 110 x 290 box.
   static const _width = 110.0;
   static const _bottom = 280.0;
   static const _fillHeight = 184.0;
+
+  /// Top of the body, under the lid.
+  static const _bodyTop = 76.0;
+
+  /// Height of the veil of one creatine dose: a twentieth of the graduated
+  /// height, whatever the dose and the goal.
+  static const _creatineHeight = _fillHeight * 0.05;
   static const _left = 10.0;
   static const _right = 100.0;
   static const _center = 55.0;
@@ -210,7 +225,10 @@ class _ShakerPainter extends CustomPainter {
         Offset(x, boundary(grams, index, x, surface: surface)),
     ];
 
-    final mixed = _averageColor(total);
+    // Creatine dissolves in the mix, tinting it, and settles again after.
+    final mixed = creatineDoses > 0
+        ? Color.lerp(_averageColor(total), AppColors.creatine, 0.2 * mix)!
+        : _averageColor(total);
     final separator = Paint()
       ..color = AppColors.onAccent.withValues(alpha: 0.25 * (1 - mix))
       ..strokeWidth = 1.2
@@ -240,7 +258,86 @@ class _ShakerPainter extends CustomPainter {
       start = fullEnd;
     }
 
+    if (creatineDoses > 0 && mix < 1) {
+      _paintCreatine(
+        canvas,
+        slope,
+        mix,
+        level > 0 ? line(level, layers.length, surface: true) : null,
+      );
+    }
     if (mix > 0 && level > 0) _paintBubbles(canvas, y(level), mix, phase);
+    canvas.restore();
+  }
+
+  /// Veil of the creatine doses at the bottom, over the layers, one stratum
+  /// per dose, all as translucent so the layers show through each the
+  /// same, tilted with the liquid. Above the [surface] of the protein,
+  /// if any, it is paler, so the level of the protein stays readable.
+  void _paintCreatine(
+    Canvas canvas,
+    double slope,
+    double mix,
+    List<Offset>? surface,
+  ) {
+    List<Offset> boundary(double height) => [
+      for (var x = _left; x <= _right; x += 5)
+        Offset(x, height - (x - _center) * slope),
+    ];
+
+    void strata(double opacity) {
+      final fade = opacity * (1 - mix);
+      final separator = Paint()
+        ..color = AppColors.onAccent.withValues(alpha: 0.25 * fade)
+        ..strokeWidth = 1.2
+        ..style = PaintingStyle.stroke;
+      for (var k = 0; k < creatineDoses; k++) {
+        final bottom = _bottom - k * _creatineHeight;
+        if (bottom <= _bodyTop) break;
+        final lower = k == 0
+            ? [const Offset(_right, 290), const Offset(_left, 290)]
+            : boundary(bottom).reversed.toList();
+        canvas.drawPath(
+          Path()..addPolygon([
+            ...boundary(bottom - _creatineHeight),
+            ...lower,
+          ], true),
+          Paint()..color = AppColors.creatine.withValues(alpha: 0.45 * fade),
+        );
+        if (k > 0) {
+          canvas.drawPath(
+            Path()..addPolygon(boundary(bottom), false),
+            separator,
+          );
+        }
+      }
+    }
+
+    if (surface == null) {
+      strata(1);
+      return;
+    }
+    canvas
+      ..save()
+      ..clipPath(
+        Path()..addPolygon([
+          ...surface,
+          const Offset(_right, 290),
+          const Offset(_left, 290),
+        ], true),
+      );
+    strata(1);
+    canvas
+      ..restore()
+      ..save()
+      ..clipPath(
+        Path()..addPolygon([
+          ...surface,
+          const Offset(_right, 0),
+          const Offset(_left, 0),
+        ], true),
+      );
+    strata(0.35);
     canvas.restore();
   }
 
@@ -262,7 +359,10 @@ class _ShakerPainter extends CustomPainter {
   void _paintBubbles(Canvas canvas, double surface, double mix, double phase) {
     final height = _bottom - surface;
     if (height < 8) return;
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.35 * mix);
+    final bubble = creatineDoses > 0
+        ? Color.lerp(Colors.white, AppColors.creatine, 0.5)!
+        : Colors.white;
+    final paint = Paint()..color = bubble.withValues(alpha: 0.35 * mix);
     for (var i = 0; i < 12; i++) {
       final x = 20 + (i * 37 % 70).toDouble();
       final rise = (phase * 14 + i * 29) % height;
@@ -369,6 +469,7 @@ class _ShakerPainter extends CustomPainter {
       old.showGoalLine != showGoalLine ||
       old.colors != colors ||
       old.motion != motion ||
+      old.creatineDoses != creatineDoses ||
       !_sameLayers(old.layers, layers);
 
   static bool _sameLayers(List<ShakerLayer> a, List<ShakerLayer> b) {

@@ -68,6 +68,7 @@ class WatchChannel(context: Context, messenger: BinaryMessenger) {
                 "name" to it.name,
                 "protein" to it.protein,
                 "addedAt" to it.addedAt,
+                "creatineDoses" to it.creatineDoses,
             )
         }
         call("addPortions", arguments) { callback(addReplyOf(it)) }
@@ -159,6 +160,8 @@ private fun dayStateOf(arguments: Any?): DayState? {
                     protein = (entry["protein"] as Number).toDouble(),
                     time = (entry["time"] as Number).toLong(),
                     fromWatch = entry["fromWatch"] as Boolean,
+                    creatineDoses = (entry["creatineDoses"] as Number).toInt(),
+                    creatineGrams = (entry["creatineGrams"] as Number).toDouble(),
                 )
             },
             products = (map["products"] as List<*>).map { product ->
@@ -168,6 +171,7 @@ private fun dayStateOf(arguments: Any?): DayState? {
                     name = product["name"] as String,
                     protein = (product["protein"] as Number).toDouble(),
                     favorite = product["favorite"] as Boolean,
+                    creatineDoses = (product["creatineDoses"] as Number).toInt(),
                 )
             },
             handled = (map["handled"] as List<*>).map { it as String },

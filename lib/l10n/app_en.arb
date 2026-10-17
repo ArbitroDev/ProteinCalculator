@@ -193,5 +193,21 @@
   "slotReminderMorning": "Nothing logged this morning?",
   "slotReminderAfternoon": "Nothing logged this afternoon?",
   "slotReminderEvening": "Nothing logged this evening?",
-  "slotReminderBody": "If you forgot, add what you consumed."
+  "slotReminderBody": "If you forgot, add what you consumed.",
+  "creatine": "Creatine",
+  "creatineTaken": "creatine taken",
+  "addCreatineDose": "Add a creatine dose",
+  "creatineDoseAdded": "Creatine dose added",
+  "creatineDoses": "{count, plural, =1{1 dose} other{{count} doses}}",
+  "creatineDayLine": "{doses} of creatine · {grams}",
+  "lessCreatine": "One dose less",
+  "moreCreatine": "One dose more",
+  "menuCreatineOff": "Off",
+  "menuCreatineDose": "Dose: {grams}",
+  "creatineDoseTitle": "Creatine dose",
+  "creatineDoseBody": "The grams of one dose. Doses already taken keep theirs.",
+  "creatineDoseInvalid": "Between {min} and {max} g",
+  "calendarCreatine": "Creatine taken",
+  "creatineMark": "{count, plural, =1{contains creatine} other{contains {count} doses of creatine}}",
+  "creatineGrams": "{grams} of creatine"
 }

@@ -62,6 +62,89 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  group('creatine', () {
+    Finder creatineSwitch() => find.descendant(
+      of: find.widgetWithText(ListTile, 'Creatine'),
+      matching: find.byType(Switch),
+    );
+
+    testWidgets('turning creatine on opens the dose sheet', (tester) async {
+      await openMenu(tester);
+      expect(find.text('Off'), findsOneWidget);
+
+      await tester.tap(creatineSwitch());
+      await tester.pumpAndSettle();
+      expect(find.text('Creatine dose'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '60');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Between 1 and 50 g'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '7');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Dose: 7 g'), findsOneWidget);
+      expect(
+        await db.settingsDao.getCreatine(),
+        isA<Object>().having((c) => c.toString(), 'settings', contains('7.0')),
+      );
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('a tap on the card turns creatine on, its switch labeled', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await openMenu(tester);
+
+      expect(tester.getSemantics(creatineSwitch()).label, contains('Creatine'));
+      await tester.tap(find.text('Creatine'));
+      await tester.pumpAndSettle();
+      expect(find.text('Creatine dose'), findsOneWidget);
+      expect((await db.settingsDao.getCreatine()).enabled, isTrue);
+      await disposeApp(tester, db);
+      semantics.dispose();
+    });
+
+    testWidgets('takes a dose with one decimal', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await openMenu(tester);
+
+      await tester.tap(find.text('Creatine'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '3.5');
+      await tester.pumpAndSettle();
+      // One decimal at most: a second one is refused.
+      await tester.enterText(find.byType(TextField), '3.55');
+      await tester.pumpAndSettle();
+      expect(find.text('3.5'), findsOneWidget);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dose: 3.5 g'), findsOneWidget);
+      expect((await db.settingsDao.getCreatine()).doseGrams, 3.5);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('turning it off and on again keeps the dose', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await db.settingsDao.setCreatineDoseGrams(3);
+      await openMenu(tester);
+
+      await tester.tap(creatineSwitch());
+      await tester.pumpAndSettle();
+      expect(find.text('Off'), findsOneWidget);
+      await tester.tap(creatineSwitch());
+      await tester.pumpAndSettle();
+
+      // No sheet the second time.
+      expect(find.text('Creatine dose'), findsNothing);
+      expect(find.text('Dose: 3 g'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+  });
+
   testWidgets('chooses when the day starts', (tester) async {
     addTearDown(() => appDayStartHour = defaultAppDayStartHour);
     await openMenu(tester);

@@ -111,6 +111,14 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final count =
         (today.year - first.year) * 12 + today.month - first.month + 1;
     final totals = {for (final day in days) day.dayKey: day.proteinGrams};
+    final creatineDays = {
+      for (final day in days)
+        if (day.creatineDoses > 0) day.dayKey,
+    };
+    // Shown to those who track creatine, or did.
+    final creatineLegend =
+        (ref.watch(creatineSettingsProvider).value?.everEnabled ?? false) ||
+        creatineDays.isNotEmpty;
     final firstWeekday = MaterialLocalizations.of(context).firstDayOfWeekIndex;
     DateTime monthAt(int index) => DateTime(today.year, today.month - index);
 
@@ -180,6 +188,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                             month: monthAt(index),
                             todayKey: todayKey,
                             totals: totals,
+                            creatineDays: creatineDays,
                             goals: goals,
                           ),
                         ),
@@ -229,9 +238,11 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           child: ColoredBox(color: background),
                         ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: AbsorbPointer(child: _Legend()),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: AbsorbPointer(
+                          child: _Legend(creatine: creatineLegend),
+                        ),
                       ),
                     ],
                   ),
@@ -345,6 +356,7 @@ class _MonthSection extends StatelessWidget {
     required this.month,
     required this.todayKey,
     required this.totals,
+    required this.creatineDays,
     required this.goals,
   });
 
@@ -353,6 +365,9 @@ class _MonthSection extends StatelessWidget {
 
   /// Protein grams of each app day having entries.
   final Map<int, double> totals;
+
+  /// App days creatine was taken.
+  final Set<int> creatineDays;
   final List<({int dayKey, double grams})> goals;
 
   /// Height of the title above the weeks.
@@ -447,6 +462,7 @@ class _MonthSection extends StatelessWidget {
       isToday: dayKey == todayKey,
       isFuture: dayKey > todayKey,
       hasEntries: total != null,
+      creatineTaken: creatineDays.contains(dayKey),
     );
   }
 }
@@ -477,6 +493,7 @@ class _DayCell extends StatelessWidget {
     required this.isToday,
     required this.isFuture,
     required this.hasEntries,
+    required this.creatineTaken,
   });
 
   final int dayKey;
@@ -486,6 +503,7 @@ class _DayCell extends StatelessWidget {
   final bool isToday;
   final bool isFuture;
   final bool hasEntries;
+  final bool creatineTaken;
 
   @override
   Widget build(BuildContext context) {
@@ -504,12 +522,16 @@ class _DayCell extends StatelessWidget {
       if (progress == DayProgress.reached)
         // The mark of the days reaching their goal in the history.
         Icon(LucideIcons.circleCheck, size: 12, color: colors.accentText),
+      // The mark of the days creatine was taken.
+      if (creatineTaken)
+        Icon(LucideIcons.circleCheck, size: 12, color: colors.creatineText),
     ];
 
     return Semantics(
       label: [
         formatLongDate(dateOfDayKey(dayKey), context.localeName),
         if (progress != null) _progressLabel(l10n, progress),
+        if (creatineTaken) l10n.creatineTaken,
       ].join(', '),
       button: hasEntries,
       excludeSemantics: true,
@@ -567,7 +589,10 @@ String _progressLabel(AppLocalizations l10n, DayProgress progress) =>
     };
 
 class _Legend extends StatelessWidget {
-  const _Legend();
+  const _Legend({required this.creatine});
+
+  /// Whether it tells the mark of the days creatine was taken.
+  final bool creatine;
 
   @override
   Widget build(BuildContext context) {
@@ -624,6 +649,36 @@ class _Legend extends StatelessWidget {
                 spacing: 12,
                 children: [
                   for (final progress in pair) Expanded(child: item(progress)),
+                ],
+              ),
+            if (creatine)
+              Row(
+                spacing: 12,
+                children: [
+                  Expanded(
+                    // No color of its own: lined up with the others, the
+                    // room of their dot left empty.
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 22),
+                        Flexible(
+                          child: Text(
+                            l10n.calendarCreatine,
+                            style: style,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          LucideIcons.circleCheck,
+                          size: 12,
+                          color: colors.creatineText,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
                 ],
               ),
           ],
