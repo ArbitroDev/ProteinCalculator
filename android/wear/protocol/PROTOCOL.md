@@ -16,13 +16,13 @@ The `DataClient`, which may sync through Google servers, is not used.
 ## Format
 
 Each message is a JSON object in UTF-8. Its `v` field holds the version of
-the messages it belongs to, an integer, currently **1**.
+the messages it belongs to, an integer, currently **2**.
 
 - Any change of the messages (a field added, removed, renamed, or used with
   another meaning) comes with a new version, written here.
 - A message of a version the app does not read is never read: its fields may
   mean something else. A request of such a version is answered with
-  `{"unsupported": [1]}`, the versions the app reads. This answer never
+  `{"unsupported": [1, 2]}`, the versions the app reads. This answer never
   changes, whatever the version. The watch then tells the user which app to
   update.
 - The phone keeps reading the additions and deletions of every earlier
@@ -39,7 +39,56 @@ while to sync them, so they are not needed to send.
 | Capability | Declared by |
 |---|---|
 | `protein_calculator_phone` | The phone app |
-| `protein_calculator_watch_v1` | The watch app, reading the messages of version 1 |
+| `protein_calculator_watch_v2` | The watch app, reading the messages of version 2 |
+
+Watch apps reading the messages of version 1 declared
+`protein_calculator_watch_v1`.
+
+## Version 2
+
+The messages of version 1 below, with the creatine doses of the entries and
+the products. Fields not listed here keep their meaning.
+
+The phone reads the requests of the watch (`sync`, `add`, `delete`) of
+versions 1 and 2: those of version 1 hold no creatine doses. It writes the
+states and its answers in version 2 only, which a watch reading version 1
+does not read: it then tells the user to update the watch app. The watch
+reads the states and the answers of version 2 only.
+
+### State of the day
+
+| Field | Meaning |
+|---|---|
+| `entries[].protein` | Protein grams of the entry: above zero, or zero for creatine taken on its own, with at least one dose. |
+| `entries[].creatineDoses` | Creatine doses taken with the entry, from 0 to 9. |
+| `entries[].creatineGrams` | Grams of creatine of those doses, from the dose they were taken with. |
+| `products[].protein` | Protein grams of one portion: above zero, or zero with at least one dose. |
+| `products[].creatineDoses` | Creatine doses of one portion, from 0 to 9. |
+| `creatineEnabled` | Whether the user tracks creatine: the tile then tells whether a dose was taken that day. |
+
+```json
+{
+  "v": 2,
+  "entries": [
+    { "id": 43, "name": null, "protein": 0.0, "time": 1791468240000, "fromWatch": false, "creatineDoses": 1, "creatineGrams": 5.0 }
+  ],
+  "products": [
+    { "id": 4, "name": "Whey", "protein": 24.0, "favorite": false, "creatineDoses": 1 }
+  ]
+}
+```
+
+(Other fields as in version 1.)
+
+### Additions
+
+| Field | Meaning |
+|---|---|
+| `requests[].protein` | As in version 1, or zero with at least one dose. |
+| `requests[].creatineDoses` | Creatine doses of one portion of the product, as the watch showed them; 0 for a free entry. |
+
+The phone adds the portion of the product with its doses; when it makes the
+entry from the values the watch showed, it takes `creatineDoses` too.
 
 ## Version 1
 

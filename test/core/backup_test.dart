@@ -212,6 +212,61 @@ void main() {
     expect(backup.entries.map((e) => e.fromWatch.value), [false, false]);
   });
 
+  test('keeps the creatine of entries, products and settings', () async {
+    await source.settingsDao.setCreatineEnabled(true);
+    await source.settingsDao.setCreatineDoseGrams(4);
+    await source.entriesDao.addCreatineDose(
+      createdAt: DateTime(2026, 10, 1, 8),
+    );
+    await source.productsDao.insertProduct(
+      name: 'Whey',
+      amount: const DirectAmount(24),
+      createdAt: DateTime(2026, 9, 1),
+      creatineDoses: 2,
+    );
+    final target = openTestDatabase();
+    addTearDown(target.close);
+
+    await restoreBackup(target, parseBackup(await export()));
+
+    final dose = (await target.select(target.entries).get()).singleWhere(
+      (e) => e.creatineDoses > 0,
+    );
+    expect(dose.proteinGrams, 0);
+    expect(dose.creatineDoseGrams, 4);
+    final whey = (await target.select(target.products).get()).singleWhere(
+      (p) => p.name == 'Whey',
+    );
+    expect(whey.creatineDoses, 2);
+    final creatine = await target.settingsDao.getCreatine();
+    expect(creatine.enabled, isTrue);
+    expect(creatine.doseGrams, 4);
+  });
+
+  test('backup of version 7 imports without creatine', () async {
+    final json = jsonDecode(await export()) as Map<String, dynamic>;
+    json['version'] = 7;
+    final settings = json['settings'] as Map<String, dynamic>
+      ..remove('creatineEnabled')
+      ..remove('creatineDoseGrams');
+    expect(settings, isNot(contains('creatineEnabled')));
+    for (final entry in rows(json, 'entries')) {
+      entry
+        ..remove('creatineDoses')
+        ..remove('creatineDoseGrams');
+    }
+    for (final product in rows(json, 'products')) {
+      product.remove('creatineDoses');
+    }
+
+    final backup = parseBackup(jsonEncode(json));
+
+    expect(backup.entries.map((e) => e.creatineDoses.value), [0, 0]);
+    expect(backup.products.map((p) => p.creatineDoses.value), [0]);
+    expect(backup.creatineEnabled, isFalse);
+    expect(backup.creatineDoseGrams, isNull);
+  });
+
   test('keeps the unit of quantities and the barcodes of products', () async {
     const milk = PerQuantityAmount(
       consumedGrams: 250,
@@ -411,6 +466,26 @@ void main() {
     test('with a missing field', () async {
       final json = await exported();
       rows(json, 'entries').first.remove('proteinGrams');
+      expectInvalid(jsonEncode(json));
+    });
+
+    test('with 10 creatine doses', () async {
+      final json = await exported();
+      rows(json, 'entries').first
+        ..['creatineDoses'] = 10
+        ..['creatineDoseGrams'] = 5.0;
+      expectInvalid(jsonEncode(json));
+    });
+
+    test('with 0 g of protein without creatine', () async {
+      final json = await exported();
+      rows(json, 'entries').last['proteinGrams'] = 0.0;
+      expectInvalid(jsonEncode(json));
+    });
+
+    test('with creatine doses but no dose grams', () async {
+      final json = await exported();
+      rows(json, 'entries').first['creatineDoses'] = 1;
       expectInvalid(jsonEncode(json));
     });
 

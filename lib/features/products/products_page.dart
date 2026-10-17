@@ -13,6 +13,7 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/empty_state.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/notifications_off.dart';
@@ -435,12 +436,22 @@ class _ProductTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        product.name,
-                        style: textTheme.bodyLarge!.copyWith(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              product.name,
+                              style: textTheme.bodyLarge!.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          if (product.creatineDoses > 0) ...[
+                            const SizedBox(width: 6),
+                            CreatineMark(doses: product.creatineDoses),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(details, style: textTheme.bodySmall),

@@ -71,6 +71,33 @@ class WatchScreenTest {
     }
 
     @Test
+    fun `tells whether creatine was taken today, waiting additions included`() {
+        val tracked = state.copy(creatineEnabled = true)
+        val none = assertIs<WatchScreen.Day>(screen(saved(tracked)))
+        assertEquals(true, none.creatineEnabled)
+        assertEquals(false, none.creatineTaken)
+
+        val dose = addition("a1", at(1, 13)).copy(protein = 0.0, creatineDoses = 1)
+        val waiting = assertIs<WatchScreen.Day>(screen(saved(tracked, pending = listOf(dose))))
+        assertEquals(true, waiting.creatineTaken)
+
+        // Taken yesterday: nothing once the day is over.
+        val sent = tracked.copy(
+            entries = listOf(
+                WatchEntry(
+                    id = 9, name = null, protein = 0.0, time = at(1, 9), fromWatch = false,
+                    creatineDoses = 1, creatineGrams = 5.0,
+                ),
+            ),
+        )
+        assertEquals(true, assertIs<WatchScreen.Day>(screen(saved(sent))).creatineTaken)
+        assertEquals(
+            false,
+            assertIs<WatchScreen.Day>(screen(saved(sent), now = at(2, 9))).creatineTaken,
+        )
+    }
+
+    @Test
     fun `asks to open the phone app until it sent a day with a goal`() {
         assertEquals(WatchScreen.OpenPhone, screen(saved(state = null)))
         assertEquals(WatchScreen.OpenPhone, screen(saved(state = state.copy(goal = null))))

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="goal_widget_name">Today\'s goal</string>
+    <string name="goal_widget_description">Your progress towards your protein goal of the day</string>
+    <!-- Under the total, in the ring: the goal of the day, formatted. -->
+    <string name="goal_widget_of">/ %1$s g</string>
+    <!-- Read by screen readers: the total and the goal, formatted. -->
+    <string name="goal_widget_progress">%1$s g of %2$s g</string>
+    <string name="goal_widget_creatine">creatine taken</string>
+    <string name="goal_widget_open_app">Open Protein Calculator</string>
+</resources>

@@ -99,6 +99,82 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  group('creatine', () {
+    final check = find.byWidgetPredicate(
+      (widget) => widget is Icon && widget.semanticLabel == 'creatine taken',
+    );
+    final button = find.byTooltip('Add a creatine dose');
+
+    testWidgets('nothing about creatine shows while it was never on', (
+      tester,
+    ) async {
+      await addEntry(20, DateTime(2026, 10, 1, 8));
+      await pumpApp(tester, db);
+
+      expect(button, findsNothing);
+      expect(check, findsNothing);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the blue button adds a dose with undo', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await pumpApp(tester, db);
+      expect(check, findsNothing);
+
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+
+      final dose = (await db.select(db.entries).get()).single;
+      expect(dose.proteinGrams, 0);
+      expect(dose.creatineDoses, 1);
+      expect(find.text('Creatine dose added'), findsOneWidget);
+      expect(find.text('Creatine'), findsOneWidget);
+      expect(find.text('5 g'), findsOneWidget);
+      expect(check, findsOneWidget);
+      // Not an entry of protein: the total stays.
+      expect(find.text('0 g / 140 g'), findsOneWidget);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(await db.select(db.entries).get(), isEmpty);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('screen readers tell the creatine of the entries', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await db.settingsDao.setCreatineEnabled(true);
+      await db.entriesDao.insertEntry(
+        name: 'Whey',
+        amount: const DirectAmount(24),
+        createdAt: DateTime(2026, 10, 1, 8),
+        creatineDoses: 2,
+      );
+      await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 9));
+      await pumpApp(tester, db);
+
+      expect(
+        find.bySemanticsLabel(RegExp('contains 2 doses of creatine')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel(RegExp('5 g of creatine')), findsOneWidget);
+      await disposeApp(tester, db);
+      semantics.dispose();
+    });
+
+    testWidgets('the blue check stays once creatine is off', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 8));
+      await db.settingsDao.setCreatineEnabled(false);
+      await pumpApp(tester, db);
+
+      expect(check, findsOneWidget);
+      expect(button, findsNothing);
+      await disposeApp(tester, db);
+    });
+  });
+
   testWidgets('updates when an entry is added', (tester) async {
     await pumpApp(tester, db);
 

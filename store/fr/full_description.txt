@@ -1,0 +1,28 @@
+Protein Calculator sert à une chose : savoir combien de protéines tu as mangé aujourd'hui, et combien il t'en reste pour atteindre ton objectif.
+
+Tu indiques ton objectif quotidien en grammes, puis tu ajoutes ce que tu manges au fil de la journée. Pour chaque aliment, tu peux saisir directement les grammes de protéines, ou la quantité mangée et la teneur indiquée sur l'emballage (par exemple 26 g pour 100 g) : l'app fait le calcul.
+
+Les aliments que tu manges souvent peuvent être enregistrés comme produits. Tu les retrouves ensuite dans une liste, ou en suggestion quand tu tapes leur nom, et tu les ajoutes sans tout ressaisir. Un produit peut être mis en favori pour l'ajouter directement depuis l'écran principal.
+
+L'historique garde chaque journée avec son total, et le détail de ce que tu as mangé le matin, l'après-midi et le soir. Une entrée se modifie ou se supprime à tout moment.
+
+Une journée commence à 3 h du matin : ce que tu manges après minuit compte pour la veille.
+
+Tu prends de la créatine ? Active son suivi dans le menu et choisis ta dose : tu l'ajoutes d'une touche depuis l'écran principal, ou avec un produit qui en contient, et l'historique marque les jours où tu l'as prise.
+
+Le widget « Objectif du jour » affiche ta progression sur l'écran d'accueil de ton téléphone.
+
+Avec une montre Wear OS :
+• l'app de la montre affiche ta journée et ses entrées, et ajoute un produit enregistré ou des grammes de protéines depuis ton poignet, même loin de ton téléphone ;
+• la tuile « Objectif du jour » montre où tu en es de ton objectif et si tu as pris ta créatine, et ajoute ton produit favori d'une touche ;
+• la complication « Protéines du jour » affiche ta progression sur le cadran de ta montre.
+
+Confidentialité :
+• pas de compte, pas de publicité ;
+• tes données restent sur ton téléphone ;
+• tu peux les exporter dans un fichier, pour les garder ou changer de téléphone ;
+• les rapports d'erreur, qui servent à corriger les bugs, sont désactivés par défaut.
+
+L'app est disponible en français et en anglais.
+
+Protein Calculator ne donne pas de conseils médicaux. Pour fixer un objectif adapté, demande l'avis d'un professionnel de santé.

@@ -38,6 +38,8 @@ data class DayState(
      * too.
      */
     val handled: List<String>,
+    /** Whether the user tracks creatine: the tile tells whether it was taken. */
+    val creatineEnabled: Boolean = false,
 ) {
     internal fun isValid(): Boolean =
         isValidDay(day) &&
@@ -69,9 +71,17 @@ data class WatchEntry(
     val time: Long,
     /** Whether it was added on the watch. */
     val fromWatch: Boolean,
+    /** Creatine doses taken with it. */
+    val creatineDoses: Int = 0,
+    /** Grams of creatine of those doses. */
+    val creatineGrams: Double = 0.0,
 ) {
+    /** Creatine taken on its own: no protein, but at least one dose. */
+    val isCreatineOnly: Boolean get() = protein == 0.0 && creatineDoses > 0
+
     internal fun isValid(): Boolean =
-        id > 0 && (name == null || name.isNotBlank()) && protein.isFinite() && protein > 0 && time > 0
+        id > 0 && (name == null || name.isNotBlank()) && isValidProtein(protein, creatineDoses) &&
+            creatineGrams.isFinite() && creatineGrams >= 0 && time > 0
 }
 
 /** A saved product, which the watch adds one portion of. */
@@ -83,9 +93,11 @@ data class WatchProduct(
     /** Protein grams of one portion. */
     val protein: Double,
     val favorite: Boolean,
+    /** Creatine doses of one portion. */
+    val creatineDoses: Int = 0,
 ) {
     internal fun isValid(): Boolean =
-        id > 0 && name.isNotBlank() && protein.isFinite() && protein > 0
+        id > 0 && name.isNotBlank() && isValidProtein(protein, creatineDoses)
 }
 
 /**
@@ -106,13 +118,18 @@ data class WatchAddition(
     val protein: Double,
     /** When it was added on the watch, in milliseconds since the epoch. */
     val addedAt: Long,
+    /**
+     * Creatine doses of the portion, as the watch showed them; none for a
+     * free entry, and in the requests of version 1.
+     */
+    val creatineDoses: Int = 0,
 ) {
     /** Whether the phone can add it: otherwise, the watch drops it. */
     fun isValid(): Boolean =
         isValidRequestId(id) &&
             (productId == null || (productId > 0 && name != null)) &&
             (name == null || name.isNotBlank()) &&
-            protein.isFinite() && protein > 0 && addedAt > 0
+            isValidProtein(protein, creatineDoses) && addedAt > 0
 }
 
 /** An entry of the day deleted on the watch, for the phone to delete. */
@@ -225,7 +242,7 @@ object WatchMessages {
     fun encodeState(state: DayState): ByteArray = encode(DayState.serializer(), state.limited())
 
     fun decodeState(bytes: ByteArray): Received<DayState> =
-        decode(bytes, DayState.serializer()).validated { it.isValid() }
+        decode(bytes, DayState.serializer(), CURRENT).validated { it.isValid() }
 
     /** Additions of the watch, [WatchProtocol.MAX_ADDITIONS] at most. */
     fun encodeAddRequest(additions: List<WatchAddition>): ByteArray =
@@ -250,7 +267,7 @@ object WatchMessages {
     )
 
     fun decodeAddReply(bytes: ByteArray): Received<AddReply> =
-        decode(bytes, AddReply.serializer()).validated { reply ->
+        decode(bytes, AddReply.serializer(), CURRENT).validated { reply ->
             reply.state.isValid() && reply.results.all { isValidRequestId(it.id) }
         }
 
@@ -272,7 +289,7 @@ object WatchMessages {
         encode(DeleteReply.serializer(), reply.copy(state = reply.state.limited()))
 
     fun decodeDeleteReply(bytes: ByteArray): Received<DeleteReply> =
-        decode(bytes, DeleteReply.serializer()).validated { reply ->
+        decode(bytes, DeleteReply.serializer(), CURRENT).validated { reply ->
             reply.state.isValid() && reply.results.all { isValidRequestId(it.id) }
         }
 
@@ -299,7 +316,18 @@ object WatchMessages {
         return JsonObject(version + fields).toString().encodeToByteArray()
     }
 
-    private fun <T> decode(bytes: ByteArray, serializer: KSerializer<T>): Received<T> =
+    /** The states and the answers of the phone: read in this version only. */
+    private val CURRENT = listOf(WatchProtocol.VERSION)
+
+    /**
+     * Reads a message of one of [versions], by default those of the requests
+     * of the watch, see [WatchProtocol.SUPPORTED_VERSIONS].
+     */
+    private fun <T> decode(
+        bytes: ByteArray,
+        serializer: KSerializer<T>,
+        versions: List<Int> = WatchProtocol.SUPPORTED_VERSIONS,
+    ): Received<T> =
         try {
             val message = json.parseToJsonElement(bytes.decodeToString()).jsonObject
             val unsupported = message[UNSUPPORTED_FIELD]
@@ -308,7 +336,7 @@ object WatchMessages {
                 unsupported != null ->
                     Received.Unsupported((unsupported as JsonArray).map { it.jsonPrimitive.int })
                 version == null -> Received.Malformed
-                version !in WatchProtocol.SUPPORTED_VERSIONS -> Received.OtherVersion(version)
+                version !in versions -> Received.OtherVersion(version)
                 else -> Received.Message(
                     json.decodeFromJsonElement(serializer, JsonObject(message - VERSION_FIELD)),
                 )
@@ -329,6 +357,14 @@ object WatchMessages {
 /** Fields of the request for the state: none besides the version. */
 @Serializable
 private data object SyncRequest
+
+/**
+ * Whether [protein] grams can be those of an entry or a product holding
+ * [creatineDoses]: above zero, or zero for creatine taken on its own.
+ */
+private fun isValidProtein(protein: Double, creatineDoses: Int): Boolean =
+    creatineDoses in 0..WatchProtocol.MAX_CREATINE_DOSES &&
+        protein.isFinite() && (protein > 0 || (protein == 0.0 && creatineDoses > 0))
 
 /** Whether [id] can be the id of a request of the watch: a [WatchAddition] or a [WatchDeletion]. */
 private fun isValidRequestId(id: String): Boolean = id.length in 1..WatchProtocol.MAX_ID_LENGTH

@@ -12,6 +12,7 @@ import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/motion_shaker.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
@@ -43,11 +44,12 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
     final messenger = ScaffoldMessenger.of(context);
     final entries = ref.read(databaseProvider).entriesDao;
     if (!MediaQuery.disableAnimationsOf(context)) {
+      final color = AppColors.slot(DaySlot.of(ref.read(clockProvider)()));
       await flyToShaker(
         context,
         from: from,
         shaker: _shakerKey,
-        color: AppColors.slot(DaySlot.of(ref.read(clockProvider)())),
+        builder: (size) => favoriteStar(size, color),
       );
     }
     final id = await runUserAction(
@@ -60,6 +62,36 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
       messenger,
       l10n: l10n,
       label: l10n.quickAdded(product.name),
+      onUndo: () =>
+          runUserAction(messenger, l10n, () => entries.deleteEntry(id)),
+    );
+  }
+
+  /// Adds one creatine dose without the form: a pinch of powder flies from
+  /// where the button was touched, [from], into the shaker, then the veil
+  /// rises, with a few seconds to undo.
+  Future<void> _addCreatine(Offset from) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final entries = ref.read(databaseProvider).entriesDao;
+    if (!MediaQuery.disableAnimationsOf(context)) {
+      await flyToShaker(
+        context,
+        from: from,
+        shaker: _shakerKey,
+        builder: creatinePowder,
+      );
+    }
+    final id = await runUserAction(
+      messenger,
+      l10n,
+      () => entries.addCreatineDose(createdAt: ref.read(clockProvider)()),
+    );
+    if (id == null) return;
+    showUndoSnackBar(
+      messenger,
+      l10n: l10n,
+      label: l10n.creatineDoseAdded,
       onUndo: () =>
           runUserAction(messenger, l10n, () => entries.deleteEntry(id)),
     );
@@ -87,6 +119,8 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
     ];
     final locale = context.localeName;
     final favorite = ref.watch(favoriteProductProvider);
+    final creatine =
+        ref.watch(creatineSettingsProvider).value?.enabled ?? false;
 
     if (MediaQuery.orientationOf(context) == Orientation.landscape) {
       return Scaffold(
@@ -107,6 +141,7 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
                 locale: locale,
                 favorite: favorite,
                 onQuickAdd: _quickAdd,
+                onAddCreatine: creatine ? _addCreatine : null,
                 compact: true,
               ),
             ),
@@ -130,6 +165,7 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
                 locale: locale,
                 favorite: favorite,
                 onQuickAdd: _quickAdd,
+                onAddCreatine: creatine ? _addCreatine : null,
               ),
               // Keeps the shaker at its size, the labels at their width: the
               // room the summary gave up stays above the shaker.
@@ -153,7 +189,8 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
 
 /// Date, total and goal, what is left, and under them the add button: the
 /// quick add of the [favorite] if any, otherwise the form, which landscape
-/// leaves to the tab bar.
+/// leaves to the tab bar; and next to it the button adding one creatine
+/// dose, while creatine is tracked.
 class _Summary extends StatelessWidget {
   const _Summary({
     required this.dayKey,
@@ -162,6 +199,7 @@ class _Summary extends StatelessWidget {
     required this.locale,
     required this.favorite,
     required this.onQuickAdd,
+    required this.onAddCreatine,
     this.compact = false,
   });
 
@@ -171,6 +209,9 @@ class _Summary extends StatelessWidget {
   final String locale;
   final Product? favorite;
   final void Function(Product product, Offset from) onQuickAdd;
+
+  /// Null while creatine is not tracked.
+  final ValueChanged<Offset>? onAddCreatine;
 
   /// Smaller, without the add button, for landscape.
   final bool compact;
@@ -188,6 +229,28 @@ class _Summary extends StatelessWidget {
       fontSize: 14,
       color: colors.textSecondary,
     );
+    final favorite = this.favorite;
+    final add = favorite != null
+        ? QuickAddButton(
+            product: favorite,
+            locale: locale,
+            onPressed: (from) => onQuickAdd(favorite, from),
+          )
+        : compact
+        ? null
+        : FilledButton.icon(
+            onPressed: () => context.push(AppRoutes.newEntry),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 52),
+              padding: const EdgeInsets.fromLTRB(14, 10, 18, 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              textStyle: textTheme.labelLarge!.copyWith(fontSize: 16),
+            ),
+            icon: const Icon(LucideIcons.plus, size: 24),
+            label: Text(l10n.addEntry),
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,6 +330,15 @@ class _Summary extends StatelessWidget {
                 TextSpan(
                   text: l10n.todayRemaining(grams(goal - truncateGrams(total))),
                 ),
+              // The mark of the days creatine was taken, even once it is no
+              // longer tracked.
+              if (entries.creatineDoses > 0) ...[
+                const TextSpan(text: ' · '),
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: const CreatineCheck(size: 16, labelled: true),
+                ),
+              ],
             ],
           ),
           style: status,
@@ -274,27 +346,17 @@ class _Summary extends StatelessWidget {
         // The add button under the summary, as wide as its content, so the
         // total keeps its room: the quick add of the favorite, or else the form,
         // which landscape leaves to the tab bar.
-        if (favorite case final favorite?) ...[
+        if (add != null || onAddCreatine != null) ...[
           SizedBox(height: compact ? 8 : 12),
-          QuickAddButton(
-            product: favorite,
-            locale: locale,
-            onPressed: (from) => onQuickAdd(favorite, from),
-          ),
-        ] else if (!compact) ...[
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: () => context.push(AppRoutes.newEntry),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 52),
-              padding: const EdgeInsets.fromLTRB(14, 10, 18, 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              textStyle: textTheme.labelLarge!.copyWith(fontSize: 16),
-            ),
-            icon: const Icon(LucideIcons.plus, size: 24),
-            label: Text(l10n.addEntry),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (add != null) Flexible(child: add),
+              if (add != null && onAddCreatine != null)
+                const SizedBox(width: 8),
+              if (onAddCreatine case final onAddCreatine?)
+                CreatineButton(onPressed: onAddCreatine),
+            ],
           ),
         ],
       ],
@@ -373,8 +435,10 @@ class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
               child: MotionShaker(
                 layers: [
                   for (final entry in entries)
-                    ShakerLayer(grams: entry.proteinGrams, slot: entry.slot),
+                    if (entry.proteinGrams > 0)
+                      ShakerLayer(grams: entry.proteinGrams, slot: entry.slot),
                 ],
+                creatineDoses: entries.creatineDoses,
                 goal: goal,
                 semanticLabel: l10n.shakerDescription(
                   formatGrams(total, locale),
@@ -453,7 +517,9 @@ class _EntryLabel extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
-    final name = entry.name;
+    // Creatine taken on its own is named so, and shows its own grams.
+    final creatineOnly = entry.isCreatineOnly;
+    final name = shownEntryName(entry, l10n);
 
     // Clipped, so the red background of the swipe keeps the rounded corners.
     return ClipRRect(
@@ -475,7 +541,9 @@ class _EntryLabel extends StatelessWidget {
                     width: 9,
                     height: 9,
                     decoration: BoxDecoration(
-                      color: AppColors.slot(entry.slot),
+                      color: creatineOnly
+                          ? AppColors.creatine
+                          : AppColors.slot(entry.slot),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -514,16 +582,20 @@ class _EntryLabel extends StatelessWidget {
                                 semanticLabel: l10n.entryFromWatch,
                               ),
                             ],
+                            if (entry.creatineDoses > 0 && !creatineOnly) ...[
+                              const SizedBox(width: 4),
+                              CreatineMark(
+                                doses: entry.creatineDoses,
+                                size: 11,
+                              ),
+                            ],
                           ],
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    l10n.grams(formatProtein(entry.proteinGrams, locale)),
-                    style: textTheme.titleMedium,
-                  ),
+                  EntryGrams(entry: entry, style: textTheme.titleMedium),
                 ],
               ),
             ),

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="goal_widget_name">Objectif du jour</string>
+    <string name="goal_widget_description">Ta progression vers ton objectif de protéines du jour</string>
+    <string name="goal_widget_of">/ %1$s g</string>
+    <string name="goal_widget_progress">%1$s g sur %2$s g</string>
+    <string name="goal_widget_creatine">créatine prise</string>
+    <string name="goal_widget_open_app">Ouvre Protein Calculator</string>
+</resources>

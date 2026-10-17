@@ -62,6 +62,146 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  group('creatine', () {
+    Finder creatineSwitch() => find.descendant(
+      of: find.widgetWithText(ListTile, 'Creatine'),
+      matching: find.byType(Switch),
+    );
+
+    testWidgets('turning creatine on opens the dose sheet', (tester) async {
+      await openMenu(tester);
+      expect(find.text('Off'), findsOneWidget);
+
+      await tester.tap(creatineSwitch());
+      await tester.pumpAndSettle();
+      expect(find.text('Creatine dose'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '60');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Between 1 and 50 g'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '7');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Dose: 7 g'), findsOneWidget);
+      expect(
+        await db.settingsDao.getCreatine(),
+        isA<Object>().having((c) => c.toString(), 'settings', contains('7.0')),
+      );
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('a tap on the card turns creatine on, its switch labeled', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await openMenu(tester);
+
+      expect(tester.getSemantics(creatineSwitch()).label, contains('Creatine'));
+      await tester.tap(find.text('Creatine'));
+      await tester.pumpAndSettle();
+      expect(find.text('Creatine dose'), findsOneWidget);
+      expect((await db.settingsDao.getCreatine()).enabled, isTrue);
+      await disposeApp(tester, db);
+      semantics.dispose();
+    });
+
+    testWidgets('takes a dose with one decimal', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await openMenu(tester);
+
+      await tester.tap(find.text('Creatine'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '3.5');
+      await tester.pumpAndSettle();
+      // One decimal at most: a second one is refused.
+      await tester.enterText(find.byType(TextField), '3.55');
+      await tester.pumpAndSettle();
+      expect(find.text('3.5'), findsOneWidget);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dose: 3.5 g'), findsOneWidget);
+      expect((await db.settingsDao.getCreatine()).doseGrams, 3.5);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('turning it off and on again keeps the dose', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await db.settingsDao.setCreatineDoseGrams(3);
+      await openMenu(tester);
+
+      await tester.tap(creatineSwitch());
+      await tester.pumpAndSettle();
+      expect(find.text('Off'), findsOneWidget);
+      await tester.tap(creatineSwitch());
+      await tester.pumpAndSettle();
+
+      // No sheet the second time.
+      expect(find.text('Creatine dose'), findsNothing);
+      expect(find.text('Dose: 3 g'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+  });
+
+  group('sheets', () {
+    /// Opens each sheet of the menu in turn, with [check] run on it open.
+    Future<void> eachSheet(
+      WidgetTester tester,
+      Future<void> Function() check,
+    ) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await openMenu(tester);
+      for (final open in [
+        () => tester.tap(find.text('Edit').first),
+        () => tester.tap(find.text('Creatine')),
+        () => tester.tap(find.text('Edit').last),
+      ]) {
+        await open();
+        await tester.pumpAndSettle();
+        expect(find.text('Save'), findsOneWidget);
+        await check();
+        // Closes the sheet, if it is still open.
+        if (find.text('Save').evaluate().isNotEmpty) {
+          await tester.tapAt(const Offset(400, 20));
+          await tester.pumpAndSettle();
+        }
+      }
+      await disposeApp(tester, db);
+    }
+
+    testWidgets('cover the tab bar', (tester) async {
+      await eachSheet(tester, () async {
+        // A tap on the tab bar closes the sheet instead of changing tab.
+        await tester.tap(find.byTooltip('History'), warnIfMissed: false);
+        await tester.pumpAndSettle();
+        expect(find.text('History'), findsNothing);
+        expect(find.text('Save'), findsNothing);
+      });
+    });
+
+    testWidgets('keep clear of the Android navigation bar', (tester) async {
+      // A navigation bar of 48 logical pixels at the bottom of the screen.
+      tester.view.padding = FakeViewPadding(
+        bottom: 48 * tester.view.devicePixelRatio,
+      );
+      tester.view.viewPadding = FakeViewPadding(
+        bottom: 48 * tester.view.devicePixelRatio,
+      );
+      addTearDown(tester.view.reset);
+      final height =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+
+      await eachSheet(tester, () async {
+        expect(
+          tester.getRect(find.text('Save')).bottom,
+          lessThanOrEqualTo(height - 48),
+        );
+      });
+    });
+  });
+
   testWidgets('chooses when the day starts', (tester) async {
     addTearDown(() => appDayStartHour = defaultAppDayStartHour);
     await openMenu(tester);
