@@ -43,6 +43,13 @@ request can only be merged once all checks pass.
 - The publishing job uses the `release` environment of the repository: its
   secrets (signing key, Google Play service account, Sentry address) are
   stored there only, and each release waits for the maintainer's approval.
+- A release is prepared on a branch `release/<version>`, from `develop`:
+  `tool/prepare_release.sh <version>` sets the version, renders the
+  screenshots of the phone and of the watch, lays out the images of the
+  Google Play listing in `store` and checks its texts. The What's new texts,
+  the descriptions of the listing and the features of the README are then
+  written by hand; the branch goes to `develop` in a pull request, then
+  `develop` to `main`.
 - Each release needs its **What's new** texts for Google Play, written for
   users in `store/whatsnew/whatsnew-fr-FR` and `whatsnew-en-US` (500
   characters at most). The release pull request checks them and previews
