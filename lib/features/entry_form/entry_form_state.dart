@@ -45,18 +45,22 @@ final class EditEntryArgs extends EntryFormArgs {
 }
 
 /// New product, prefilled from what Open Food Facts said of the product
-/// scanned with [barcode], if given.
+/// scanned with [barcode], or with the values of the product [copyOf], if
+/// given.
 final class NewProductArgs extends EntryFormArgs {
-  const NewProductArgs({this.barcode});
+  const NewProductArgs({this.barcode, this.copyOf});
 
   final String? barcode;
+  final int? copyOf;
 
   @override
   bool operator ==(Object other) =>
-      other is NewProductArgs && other.barcode == barcode;
+      other is NewProductArgs &&
+      other.barcode == barcode &&
+      other.copyOf == copyOf;
 
   @override
-  int get hashCode => Object.hash(NewProductArgs, barcode);
+  int get hashCode => Object.hash(NewProductArgs, barcode, copyOf);
 }
 
 final class EditProductArgs extends EntryFormArgs {
