@@ -134,14 +134,16 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       case EditEntryArgs(:final entryId):
         final entry = await db.entriesDao.getEntry(entryId);
         if (entry == null) return const EntryFormState();
-        return _withAmount(
-          EntryFormState(
-            name: entry.name ?? '',
-            time: entry.createdAt,
-            creatineDoses: entry.creatineDoses,
-            creatineDoseGrams: entry.creatineDoseGrams,
+        return _withNameStatus(
+          _withAmount(
+            blank.copyWith(
+              name: entry.name ?? '',
+              time: entry.createdAt,
+              creatineDoses: entry.creatineDoses,
+              creatineDoseGrams: entry.creatineDoseGrams,
+            ),
+            entry.amount,
           ),
-          entry.amount,
         );
       case EditProductArgs(:final productId):
         final product = await db.productsDao.getProduct(productId);
@@ -239,8 +241,8 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
     if (current != null) state = AsyncData(_withNameStatus(change(current)));
   }
 
-  /// [form] knowing whether its name is taken: a new entry is then not
-  /// saved as a product, which needs a name of its own.
+  /// [form] knowing whether its name is taken: an entry is then not saved
+  /// as a product, which needs a name of its own.
   EntryFormState _withNameStatus(EntryFormState form) {
     final taken = _takenNames.contains(productNameKey(form.name));
     return form.copyWith(
@@ -579,17 +581,22 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
           );
         });
       case EditEntryArgs(:final entryId):
-        final entry = await db.entriesDao.getEntry(entryId);
-        if (entry == null) return;
-        await db.entriesDao.updateEntry(
-          entry
-              .withAmount(amount)
-              .copyWith(
-                name: Value(name.isEmpty ? null : name),
-                creatineDoses: form.creatineDoses,
-              ),
-          createdAt: form.time,
-        );
+        await db.transaction(() async {
+          final entry = await db.entriesDao.getEntry(entryId);
+          if (entry == null) return;
+          // The new product goes first so this entry counts as one of its
+          // uses.
+          if (form.saveAsProduct) await setRoutine(await insertProduct(), null);
+          await db.entriesDao.updateEntry(
+            entry
+                .withAmount(amount)
+                .copyWith(
+                  name: Value(name.isEmpty ? null : name),
+                  creatineDoses: form.creatineDoses,
+                ),
+            createdAt: form.time,
+          );
+        });
       case NewProductArgs():
         await db.transaction(
           () async => setRoutine(await insertProduct(), null),
