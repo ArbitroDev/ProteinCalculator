@@ -684,7 +684,7 @@ class _FormViewState extends ConsumerState<_FormView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (args is NewEntryArgs)
+                  if (!args.isProduct)
                     _SaveAsProduct(
                       value: form.saveAsProduct,
                       label: l10n.saveAsProduct,

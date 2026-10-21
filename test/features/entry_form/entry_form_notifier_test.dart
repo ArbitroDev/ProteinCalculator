@@ -428,6 +428,49 @@ void main() {
     ]);
   });
 
+  test('saves an edited entry as a product, counted as one use', () async {
+    final id = await db.entriesDao.insertEntry(
+      name: 'Shaker',
+      amount: const DirectAmount(25),
+      createdAt: DateTime(2026, 10, 1, 8),
+    );
+    final args = EditEntryArgs(id);
+    final form = await open(args);
+    expect(stateOf(args).nameTaken, isFalse);
+
+    form
+      ..setName('Shaker whey')
+      ..setSaveAsProduct(true);
+    expect(await form.submit(), isTrue);
+
+    final product = (await products()).single;
+    expect(product.name, 'Shaker whey');
+    expect(product.proteinGrams, 25);
+    expect(product.useCount, 1);
+    final entry = (await todayEntries()).single;
+    expect((entry.id, entry.name), (id, 'Shaker whey'));
+  });
+
+  test(
+    'an edited entry is not saved as a product under a taken name',
+    () async {
+      await addProduct('Skyr');
+      final id = await db.entriesDao.insertEntry(
+        name: 'Skyr',
+        amount: const DirectAmount(15),
+        createdAt: DateTime(2026, 10, 1, 8),
+      );
+      final args = EditEntryArgs(id);
+      final form = await open(args);
+
+      expect(stateOf(args).nameTaken, isTrue);
+      form.setSaveAsProduct(true);
+      expect(stateOf(args).saveAsProduct, isFalse);
+      expect(await form.submit(), isTrue);
+      expect(await products(), hasLength(1));
+    },
+  );
+
   group('time of the entry', () {
     test('is now for a new entry, the time added for one edited', () async {
       await open(const NewEntryArgs());

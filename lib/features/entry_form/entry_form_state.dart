@@ -145,11 +145,11 @@ class EntryFormState {
   /// Unit of [consumed] and [reference]: grams, or milliliters for drinks.
   final QuantityUnit unit;
 
-  /// Whether a new entry is also saved as a new product, which then gets the
-  /// [routine]. Off while the [name] is [nameTaken].
+  /// Whether a new or edited entry is also saved as a new product, which
+  /// then gets the [routine]. Off while the [name] is [nameTaken].
   final bool saveAsProduct;
 
-  /// Whether another product already has the [name]: a new entry cannot be
+  /// Whether another product already has the [name]: an entry cannot be
   /// saved as a product, a product cannot take it.
   final bool nameTaken;
 
