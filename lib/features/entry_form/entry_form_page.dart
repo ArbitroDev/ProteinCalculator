@@ -1380,36 +1380,70 @@ class _SaveAsProduct extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final onChanged = this.onChanged;
     final enabled = onChanged != null;
+    final labelStyle = textTheme.bodyLarge!.copyWith(
+      color: enabled ? null : colors.textSecondary,
+    );
+    // Height of the line of the label, so the box can be centered on it
+    // whatever the text size chosen on the phone.
+    final line = TextPainter(
+      text: TextSpan(text: label, style: labelStyle),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final lineHeight = line.height;
+    line.dispose();
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: enabled ? () => onChanged(!value) : null,
-        child: Row(
-          children: [
-            Checkbox(
-              value: value,
-              onChanged: enabled
-                  ? (checked) => onChanged(checked ?? false)
-                  : null,
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodyLarge!
-                        .copyWith(color: enabled ? null : colors.textSecondary),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // The box itself sits on the left edge of the button below:
+              // its larger tap area overflows, the whole row being tappable.
+              SizedBox(
+                width: 18,
+                height: lineHeight,
+                child: Center(
+                  child: SizedBox.square(
+                    dimension: 18,
+                    child: OverflowBox(
+                      maxWidth: 40,
+                      maxHeight: 40,
+                      child: Checkbox(
+                        value: value,
+                        onChanged: enabled
+                            ? (checked) => onChanged(checked ?? false)
+                            : null,
+                      ),
+                    ),
                   ),
-                  if (hint case final hint?)
-                    Text(hint, style: Theme.of(context).textTheme.bodySmall),
-                ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: labelStyle),
+                    if (hint case final hint?)
+                      Text(
+                        hint,
+                        style: textTheme.bodySmall!.copyWith(fontSize: 11),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
