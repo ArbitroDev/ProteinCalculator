@@ -165,6 +165,29 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  testWidgets('offers to save an edited entry as a product, its box on the '
+      'left edge of the button', (tester) async {
+    final id = await db.entriesDao.insertEntry(
+      name: 'Shaker',
+      amount: const DirectAmount(25),
+      createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
+    );
+    await pumpApp(tester, db);
+    final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+    unawaited(router.push(AppRoutes.editEntry(id)));
+    await tester.pumpAndSettle();
+
+    final box = find.byType(Checkbox);
+    expect(tester.widget<Checkbox>(box).onChanged, isNotNull);
+    final button = find.widgetWithText(FilledButton, 'Save');
+    // The box drawn is 18 wide, centered in its larger tap area.
+    expect(
+      tester.getCenter(box).dx - 9,
+      moreOrLessEquals(tester.getTopLeft(button).dx),
+    );
+    await disposeApp(tester, db);
+  });
+
   group('suggestions', () {
     setUp(
       () => db.productsDao.insertProduct(
