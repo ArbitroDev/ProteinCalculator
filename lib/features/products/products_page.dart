@@ -23,8 +23,9 @@ import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// Products tab. Tap a product to edit it, tap its "+" button to add it to
-/// the day, swipe it to delete it. The favorite comes first, then the saved
+/// Products tab. Tap a product to edit it, long press it to create a new
+/// product from its values, tap its "+" button to add it to the day, swipe
+/// it to delete it. The favorite comes first, then the saved
 /// products, those with a daily routine first, then the recent scans, which
 /// tap to save as products. Both lists fold.
 class ProductsPage extends ConsumerStatefulWidget {
@@ -401,6 +402,7 @@ class _ProductTile extends StatelessWidget {
         color: colors.background,
         child: InkWell(
           onTap: () => context.push(AppRoutes.editProduct(product.id)),
+          onLongPress: () => context.push(AppRoutes.copyProduct(product.id)),
           child: Container(
             padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
             decoration: BoxDecoration(

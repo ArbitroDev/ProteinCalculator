@@ -531,6 +531,45 @@ void main() {
       expect((await todayEntries()).single.proteinPerReference, 10);
     });
 
+    test(
+      'copies another product, but not its barcode nor its routine',
+      () async {
+        final id = await addProduct('Skyr');
+        await db.productsDao.setBarcode(id, '3017620422003');
+        await db.productsDao.setRoutine(
+          id,
+          DailyRoutine.autoAdd,
+          minutes: 480,
+          now: DateTime(2026, 9, 20),
+        );
+        final args = NewProductArgs(copyOf: id);
+        final form = await open(args);
+
+        final state = stateOf(args);
+        expect(state.name, 'Skyr');
+        expect(state.consumed, '150');
+        expect(state.proteinPerReference, '10');
+        expect(state.barcode, isNull);
+        expect(state.routine, DailyRoutine.none);
+        expect(state.nameTaken, isTrue);
+
+        // The name must change.
+        expect(await form.submit(), isFalse);
+        expect(
+          stateOf(args).errors[EntryFormField.name],
+          EntryFormError.nameTaken,
+        );
+        form.setName('Skyr vanille');
+        expect(await form.submit(), isTrue);
+
+        final copy = (await products()).firstWhere((p) => p.id != id);
+        expect(copy.name, 'Skyr vanille');
+        expect(copy.consumedGrams, 150);
+        expect(copy.barcode, isNull);
+        expect(copy.routine, DailyRoutine.none);
+      },
+    );
+
     test('needs a name', () async {
       const args = NewProductArgs();
       final form = await open(args);

@@ -76,6 +76,19 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  testWidgets('opens a new product from a product on long press', (
+    tester,
+  ) async {
+    await openProducts(tester);
+
+    await tester.longPress(find.text('Amandes'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New product'), findsWidgets);
+    expect(find.widgetWithText(TextField, 'Amandes'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
   testWidgets('adds a product to the day with its plus button', (tester) async {
     await openProducts(tester);
 
