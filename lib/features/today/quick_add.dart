@@ -8,6 +8,7 @@ import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Button adding one portion of the favorite [product] at once.
@@ -96,14 +97,95 @@ class _QuickAddButtonState extends State<QuickAddButton> {
   }
 }
 
-/// Throws a star of [color] from [from], a global position, into the mouth
-/// of the shaker held by [shaker], above everything shown in [context], and
-/// completes when it lands.
+/// Round blue button adding one creatine dose at once, next to the add
+/// button.
+class CreatineButton extends StatefulWidget {
+  const CreatineButton({super.key, required this.onPressed});
+
+  /// Receives the global position the animation starts from, as
+  /// [QuickAddButton.onPressed].
+  final ValueChanged<Offset> onPressed;
+
+  @override
+  State<CreatineButton> createState() => _CreatineButtonState();
+}
+
+class _CreatineButtonState extends State<CreatineButton> {
+  /// Where the last touch went down, until the press it makes.
+  Offset? _touch;
+
+  void _press() {
+    final box = context.findRenderObject() as RenderBox?;
+    final from =
+        _touch ??
+        box?.localToGlobal(box.size.center(Offset.zero)) ??
+        Offset.zero;
+    _touch = null;
+    widget.onPressed(from);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Listener(
+      onPointerDown: (event) => _touch = event.position,
+      child: Tooltip(
+        message: l10n.addCreatineDose,
+        child: FilledButton(
+          onPressed: _press,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.creatine,
+            foregroundColor: AppColors.onAccent,
+            fixedSize: const Size.square(52),
+            minimumSize: const Size.square(52),
+            padding: EdgeInsets.zero,
+            shape: const CircleBorder(),
+          ),
+          child: const Icon(creatineIcon, size: 24),
+        ),
+      ),
+    );
+  }
+}
+
+/// The favorite star of [color], outlined so it shows on any background.
+Widget favoriteStar(double size, Color color) => Stack(
+  alignment: Alignment.center,
+  children: [
+    Icon(Icons.star_rounded, size: size, color: AppColors.onAccent),
+    Icon(Icons.star_rounded, size: size * 0.8, color: color),
+  ],
+);
+
+/// A pinch of creatine powder: three grains, outlined so they show on any
+/// background.
+Widget creatinePowder(double size) {
+  Widget grain(double diameter) => Container(
+    width: diameter,
+    height: diameter,
+    decoration: BoxDecoration(
+      color: AppColors.creatine,
+      shape: BoxShape.circle,
+      border: Border.all(color: AppColors.onAccent, width: diameter * 0.12),
+    ),
+  );
+  return Stack(
+    children: [
+      Positioned(left: 0, top: size * 0.35, child: grain(size * 0.5)),
+      Positioned(left: size * 0.45, top: 0, child: grain(size * 0.42)),
+      Positioned(left: size * 0.5, top: size * 0.55, child: grain(size * 0.38)),
+    ],
+  );
+}
+
+/// Throws what [builder] draws at a given size, from [from], a global
+/// position, into the mouth of the shaker held by [shaker], above
+/// everything shown in [context], and completes when it lands.
 Future<void> flyToShaker(
   BuildContext context, {
   required Offset from,
   required GlobalKey shaker,
-  required Color color,
+  required Widget Function(double size) builder,
 }) {
   final overlay = Overlay.of(context, rootOverlay: true);
   final overlayBox = overlay.context.findRenderObject() as RenderBox?;
@@ -147,18 +229,7 @@ Future<void> flyToShaker(
                 top: position.dy - size / 2,
                 width: size,
                 height: size,
-                // The favorite star, outlined so it shows on any background.
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(
-                      Icons.star_rounded,
-                      size: size,
-                      color: AppColors.onAccent,
-                    ),
-                    Icon(Icons.star_rounded, size: size * 0.8, color: color),
-                  ],
-                ),
+                child: builder(size),
               ),
             ],
           );

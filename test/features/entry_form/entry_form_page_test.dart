@@ -8,6 +8,7 @@ import 'package:flutter_zxing/flutter_zxing.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/quantity_unit.dart';
@@ -45,6 +46,53 @@ void main() {
     expect(find.text('New entry'), findsOneWidget);
     expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
     await disposeApp(tester, db);
+  });
+
+  group('creatine counter', () {
+    Future<void> openForm(WidgetTester tester) async {
+      await pumpApp(tester, db);
+      await tester.tap(find.byTooltip('Add'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('is hidden while creatine is off', (tester) async {
+      await openForm(tester);
+      expect(find.byTooltip('One dose more'), findsNothing);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('counts the doses, up to 9, and adds them', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await openForm(tester);
+
+      final more = find.byTooltip('One dose more');
+      await tester.ensureVisible(more);
+      await tester.tap(more);
+      await tester.pumpAndSettle();
+      expect(find.text('1 dose · 5 g'), findsOneWidget);
+      for (var i = 0; i < 9; i++) {
+        await tester.tap(more);
+        await tester.pump();
+      }
+      expect(find.text('9 doses · 45 g'), findsOneWidget);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, LucideIcons.plus),
+            )
+            .onPressed,
+        isNull,
+      );
+
+      // Creatine on its own: no protein.
+      await tester.enterText(find.byType(TextField).at(1), '0');
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pumpAndSettle();
+      final entry = (await db.select(db.entries).get()).single;
+      expect(entry.proteinGrams, 0);
+      expect(entry.creatineDoses, 9);
+      await disposeApp(tester, db);
+    });
   });
 
   testWidgets('picks the moment of a new entry', (tester) async {
@@ -114,6 +162,29 @@ void main() {
     await tester.tap(box);
     await tester.pumpAndSettle();
     expect(find.text('Every day'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('offers to save an edited entry as a product, its box on the '
+      'left edge of the button', (tester) async {
+    final id = await db.entriesDao.insertEntry(
+      name: 'Shaker',
+      amount: const DirectAmount(25),
+      createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
+    );
+    await pumpApp(tester, db);
+    final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+    unawaited(router.push(AppRoutes.editEntry(id)));
+    await tester.pumpAndSettle();
+
+    final box = find.byType(Checkbox);
+    expect(tester.widget<Checkbox>(box).onChanged, isNotNull);
+    final button = find.widgetWithText(FilledButton, 'Save');
+    // The box drawn is 18 wide, centered in its larger tap area.
+    expect(
+      tester.getCenter(box).dx - 9,
+      moreOrLessEquals(tester.getTopLeft(button).dx),
+    );
     await disposeApp(tester, db);
   });
 

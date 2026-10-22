@@ -9,6 +9,7 @@ import 'generated/schema.dart';
 
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v12.dart' as v12;
+import 'generated/schema_v13.dart' as v13;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
@@ -487,6 +488,61 @@ void main() {
         expect(settings.savedProductsCollapsed, 0);
         expect(settings.recentScansCollapsed, 0);
         expect(settings.scanNoticeSeen, 0);
+      },
+    );
+  });
+
+  test('migration from v12, the version of 1.3.0, to v13 keeps the data, '
+      'without creatine', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 12,
+      newVersion: 13,
+      createOld: v12.DatabaseAtV12.new,
+      createNew: v13.DatabaseAtV13.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch
+          ..insert(
+            oldDb.entries,
+            const v12.EntriesData(
+              id: 1,
+              name: 'Skyr',
+              nameKey: 'skyr',
+              mode: 'direct',
+              proteinGrams: 15,
+              createdAt: 1790000000,
+              dayKey: 20260921,
+              slot: 'morning',
+              fromWatch: 0,
+              unit: 'grams',
+            ),
+          )
+          ..insert(
+            oldDb.products,
+            const v12.ProductsData(
+              id: 1,
+              name: 'Skyr',
+              nameKey: 'skyr',
+              mode: 'direct',
+              proteinGrams: 15,
+              useCount: 1,
+              createdAt: 1790000000,
+              isFavorite: 0,
+              routine: 'none',
+              unit: 'grams',
+            ),
+          );
+      },
+      validateItems: (newDb) async {
+        final entry = await newDb.select(newDb.entries).getSingle();
+        expect(entry.proteinGrams, 15);
+        expect(entry.creatineDoses, 0);
+        expect(entry.creatineDoseGrams, equals(null));
+        final product = await newDb.select(newDb.products).getSingle();
+        expect(product.creatineDoses, 0);
+        final settings = await newDb.select(newDb.appSettings).getSingle();
+        expect(settings.creatineEnabled, 0);
+        expect(settings.creatineDoseGrams, equals(null));
       },
     );
   });

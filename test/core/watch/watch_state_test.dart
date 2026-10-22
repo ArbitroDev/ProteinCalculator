@@ -64,6 +64,8 @@ void main() {
               'protein': 12.5,
               'time': DateTime(2026, 10, 1, 12).millisecondsSinceEpoch,
               'fromWatch': false,
+              'creatineDoses': 0,
+              'creatineGrams': 0.0,
             },
             {
               'id': entries.first.id,
@@ -71,6 +73,8 @@ void main() {
               'protein': 20.0,
               'time': DateTime(2026, 10, 1, 8).millisecondsSinceEpoch,
               'fromWatch': false,
+              'creatineDoses': 0,
+              'creatineGrams': 0.0,
             },
           ],
           'products': [
@@ -79,12 +83,42 @@ void main() {
               'name': 'Skyr',
               'protein': 15.0,
               'favorite': true,
+              'creatineDoses': 0,
             },
           ],
           'handled': ['a1'],
+          'creatineEnabled': false,
         });
       },
     );
+
+    test('sends the creatine of the entries and the products', () async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await db.productsDao.insertProduct(
+        name: 'Whey',
+        amount: const DirectAmount(24),
+        createdAt: DateTime(2026, 9),
+        creatineDoses: 2,
+      );
+      await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 8));
+
+      final state = WatchState.of(
+        dayKey: 20261001,
+        dayStartHour: 3,
+        entries: await db.entriesDao.watchDayEntries(20261001).first,
+        goal: 140,
+        products: await db.select(db.products).get(),
+        handled: const [],
+      );
+
+      final channel = state.toChannel();
+      final entry = (channel['entries']! as List).single as Map;
+      expect(entry['protein'], 0.0);
+      expect(entry['creatineDoses'], 1);
+      expect(entry['creatineGrams'], 5.0);
+      final product = (channel['products']! as List).single as Map;
+      expect(product['creatineDoses'], 2);
+    });
 
     test('equals another state of the same values only', () {
       WatchState state({double total = 20, List<String> handled = const []}) =>

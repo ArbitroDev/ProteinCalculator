@@ -128,3 +128,20 @@ extension EntriesProtein on Iterable<Entry> {
   /// Protein grams of all these entries.
   double get proteinGrams => map((entry) => entry.proteinGrams).sum;
 }
+
+extension EntryCreatine on Entry {
+  /// Whether the entry is creatine taken on its own: no protein, but at
+  /// least one dose. It then shows its creatine grams instead.
+  bool get isCreatineOnly => proteinGrams == 0 && creatineDoses > 0;
+
+  /// Grams of creatine of the entry, from the dose it was added with.
+  double get creatineGrams => creatineDoses * (creatineDoseGrams ?? 0);
+}
+
+extension EntriesCreatine on Iterable<Entry> {
+  /// Creatine doses of all these entries.
+  int get creatineDoses => map((entry) => entry.creatineDoses).sum;
+
+  /// Grams of creatine of all these entries.
+  double get creatineGrams => map((entry) => entry.creatineGrams).sum;
+}

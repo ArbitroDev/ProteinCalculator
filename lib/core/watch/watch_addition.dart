@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
 
@@ -14,9 +15,12 @@ class WatchAddition {
     required this.name,
     required this.protein,
     required this.addedAt,
+    this.creatineDoses = 0,
   });
 
   /// Addition sent by the plugin `watch_link`, null if a value is missing.
+  /// The watches reading the first version of the messages send no creatine
+  /// doses: none.
   static WatchAddition? fromChannel(Object? value) {
     if (value case {
       'id': final String id,
@@ -25,12 +29,14 @@ class WatchAddition {
       'protein': final double protein,
       'addedAt': final int addedAt,
     }) {
+      final doses = value['creatineDoses'];
       return WatchAddition(
         id: id,
         productId: productId,
         name: name,
         protein: protein,
         addedAt: DateTime.fromMillisecondsSinceEpoch(addedAt),
+        creatineDoses: doses is int ? doses : 0,
       );
     }
     return null;
@@ -50,6 +56,10 @@ class WatchAddition {
   /// When it was added on the watch: the time of the entry.
   final DateTime addedAt;
 
+  /// Creatine doses of the portion, as the watch showed them; none for a
+  /// free entry.
+  final int creatineDoses;
+
   /// [protein] with one decimal, as the form keeps it: the grams of the
   /// entry made without the product.
   double get roundedProtein => (protein * 10).round() / 10;
@@ -60,7 +70,8 @@ class WatchAddition {
       (productId == null || name != null) &&
       (name == null || isValidName(name!.trim())) &&
       protein.isFinite &&
-      isValidProteinGrams(roundedProtein);
+      isValidCreatineDoses(creatineDoses) &&
+      isValidEntryProtein(roundedProtein, creatineDoses: creatineDoses);
 }
 
 /// What the phone made of a [WatchAddition], see `AddStatus` in

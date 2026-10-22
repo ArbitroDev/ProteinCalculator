@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="tile_label">Protéines du jour</string>
-    <string name="tile_title">Protéines</string>
+    <string name="tile_label">Objectif du jour</string>
+    <string name="tile_title">Objectif du jour</string>
+    <string name="tile_creatine_taken">✓ Créatine</string>
+    <string name="tile_creatine_to_take">Créatine à prendre</string>
     <string name="complication_label">Protéines du jour</string>
     <string name="complication_description">%1$s g de protéines sur %2$s g</string>
     <string name="grams">%1$s g</string>
@@ -20,6 +22,8 @@
     <string name="unnamed">Sans nom</string>
     <string name="entry_waiting">en attente</string>
     <string name="from_watch">Ajoutée depuis la montre</string>
+    <string name="creatine">Créatine</string>
+    <string name="creatine_mark">Contient de la créatine</string>
     <string name="delete">Supprimer</string>
     <string name="undo">Annuler</string>
     <string name="free_entry">Entrée libre</string>

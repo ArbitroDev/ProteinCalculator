@@ -78,7 +78,8 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
     return product != null && product.id != exceptId;
   }
 
-  /// Saves a new product, with its [barcode] if it has one.
+  /// Saves a new product, with its [barcode] if it has one, and the creatine
+  /// doses of one portion.
   ///
   /// Throws [DuplicateProductNameException] if the name is already used, and
   /// [DuplicateBarcodeException] if the barcode is.
@@ -87,6 +88,7 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
     required ProteinAmount amount,
     required DateTime createdAt,
     String? barcode,
+    int creatineDoses = 0,
   }) {
     final columns = amountColumns(amount);
     return transaction(() async {
@@ -106,6 +108,7 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
           unit: Value(columns.unit),
           createdAt: createdAt,
           barcode: Value(barcode),
+          creatineDoses: Value(creatineDoses),
         ),
       );
       // Entries made before with its name count as uses.

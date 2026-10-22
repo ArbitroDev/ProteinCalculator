@@ -21,6 +21,17 @@ void main() {
       expect(addition.addedAt, DateTime(2026, 10, 1, 8, 30));
     });
 
+    test('reads the creatine doses, none when absent', () {
+      expect(WatchAddition.fromChannel(values)!.creatineDoses, 0);
+      final addition = WatchAddition.fromChannel({
+        ...values,
+        'protein': 0.0,
+        'creatineDoses': 1,
+      })!;
+      expect(addition.creatineDoses, 1);
+      expect(addition.isValid, isTrue);
+    });
+
     test('reads a free entry, without product and maybe without name', () {
       final addition = WatchAddition.fromChannel({
         ...values,

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/tables.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
@@ -106,4 +107,35 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> setSlotReminders(bool enabled) =>
       _write(AppSettingsCompanion(slotReminders: Value(enabled)));
+
+  static CreatineSettings _creatine(AppSettingsRow settings) =>
+      CreatineSettings(
+        enabled: settings.creatineEnabled,
+        doseGrams: settings.creatineDoseGrams,
+      );
+
+  Future<CreatineSettings> getCreatine() async =>
+      _creatine(await _row.getSingle());
+
+  Stream<CreatineSettings> watchCreatine() =>
+      _row.watchSingle().map(_creatine).distinct();
+
+  /// Turns creatine tracking on or off. The first time it is turned on, the
+  /// dose starts at [defaultCreatineDoseGrams]; later, it keeps the one set.
+  Future<void> setCreatineEnabled(bool enabled) => transaction(() async {
+    final dose = (await _row.getSingle()).creatineDoseGrams;
+    await _write(
+      AppSettingsCompanion(
+        creatineEnabled: Value(enabled),
+        creatineDoseGrams: Value(
+          enabled ? dose ?? defaultCreatineDoseGrams : dose,
+        ),
+      ),
+    );
+  });
+
+  /// Sets the grams of one dose, for the doses added from now on: those
+  /// added before keep theirs.
+  Future<void> setCreatineDoseGrams(double grams) =>
+      _write(AppSettingsCompanion(creatineDoseGrams: Value(grams)));
 }

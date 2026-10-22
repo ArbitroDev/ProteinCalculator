@@ -9,6 +9,7 @@ import 'package:protein_calculator/core/background_changes.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/day_progress.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
@@ -124,6 +125,11 @@ final historyProvider = StreamProvider<List<DaySummary>>(
 /// Whether the user agreed to send crash reports, see `setCrashReporting`.
 final crashReportsProvider = StreamProvider<bool>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchCrashReports(),
+);
+
+/// Whether creatine is tracked, and the grams of one dose.
+final creatineSettingsProvider = StreamProvider<CreatineSettings>(
+  (ref) => ref.watch(databaseProvider).settingsDao.watchCreatine(),
 );
 
 /// Whether the reminders of the parts of the day left empty are on, see

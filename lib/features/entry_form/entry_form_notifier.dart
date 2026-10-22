@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
+import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
 import 'package:protein_calculator/core/domain/product_name.dart';
@@ -122,14 +123,28 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
         final product = await db.productsDao.getProduct(productId);
         if (product == null) return blank;
         return _withNameStatus(_fromProduct(blank, product, routine: false));
-      case NewProductArgs():
-        return blank;
+      case NewProductArgs(:final copyOf):
+        // From another product: its values, without its barcode, which no
+        // two products share, nor its routine, which would run twice. Its
+        // name is taken, as the name field tells at once, until changed.
+        if (copyOf == null) return blank;
+        final product = await db.productsDao.getProduct(copyOf);
+        if (product == null) return blank;
+        return _withNameStatus(_fromProduct(blank, product, routine: false))
+            .copyWith(errors: {EntryFormField.name: EntryFormError.nameTaken});
       case EditEntryArgs(:final entryId):
         final entry = await db.entriesDao.getEntry(entryId);
         if (entry == null) return const EntryFormState();
-        return _withAmount(
-          EntryFormState(name: entry.name ?? '', time: entry.createdAt),
-          entry.amount,
+        return _withNameStatus(
+          _withAmount(
+            blank.copyWith(
+              name: entry.name ?? '',
+              time: entry.createdAt,
+              creatineDoses: entry.creatineDoses,
+              creatineDoseGrams: entry.creatineDoseGrams,
+            ),
+            entry.amount,
+          ),
         );
       case EditProductArgs(:final productId):
         final product = await db.productsDao.getProduct(productId);
@@ -154,6 +169,7 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       fromFoodFacts: const {},
       errors: const {},
       revision: base.revision + 1,
+      creatineDoses: product.creatineDoses,
     ),
     product.amount,
   );
@@ -183,6 +199,8 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       },
       errors: const {},
       revision: form.revision + 1,
+      // Open Food Facts tells nothing of creatine.
+      creatineDoses: 0,
     );
   }
 
@@ -224,8 +242,8 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
     if (current != null) state = AsyncData(_withNameStatus(change(current)));
   }
 
-  /// [form] knowing whether its name is taken: a new entry is then not
-  /// saved as a product, which needs a name of its own.
+  /// [form] knowing whether its name is taken: an entry is then not saved
+  /// as a product, which needs a name of its own.
   EntryFormState _withNameStatus(EntryFormState form) {
     final taken = _takenNames.contains(productNameKey(form.name));
     return form.copyWith(
@@ -238,6 +256,15 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       _update((s) => s.edited(EntryFormField.name).copyWith(name: value));
 
   void setMode(EntryMode value) => _update((s) => s.copyWith(mode: value));
+
+  /// Sets the creatine doses, from 0 to [maxCreatineDoses]. A protein of
+  /// zero, refused before, may now be right.
+  void setCreatineDoses(int value) => _update(
+    (s) => s
+        .clearError(EntryFormField.protein)
+        .clearError(EntryFormField.proteinPerReference)
+        .copyWith(creatineDoses: value.clamp(0, maxCreatineDoses)),
+  );
 
   void setProtein(String value) =>
       _update((s) => s.edited(EntryFormField.protein).copyWith(protein: value));
@@ -510,12 +537,17 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       amount: amount,
       createdAt: now,
       barcode: form.barcode,
+      creatineDoses: form.creatineDoses,
     );
 
     Future<void> updateProduct(Product product) => db.productsDao.updateProduct(
       product
           .withAmount(amount)
-          .copyWith(name: name, barcode: Value(form.barcode)),
+          .copyWith(
+            name: name,
+            barcode: Value(form.barcode),
+            creatineDoses: form.creatineDoses,
+          ),
     );
 
     /// Gives the product [id] the routine of the form, if [product], its
@@ -546,17 +578,26 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
             name: name.isEmpty ? null : name,
             amount: amount,
             createdAt: form.time ?? now,
+            creatineDoses: form.creatineDoses,
           );
         });
       case EditEntryArgs(:final entryId):
-        final entry = await db.entriesDao.getEntry(entryId);
-        if (entry == null) return;
-        await db.entriesDao.updateEntry(
-          entry
-              .withAmount(amount)
-              .copyWith(name: Value(name.isEmpty ? null : name)),
-          createdAt: form.time,
-        );
+        await db.transaction(() async {
+          final entry = await db.entriesDao.getEntry(entryId);
+          if (entry == null) return;
+          // The new product goes first so this entry counts as one of its
+          // uses.
+          if (form.saveAsProduct) await setRoutine(await insertProduct(), null);
+          await db.entriesDao.updateEntry(
+            entry
+                .withAmount(amount)
+                .copyWith(
+                  name: Value(name.isEmpty ? null : name),
+                  creatineDoses: form.creatineDoses,
+                ),
+            createdAt: form.time,
+          );
+        });
       case NewProductArgs():
         await db.transaction(
           () async => setRoutine(await insertProduct(), null),

@@ -1,10 +1,11 @@
 import 'package:drift/native.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/theme.dart';
 
 import '../../helpers.dart';
 
@@ -56,14 +57,20 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    /// Scrolls down to the month before.
+    /// The list of the months, the current one at the bottom: the only
+    /// scrollable going up, the weeks of each month not scrolling.
+    final months = find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable && widget.axisDirection == AxisDirection.up,
+    );
+
+    /// Scrolls up to the month before, its title last.
     Future<void> showSeptember(WidgetTester tester) async {
       await tester.scrollUntilVisible(
         find.text('September 2026'),
         300,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: months,
       );
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -300));
       await tester.pumpAndSettle();
     }
 
@@ -82,6 +89,29 @@ void main() {
       await disposeApp(tester, db);
     });
 
+    testWidgets('shows the current month in place from the first frame', (
+      tester,
+    ) async {
+      await openHistory(tester);
+      await tester.tap(find.text('Calendar'));
+      final title = find.text('October 2026');
+      // Hidden until the legend is measured, rather than shown lower
+      // first, behind it.
+      final positions = <double>[];
+      for (var frame = 0; frame < 4; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        final hidden = tester
+            .widgetList<Opacity>(
+              find.ancestor(of: title, matching: find.byType(Opacity)),
+            )
+            .any((opacity) => opacity.opacity == 0);
+        if (!hidden) positions.add(tester.getTopLeft(title).dy);
+      }
+      expect(positions, isNotEmpty);
+      expect(positions.toSet(), hasLength(1));
+      await disposeApp(tester, db);
+    });
+
     testWidgets('says how far each day went towards its goal', (tester) async {
       // The goal counts from September 1.
       await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 1, 9));
@@ -94,7 +124,7 @@ void main() {
       expect(day('Wednesday, September 30, Goal reached'), findsWidgets);
       expect(day('Tuesday, September 29, 50% or more'), findsWidgets);
       expect(day('Monday, September 28, Under 50%'), findsWidgets);
-      expect(day('Sunday, September 27, Nothing'), findsWidgets);
+      expect(day('Sunday, September 27, None taken'), findsWidgets);
       await disposeApp(tester, db);
     });
 
@@ -126,7 +156,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.text('August 2026'),
         300,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: months,
       );
       expect(find.text('August 2026'), findsOneWidget);
       await disposeApp(tester, db);
@@ -136,13 +166,153 @@ void main() {
       await addEntry('Skyr', 15, DateTime(2026, 10, 1, 8));
       await openCalendar(tester);
 
-      await tester.tap(
-        find.bySemanticsLabel(RegExp('^Thursday, October 1')).first,
-      );
+      // The first week, above the screen of the tests.
+      final october1 = find.bySemanticsLabel(RegExp('^Thursday, October 1'));
+      await tester.scrollUntilVisible(october1.first, 100, scrollable: months);
+      await tester.drag(months, const Offset(0, 100));
+      await tester.pumpAndSettle();
+      await tester.tap(october1.first);
       await tester.pumpAndSettle();
 
       // The entry, in the detail of the day.
       expect(find.textContaining('Skyr', findRichText: true), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+  });
+
+  group('creatine', () {
+    testWidgets('the list shows the blue check before the orange one', (
+      tester,
+    ) async {
+      await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
+      await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 9));
+      await openHistory(tester);
+
+      final creatine = find.byWidgetPredicate(
+        (widget) => widget is Icon && widget.semanticLabel == 'creatine taken',
+      );
+      expect(creatine, findsOneWidget);
+      final goal = find.byWidgetPredicate(
+        (widget) =>
+            widget is Icon &&
+            widget.icon == LucideIcons.circleCheck &&
+            widget.semanticLabel == null,
+      );
+      expect(
+        tester.getTopLeft(creatine).dx,
+        lessThan(tester.getTopLeft(goal).dx),
+      );
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the calendar legend shows creatine once it was on', (
+      tester,
+    ) async {
+      await addEntry('Skyr', 15, DateTime(2026, 10, 1, 8));
+      await openHistory(tester);
+      await tester.tap(find.text('Calendar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Creatine taken'), findsNothing);
+
+      await db.settingsDao.setCreatineEnabled(true);
+      await tester.pumpAndSettle();
+      expect(find.text('Creatine taken'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the calendar colors the days by creatine taken on demand', (
+      tester,
+    ) async {
+      // Reaches the goal and takes creatine on October 1.
+      await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 1, 9));
+      await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
+      await db.entriesDao.addCreatineDose(
+        createdAt: DateTime(2026, 10, 1, 8, 30),
+      );
+      await openHistory(tester);
+      await tester.tap(find.text('Calendar'));
+      await tester.pumpAndSettle();
+
+      final creatineDays = find.byWidgetPredicate(
+        (widget) =>
+            widget is Material &&
+            widget.shape is CircleBorder &&
+            widget.color == AppColors.creatine,
+      );
+      final reachedDays = find.byWidgetPredicate(
+        (widget) =>
+            widget is Material &&
+            widget.shape is CircleBorder &&
+            widget.color == AppColors.accent,
+      );
+      final goalMark = find.byWidgetPredicate(
+        (widget) => widget is Icon && widget.icon == LucideIcons.circleCheck,
+      );
+      expect(find.byTooltip('Protein'), findsOneWidget);
+      expect(reachedDays, findsOneWidget);
+      expect(creatineDays, findsNothing);
+      expect(find.text('Under 50%'), findsOneWidget);
+      final marks = tester.widgetList(goalMark).length;
+      final first = tester.getCenter(find.text('1'));
+
+      await tester.tap(find.byTooltip('Creatine'));
+      await tester.pumpAndSettle();
+
+      // The days stay in place, though the legend is shorter.
+      expect(tester.getCenter(find.text('1')), first);
+
+      expect(creatineDays, findsOneWidget);
+      expect(reachedDays, findsNothing);
+      // The legend tells the new colors, and the marks of the days stay.
+      expect(find.text('None taken'), findsOneWidget);
+      expect(find.text('Creatine taken'), findsOneWidget);
+      expect(find.text('Goal reached'), findsOneWidget);
+      expect(find.text('Under 50%'), findsNothing);
+      expect(tester.widgetList(goalMark), hasLength(marks));
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the calendar has no filter without creatine', (tester) async {
+      await addEntry('Skyr', 15, DateTime(2026, 10, 1, 8));
+      await openHistory(tester);
+      await tester.tap(find.text('Calendar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Protein'), findsNothing);
+      expect(find.byTooltip('Creatine'), findsNothing);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the day details show a dose with its decimal', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await db.settingsDao.setCreatineDoseGrams(3.3);
+      for (final hour in [8, 9, 10]) {
+        await db.entriesDao.addCreatineDose(
+          createdAt: DateTime(2026, 10, 1, hour),
+        );
+      }
+      await openHistory(tester);
+      await tester.tap(find.text('Thu, Oct 1'));
+      await tester.pumpAndSettle();
+
+      // 3 × 3.3 g, whatever the rounding of the sum.
+      expect(find.text('3 doses of creatine · 9.9 g'), findsOneWidget);
+      expect(find.text('3.3 g'), findsNWidgets(3));
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the day details tell the doses of the day', (tester) async {
+      await db.settingsDao.setCreatineEnabled(true);
+      await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 8));
+      await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 9));
+      await openHistory(tester);
+      await tester.tap(find.text('Thu, Oct 1'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 doses of creatine · 10 g'), findsOneWidget);
+      // Creatine taken on its own shows its own grams, under its name.
+      expect(find.textContaining('Creatine', findRichText: true), findsWidgets);
+      expect(find.text('5 g'), findsNWidgets(2));
       await disposeApp(tester, db);
     });
   });

@@ -11,14 +11,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/router.dart';
 
 import '../../test/helpers.dart';
 
-/// Thursday 1 October 2026, 7:40 p.m.: the three parts of the day are filled.
-final _now = DateTime(2026, 10, 1, 19, 40);
+/// Thursday 22 October 2026, 7:40 p.m.: the three parts of the day are
+/// filled, and the month shows three weeks in the calendar.
+final _today = DateTime(2026, 10, 22);
+final _now = _today.add(const Duration(hours: 19, minutes: 40));
 
 /// Loads every font of the app and its packages, so text and icons render
 /// as on a phone instead of the blocks of the test font.
@@ -102,7 +105,9 @@ const _english = _Texts(
 Future<AppDatabase> _seed(_Texts texts) async {
   final db = openTestDatabase();
   await db.settingsDao.setDailyGoal(140);
-  for (final (name, per, portion) in texts.products) {
+  // The skyr and the whey were scanned, and the whey holds a creatine dose:
+  // the products show their marks.
+  for (final (index, (name, per, portion)) in texts.products.indexed) {
     await db.productsDao.insertProduct(
       name: name,
       amount: PerQuantityAmount(
@@ -111,6 +116,12 @@ Future<AppDatabase> _seed(_Texts texts) async {
         referenceGrams: 100,
       ),
       createdAt: _now.subtract(const Duration(days: 20)),
+      barcode: switch (index) {
+        0 => '4006381333931',
+        2 => '5901234123457',
+        _ => null,
+      },
+      creatineDoses: index == 2 ? 1 : 0,
     );
   }
   final favorite = (await db.productsDao.watchAll(_sortAz).first).firstWhere(
@@ -121,15 +132,25 @@ Future<AppDatabase> _seed(_Texts texts) async {
   Future<void> add(String name, double grams, DateTime at) => db.entriesDao
       .insertEntry(name: name, amount: DirectAmount(grams), createdAt: at);
 
+  // Creatine tracked, a dose taken each morning but a few.
+  await db.settingsDao.setCreatineEnabled(true);
+  Future<void> creatine(DateTime date) => db.entriesDao.addCreatineDose(
+    createdAt: date.add(const Duration(hours: 8, minutes: 5)),
+  );
+
+  await creatine(_today);
   for (final (name, grams, hour, minute) in texts.entries) {
-    await add(name, grams, DateTime(2026, 10, 1, hour, minute));
+    await add(name, grams, _today.add(Duration(hours: hour, minutes: minute)));
   }
-  // Earlier days, around the goal.
-  const totals = [146, 121, 138, 152, 97, 143];
-  for (var day = 1; day <= totals.length; day++) {
-    final date = DateTime(2026, 10, 1 - day);
-    final total = totals[day - 1];
+  // Earlier days, around the goal, a few of them forgotten: the calendar
+  // shows every kind of day.
+  const totals = [146, 121, 138, 152, 97, 143, 64, 131, 118, 140, 155, 88];
+  for (var day = 1; day <= 52; day++) {
+    if (day % 9 == 0) continue;
+    final date = DateTime(_today.year, _today.month, _today.day - day);
+    final total = totals[day % totals.length];
     final names = texts.earlierDays;
+    if (day % 4 != 0) await creatine(date);
     await add(names[0], total * 0.25, date.add(const Duration(hours: 8)));
     await add(names[1], total * 0.35, date.add(const Duration(hours: 13)));
     await add(names[2], total * 0.2, date.add(const Duration(hours: 17)));
@@ -189,14 +210,32 @@ void main() {
 
         await shoot('1-today');
 
-        router().go(AppRoutes.historyDay(20261001));
+        router().go(AppRoutes.historyDay(20261022));
         await shoot('2-day');
 
+        await tester.runAsync(
+          () => db.settingsDao.setHistoryView(HistoryView.calendar),
+        );
         router().go(AppRoutes.history);
-        await shoot('3-history');
+        await tester.pumpAndSettle();
+        // The title of the month clear of the initials of the days.
+        await tester.drag(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is Scrollable &&
+                widget.axisDirection == AxisDirection.up,
+          ),
+          const Offset(0, 32),
+        );
+        await shoot('3-calendar');
 
         router().go(AppRoutes.products);
         await shoot('4-products');
+
+        unawaited(router().push(AppRoutes.scan));
+        await shoot('5-scan');
+        router().pop();
+        await tester.pumpAndSettle();
 
         final products = await tester.runAsync(
           () => db.productsDao.watchAll(_sortAz).first,
@@ -209,7 +248,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.enterText(find.byType(TextField).first, texts.newFood);
         FocusManager.instance.primaryFocus?.unfocus();
-        await shoot('5-entry');
+        await shoot('6-entry');
 
         await disposeApp(tester, db);
       });

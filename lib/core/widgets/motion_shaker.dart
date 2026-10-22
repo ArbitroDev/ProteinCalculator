@@ -20,11 +20,15 @@ class MotionShaker extends StatefulWidget {
     required this.layers,
     required this.goal,
     required this.semanticLabel,
+    this.creatineDoses = 0,
   });
 
   final List<ShakerLayer> layers;
   final double goal;
   final String semanticLabel;
+
+  /// See [Shaker.creatineDoses].
+  final int creatineDoses;
 
   @override
   State<MotionShaker> createState() => _MotionShakerState();
@@ -198,5 +202,6 @@ class _MotionShakerState extends State<MotionShaker>
     goal: widget.goal,
     semanticLabel: widget.semanticLabel,
     motion: _motion,
+    creatineDoses: widget.creatineDoses,
   );
 }

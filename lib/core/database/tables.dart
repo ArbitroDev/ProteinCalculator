@@ -44,6 +44,12 @@ class Entries extends Table {
   /// grams, or milliliters for drinks.
   TextColumn get unit =>
       textEnum<QuantityUnit>().withDefault(Constant(QuantityUnit.grams.name))();
+
+  /// Creatine doses taken with the entry, and the grams of one dose when it
+  /// was added, null without doses: changing the dose in the menu never
+  /// changes the history.
+  IntColumn get creatineDoses => integer().withDefault(const Constant(0))();
+  RealColumn get creatineDoseGrams => real().nullable()();
 }
 
 /// Products saved by the user to fill in entries quickly.
@@ -93,6 +99,10 @@ class Products extends Table {
   /// Barcode of the product, see `normalizeBarcode`; null without one. Two
   /// products never share one: the index is unique.
   TextColumn get barcode => text().nullable()();
+
+  /// Creatine doses in one portion: their grams are those of the dose in
+  /// force when the product is added.
+  IntColumn get creatineDoses => integer().withDefault(const Constant(0))();
 }
 
 /// What Open Food Facts said of the products scanned, by barcode, and when.
@@ -189,6 +199,13 @@ class AppSettings extends Table {
   /// Facts. Specific to the phone: not in the backups.
   BoolColumn get scanNoticeSeen =>
       boolean().withDefault(const Constant(false))();
+
+  /// Whether the user tracks creatine; off until turned on in the menu.
+  BoolColumn get creatineEnabled =>
+      boolean().withDefault(const Constant(false))();
+
+  /// Grams of one creatine dose; null until creatine is first turned on.
+  RealColumn get creatineDoseGrams => real().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

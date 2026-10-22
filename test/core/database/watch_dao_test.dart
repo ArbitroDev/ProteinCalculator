@@ -28,12 +28,14 @@ void main() {
     String? name = 'Skyr',
     double protein = 15,
     DateTime? addedAt,
+    int creatineDoses = 0,
   }) => WatchAddition(
     id: id,
     productId: productId,
     name: name,
     protein: protein,
     addedAt: addedAt ?? DateTime(2026, 10, 1, 8, 30),
+    creatineDoses: creatineDoses,
   );
 
   Future<List<Entry>> entries() => db.select(db.entries).get();
@@ -88,6 +90,24 @@ void main() {
     // Rounded to one decimal, like the protein amounts typed.
     expect(entry.proteinGrams, 25.3);
     expect(entry.fromWatch, isTrue);
+  });
+
+  test('a watch addition of a deleted product keeps its doses', () async {
+    final status = await dao.add(
+      addition(name: 'Pre-workout', protein: 0, creatineDoses: 1),
+      now,
+    );
+
+    expect(status, WatchAdditionStatus.added);
+    final entry = (await entries()).single;
+    expect(entry.proteinGrams, 0);
+    expect(entry.creatineDoses, 1);
+    expect(entry.creatineDoseGrams, 5);
+  });
+
+  test('refuses an addition of 0 g without doses', () async {
+    final status = await dao.add(addition(protein: 0), now);
+    expect(status, WatchAdditionStatus.invalid);
   });
 
   test('adds a free entry, with or without name', () async {

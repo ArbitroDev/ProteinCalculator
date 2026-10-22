@@ -276,6 +276,73 @@ void main() {
     });
   });
 
+  group('creatine', () {
+    const args = NewEntryArgs();
+
+    test('0 g is accepted with a dose', () async {
+      final form = await open(args);
+      form
+        ..setProtein('0')
+        ..setCreatineDoses(1);
+
+      expect(stateOf(args).amount, const DirectAmount(0));
+      expect(stateOf(args).validate(nameRequired: false, now: now), isEmpty);
+    });
+
+    test('0 g without doses is not positive', () async {
+      final form = await open(args);
+      form
+        ..setProtein('0')
+        ..setCreatineDoses(1)
+        ..setCreatineDoses(0);
+
+      expect(await form.submit(), isFalse);
+      expect(
+        stateOf(args).errors[EntryFormField.protein],
+        EntryFormError.notPositive,
+      );
+      expect(await todayEntries(), isEmpty);
+    });
+
+    test('a product prefills its doses', () async {
+      final id = await db.productsDao.insertProduct(
+        name: 'Whey',
+        amount: const DirectAmount(24),
+        createdAt: DateTime(2026, 9, 1),
+        creatineDoses: 2,
+      );
+      await open(NewEntryArgs(productId: id));
+
+      expect(stateOf(NewEntryArgs(productId: id)).creatineDoses, 2);
+    });
+
+    test('saving a new entry stores its doses', () async {
+      await db.settingsDao.setCreatineEnabled(true);
+      final form = await open(args);
+      form
+        ..setName('Pre-workout')
+        ..setProtein('0')
+        ..setCreatineDoses(1)
+        ..setSaveAsProduct(true);
+
+      expect(await form.submit(), isTrue);
+
+      final entry = (await todayEntries()).single;
+      expect(entry.proteinGrams, 0);
+      expect(entry.creatineDoses, 1);
+      expect(entry.creatineDoseGrams, 5);
+      expect((await products()).single.creatineDoses, 1);
+    });
+
+    test('the doses stop at 0 and 9', () async {
+      final form = await open(args);
+      form.setCreatineDoses(-1);
+      expect(stateOf(args).creatineDoses, 0);
+      form.setCreatineDoses(12);
+      expect(stateOf(args).creatineDoses, 9);
+    });
+  });
+
   group('daily routine', () {
     const args = NewEntryArgs();
 
@@ -360,6 +427,49 @@ void main() {
       (id, 20.0, DateTime(2026, 10, 1, 8)),
     ]);
   });
+
+  test('saves an edited entry as a product, counted as one use', () async {
+    final id = await db.entriesDao.insertEntry(
+      name: 'Shaker',
+      amount: const DirectAmount(25),
+      createdAt: DateTime(2026, 10, 1, 8),
+    );
+    final args = EditEntryArgs(id);
+    final form = await open(args);
+    expect(stateOf(args).nameTaken, isFalse);
+
+    form
+      ..setName('Shaker whey')
+      ..setSaveAsProduct(true);
+    expect(await form.submit(), isTrue);
+
+    final product = (await products()).single;
+    expect(product.name, 'Shaker whey');
+    expect(product.proteinGrams, 25);
+    expect(product.useCount, 1);
+    final entry = (await todayEntries()).single;
+    expect((entry.id, entry.name), (id, 'Shaker whey'));
+  });
+
+  test(
+    'an edited entry is not saved as a product under a taken name',
+    () async {
+      await addProduct('Skyr');
+      final id = await db.entriesDao.insertEntry(
+        name: 'Skyr',
+        amount: const DirectAmount(15),
+        createdAt: DateTime(2026, 10, 1, 8),
+      );
+      final args = EditEntryArgs(id);
+      final form = await open(args);
+
+      expect(stateOf(args).nameTaken, isTrue);
+      form.setSaveAsProduct(true);
+      expect(stateOf(args).saveAsProduct, isFalse);
+      expect(await form.submit(), isTrue);
+      expect(await products(), hasLength(1));
+    },
+  );
 
   group('time of the entry', () {
     test('is now for a new entry, the time added for one edited', () async {
@@ -464,6 +574,46 @@ void main() {
       expect((await todayEntries()).single.proteinPerReference, 10);
     });
 
+    test(
+      'copies another product, but not its barcode nor its routine',
+      () async {
+        final id = await addProduct('Skyr');
+        await db.productsDao.setBarcode(id, '3017620422003');
+        await db.productsDao.setRoutine(
+          id,
+          DailyRoutine.autoAdd,
+          minutes: 480,
+          now: DateTime(2026, 9, 20),
+        );
+        final args = NewProductArgs(copyOf: id);
+        final form = await open(args);
+
+        final state = stateOf(args);
+        expect(state.name, 'Skyr');
+        expect(state.consumed, '150');
+        expect(state.proteinPerReference, '10');
+        expect(state.barcode, isNull);
+        expect(state.routine, DailyRoutine.none);
+        expect(state.nameTaken, isTrue);
+        // The name field tells at once that it must change.
+        expect(state.errors[EntryFormField.name], EntryFormError.nameTaken);
+
+        expect(await form.submit(), isFalse);
+        expect(
+          stateOf(args).errors[EntryFormField.name],
+          EntryFormError.nameTaken,
+        );
+        form.setName('Skyr vanille');
+        expect(await form.submit(), isTrue);
+
+        final copy = (await products()).firstWhere((p) => p.id != id);
+        expect(copy.name, 'Skyr vanille');
+        expect(copy.consumedGrams, 150);
+        expect(copy.barcode, isNull);
+        expect(copy.routine, DailyRoutine.none);
+      },
+    );
+
     test('needs a name', () async {
       const args = NewProductArgs();
       final form = await open(args);
@@ -512,6 +662,19 @@ void main() {
           }),
           200,
         );
+
+    test('a scan leaves no creatine doses', () async {
+      answer(protein: 6.3, serving: 15);
+      const args = NewEntryArgs();
+      final form = await open(args);
+      // The doses of a product picked before.
+      form.setCreatineDoses(1);
+
+      final outcome = await form.scanned(nutella, language: 'fr');
+
+      expect(outcome, isA<ScanFilled>());
+      expect(stateOf(args).creatineDoses, 0);
+    });
 
     test(
       'fills a new entry with what Open Food Facts says, in green',

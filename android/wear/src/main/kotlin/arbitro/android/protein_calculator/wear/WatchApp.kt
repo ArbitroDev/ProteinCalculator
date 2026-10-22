@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -63,6 +64,7 @@ import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.ConfirmationDialog
 import androidx.wear.compose.material3.ConfirmationDialogDefaults
+import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SwipeToReveal
@@ -304,15 +306,39 @@ private fun AddButton(onClick: () -> Unit) {
 }
 
 /**
+ * Mark of an entry or a product holding creatine: its icon, [size] high, and
+ * the number of [doses] when there are several.
+ */
+@Composable
+private fun CreatineMark(doses: Int, size: Dp = 11.dp) {
+    val fonts = LocalWatchFonts.current
+    val description = stringResource(R.string.creatine_mark)
+    Row(
+        modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_creatine),
+            contentDescription = null,
+            tint = WatchColors.creatine,
+            modifier = Modifier.size(size),
+        )
+        if (doses > 1) Text("×$doses", style = fonts.caption, color = WatchColors.creatine)
+    }
+}
+
+/**
  * An entry of the day: its name, its time and its grams. A watch marks those
  * added on the watch; those the phone has not made yet say so instead of
- * their time.
+ * their time. Creatine taken on its own shows its grams of creatine, in blue.
  */
 @Composable
 private fun EntryRow(entry: DayEntry, modifier: Modifier) {
     val fonts = LocalWatchFonts.current
     val context = LocalContext.current
     val locale = LocalConfiguration.current.locales[0]
+    val creatineOnly = entry.isCreatineOnly
+    val unnamed = entry.name == null && !creatineOnly
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -323,9 +349,9 @@ private fun EntryRow(entry: DayEntry, modifier: Modifier) {
     ) {
         Column(Modifier.weight(1f)) {
             Text(
-                entry.name ?: stringResource(R.string.unnamed),
-                style = if (entry.name == null) fonts.body.copy(fontStyle = FontStyle.Italic) else fonts.body,
-                color = if (entry.name == null) WatchColors.textSecondary else WatchColors.text,
+                entry.name ?: stringResource(if (creatineOnly) R.string.creatine else R.string.unnamed),
+                style = if (unnamed) fonts.body.copy(fontStyle = FontStyle.Italic) else fonts.body,
+                color = if (unnamed) WatchColors.textSecondary else WatchColors.text,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -351,13 +377,23 @@ private fun EntryRow(entry: DayEntry, modifier: Modifier) {
                             .semantics { contentDescription = fromWatch },
                     )
                 }
+                if (entry.creatineDoses > 0) CreatineMark(entry.creatineDoses)
             }
         }
-        Text(
-            stringResource(R.string.grams, formatProtein(entry.protein, locale)),
-            style = fonts.value,
-            color = WatchColors.text,
-        )
+        if (!creatineOnly) {
+            Text(
+                stringResource(R.string.grams, formatProtein(entry.protein, locale)),
+                style = fonts.value,
+                color = WatchColors.text,
+            )
+        } else if (entry.creatineGrams > 0) {
+            // Unknown until the phone made it.
+            Text(
+                stringResource(R.string.grams, formatProtein(entry.creatineGrams, locale)),
+                style = fonts.value,
+                color = WatchColors.creatine,
+            )
+        }
     }
 }
 
@@ -570,6 +606,7 @@ private fun ProductRow(product: WatchProduct, onAdd: (WatchProduct) -> Unit, mod
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
+        if (product.creatineDoses > 0) CreatineMark(product.creatineDoses, size = 13.dp)
         Text(
             stringResource(R.string.grams, formatProtein(product.protein, locale)),
             style = fonts.value,

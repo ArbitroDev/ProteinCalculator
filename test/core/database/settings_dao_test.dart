@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 
@@ -99,6 +100,33 @@ void main() {
 
       expect(await dao.getSlotReminders(), isTrue);
       expect(await dao.watchSlotReminders().first, isTrue);
+    });
+  });
+
+  group('creatine', () {
+    test('is off by default, never turned on', () async {
+      final creatine = await dao.getCreatine();
+      expect(creatine.enabled, isFalse);
+      expect(creatine.everEnabled, isFalse);
+    });
+
+    test('setCreatineEnabled sets the default dose the first time', () async {
+      await dao.setCreatineEnabled(true);
+      expect(
+        await dao.getCreatine(),
+        const CreatineSettings(enabled: true, doseGrams: 5),
+      );
+
+      await dao.setCreatineDoseGrams(8);
+      await dao.setCreatineEnabled(false);
+      expect(
+        await dao.getCreatine(),
+        const CreatineSettings(enabled: false, doseGrams: 8),
+      );
+      expect((await dao.getCreatine()).everEnabled, isTrue);
+
+      await dao.setCreatineEnabled(true);
+      expect((await dao.getCreatine()).doseGrams, 8);
     });
   });
 

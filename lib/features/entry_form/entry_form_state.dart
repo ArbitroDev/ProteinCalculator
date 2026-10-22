@@ -45,18 +45,22 @@ final class EditEntryArgs extends EntryFormArgs {
 }
 
 /// New product, prefilled from what Open Food Facts said of the product
-/// scanned with [barcode], if given.
+/// scanned with [barcode], or with the values of the product [copyOf], if
+/// given.
 final class NewProductArgs extends EntryFormArgs {
-  const NewProductArgs({this.barcode});
+  const NewProductArgs({this.barcode, this.copyOf});
 
   final String? barcode;
+  final int? copyOf;
 
   @override
   bool operator ==(Object other) =>
-      other is NewProductArgs && other.barcode == barcode;
+      other is NewProductArgs &&
+      other.barcode == barcode &&
+      other.copyOf == copyOf;
 
   @override
-  int get hashCode => Object.hash(NewProductArgs, barcode);
+  int get hashCode => Object.hash(NewProductArgs, barcode, copyOf);
 }
 
 final class EditProductArgs extends EntryFormArgs {
@@ -127,6 +131,8 @@ class EntryFormState {
     this.fromFoodFacts = const {},
     this.errors = const {},
     this.revision = 0,
+    this.creatineDoses = 0,
+    this.creatineDoseGrams,
   });
 
   final String name;
@@ -139,11 +145,11 @@ class EntryFormState {
   /// Unit of [consumed] and [reference]: grams, or milliliters for drinks.
   final QuantityUnit unit;
 
-  /// Whether a new entry is also saved as a new product, which then gets the
-  /// [routine]. Off while the [name] is [nameTaken].
+  /// Whether a new or edited entry is also saved as a new product, which
+  /// then gets the [routine]. Off while the [name] is [nameTaken].
   final bool saveAsProduct;
 
-  /// Whether another product already has the [name]: a new entry cannot be
+  /// Whether another product already has the [name]: an entry cannot be
   /// saved as a product, a product cannot take it.
   final bool nameTaken;
 
@@ -168,11 +174,21 @@ class EntryFormState {
   /// picked), so the text fields reload them.
   final int revision;
 
+  /// Creatine doses of the entry or of one portion of the product. With at
+  /// least one, the protein may be zero: creatine taken on its own.
+  final int creatineDoses;
+
+  /// Grams of one dose of the entry edited, kept from when it was added;
+  /// null otherwise, the dose in force then applying.
+  final double? creatineDoseGrams;
+
   /// Protein amount of the entry, or null while the quantities are invalid.
   ProteinAmount? get amount {
     if (mode == EntryMode.direct) {
       final value = parseGrams(protein);
-      return value != null && value > 0 ? DirectAmount(value) : null;
+      return value != null && (value > 0 || (value == 0 && creatineDoses > 0))
+          ? DirectAmount(value)
+          : null;
     }
     final consumedGrams = parseGrams(consumed);
     final per = parseGrams(proteinPerReference);
@@ -206,20 +222,26 @@ class EntryFormState {
       errors[EntryFormField.time] = EntryFormError.future;
     }
 
-    void positive(EntryFormField field, String text) {
+    void positive(EntryFormField field, String text, {bool orZero = false}) {
       final value = parseGrams(text);
       if (value == null) {
         errors[field] = EntryFormError.required;
-      } else if (value <= 0) {
+      } else if (value < 0 || (value == 0 && !orZero)) {
         errors[field] = EntryFormError.notPositive;
       }
     }
 
+    // Creatine taken on its own has no protein.
+    final noProtein = creatineDoses > 0;
     if (mode == EntryMode.direct) {
-      positive(EntryFormField.protein, protein);
+      positive(EntryFormField.protein, protein, orZero: noProtein);
     } else {
       positive(EntryFormField.consumed, consumed);
-      positive(EntryFormField.proteinPerReference, proteinPerReference);
+      positive(
+        EntryFormField.proteinPerReference,
+        proteinPerReference,
+        orZero: noProtein,
+      );
       positive(EntryFormField.reference, reference);
       final per = parseGrams(proteinPerReference);
       final referenceGrams = parseGrams(reference);
@@ -253,6 +275,8 @@ class EntryFormState {
     Set<EntryFormField>? fromFoodFacts,
     Map<EntryFormField, EntryFormError>? errors,
     int? revision,
+    int? creatineDoses,
+    double? creatineDoseGrams,
   }) => EntryFormState(
     name: name ?? this.name,
     mode: mode ?? this.mode,
@@ -270,6 +294,8 @@ class EntryFormState {
     fromFoodFacts: fromFoodFacts ?? this.fromFoodFacts,
     errors: errors ?? this.errors,
     revision: revision ?? this.revision,
+    creatineDoses: creatineDoses ?? this.creatineDoses,
+    creatineDoseGrams: creatineDoseGrams ?? this.creatineDoseGrams,
   );
 
   /// Same state without the error of [field], once the user edits it.
