@@ -23,8 +23,9 @@ import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// Products tab. Tap a product to edit it, tap its "+" button to add it to
-/// the day, swipe it to delete it. The favorite comes first, then the saved
+/// Products tab. Tap a product to edit it, long press it to create a new
+/// product from its values, tap its "+" button to add it to the day, swipe
+/// it to delete it. The favorite comes first, then the saved
 /// products, those with a daily routine first, then the recent scans, which
 /// tap to save as products. Both lists fold.
 class ProductsPage extends ConsumerStatefulWidget {
@@ -399,87 +400,117 @@ class _ProductTile extends StatelessWidget {
       onDelete: onDelete,
       child: Material(
         color: colors.background,
-        child: InkWell(
-          onTap: () => context.push(AppRoutes.editProduct(product.id)),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: colors.divider)),
-            ),
-            child: Row(
-              children: [
-                SizedBox.square(
-                  dimension: 40,
-                  child: IconButton(
-                    onPressed: onToggleFavorite,
-                    tooltip: product.isFavorite
-                        ? l10n.removeFavorite
-                        : l10n.setFavorite,
-                    isSelected: product.isFavorite,
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      LucideIcons.star,
-                      size: 20,
-                      color: colors.textSecondary,
-                    ),
-                    // Lucide has no filled icons: the favorite uses the
-                    // Material star, filled with the accent.
-                    selectedIcon: const Icon(
-                      Icons.star_rounded,
-                      size: 26,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              product.name,
-                              style: textTheme.bodyLarge!.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          if (product.creatineDoses > 0) ...[
-                            const SizedBox(width: 6),
-                            CreatineMark(doses: product.creatineDoses),
-                          ],
-                        ],
+        // Screen readers tell what a long press does.
+        child: Semantics(
+          onLongPressHint: l10n.productCopyHint,
+          child: InkWell(
+            onTap: () => context.push(AppRoutes.editProduct(product.id)),
+            onLongPress: () => context.push(AppRoutes.copyProduct(product.id)),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: colors.divider)),
+              ),
+              child: Row(
+                children: [
+                  SizedBox.square(
+                    dimension: 40,
+                    child: IconButton(
+                      onPressed: onToggleFavorite,
+                      tooltip: product.isFavorite
+                          ? l10n.removeFavorite
+                          : l10n.setFavorite,
+                      isSelected: product.isFavorite,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        LucideIcons.star,
+                        size: 20,
+                        color: colors.textSecondary,
                       ),
-                      const SizedBox(height: 2),
-                      Text(details, style: textTheme.bodySmall),
-                      if (product.activeRoutineMinutes case final minutes?)
-                        _RoutineLabel(
-                          routine: product.routine,
-                          minutes: minutes,
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Same look as the add button of the tab bar.
-                SizedBox.square(
-                  dimension: 32,
-                  child: IconButton.filled(
-                    onPressed: () =>
-                        context.push(AppRoutes.newEntryFrom(product.id)),
-                    tooltip: l10n.addToToday,
-                    padding: EdgeInsets.zero,
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: AppColors.onAccent,
+                      // Lucide has no filled icons: the favorite uses the
+                      // Material star, filled with the accent.
+                      selectedIcon: const Icon(
+                        Icons.star_rounded,
+                        size: 26,
+                        color: AppColors.accent,
+                      ),
                     ),
-                    icon: const Icon(LucideIcons.plus, size: 18),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyLarge!.copyWith(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        // Its marks first, barcode then creatine, apart like
+                        // the rest of the description.
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              for (final (index, part) in [
+                                if (product.barcode != null)
+                                  _mark(
+                                    Semantics(
+                                      label: l10n.productBarcodeMark,
+                                      excludeSemantics: true,
+                                      child: Icon(
+                                        LucideIcons.barcode,
+                                        size: 14,
+                                        color: colors.scan,
+                                      ),
+                                    ),
+                                  ),
+                                if (product.creatineDoses > 0)
+                                  _mark(
+                                    CreatineMark(
+                                      doses: product.creatineDoses,
+                                      weight: FontWeight.w400,
+                                    ),
+                                  ),
+                                TextSpan(text: details),
+                              ].indexed) ...[
+                                if (index > 0) const TextSpan(text: ' · '),
+                                part,
+                              ],
+                            ],
+                          ),
+                          style: textTheme.bodySmall,
+                        ),
+                        if (product.activeRoutineMinutes case final minutes?)
+                          _RoutineLabel(
+                            routine: product.routine,
+                            minutes: minutes,
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Same look as the add button of the tab bar.
+                  SizedBox.square(
+                    dimension: 32,
+                    child: IconButton.filled(
+                      onPressed: () =>
+                          context.push(AppRoutes.newEntryFrom(product.id)),
+                      tooltip: l10n.addToToday,
+                      padding: EdgeInsets.zero,
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: AppColors.onAccent,
+                      ),
+                      icon: const Icon(LucideIcons.plus, size: 18),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -487,6 +518,10 @@ class _ProductTile extends StatelessWidget {
     );
   }
 }
+
+/// [mark] in the description of a product, centered on its line.
+WidgetSpan _mark(Widget mark) =>
+    WidgetSpan(alignment: PlaceholderAlignment.middle, child: mark);
 
 /// Daily routine of a product: a reminder or an automatic addition, and its
 /// time.

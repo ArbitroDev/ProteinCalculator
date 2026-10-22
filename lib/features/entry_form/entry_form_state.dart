@@ -45,18 +45,22 @@ final class EditEntryArgs extends EntryFormArgs {
 }
 
 /// New product, prefilled from what Open Food Facts said of the product
-/// scanned with [barcode], if given.
+/// scanned with [barcode], or with the values of the product [copyOf], if
+/// given.
 final class NewProductArgs extends EntryFormArgs {
-  const NewProductArgs({this.barcode});
+  const NewProductArgs({this.barcode, this.copyOf});
 
   final String? barcode;
+  final int? copyOf;
 
   @override
   bool operator ==(Object other) =>
-      other is NewProductArgs && other.barcode == barcode;
+      other is NewProductArgs &&
+      other.barcode == barcode &&
+      other.copyOf == copyOf;
 
   @override
-  int get hashCode => Object.hash(NewProductArgs, barcode);
+  int get hashCode => Object.hash(NewProductArgs, barcode, copyOf);
 }
 
 final class EditProductArgs extends EntryFormArgs {
@@ -141,11 +145,11 @@ class EntryFormState {
   /// Unit of [consumed] and [reference]: grams, or milliliters for drinks.
   final QuantityUnit unit;
 
-  /// Whether a new entry is also saved as a new product, which then gets the
-  /// [routine]. Off while the [name] is [nameTaken].
+  /// Whether a new or edited entry is also saved as a new product, which
+  /// then gets the [routine]. Off while the [name] is [nameTaken].
   final bool saveAsProduct;
 
-  /// Whether another product already has the [name]: a new entry cannot be
+  /// Whether another product already has the [name]: an entry cannot be
   /// saved as a product, a product cannot take it.
   final bool nameTaken;
 

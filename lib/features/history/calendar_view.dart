@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,8 @@ import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
+import 'package:protein_calculator/core/widgets/shaker_icon.dart';
+import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Calendar view of the history: the days of each month, colored by how far
@@ -20,7 +23,8 @@ import 'package:protein_calculator/l10n/app_localizations.dart';
 /// above the legend, and shows first; the months before go up above it, back
 /// to the first goal. The month being read, the one taking the most room on
 /// screen, shows fully; the others are dimmed. Tap a day with entries to see
-/// them.
+/// them. Those who track creatine can color the days by creatine taken
+/// instead, with the filter above the legend.
 class CalendarView extends ConsumerStatefulWidget {
   const CalendarView({super.key});
 
@@ -40,12 +44,19 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   /// Height of the legend laid over the bottom of the list.
   double _bottomInset = 0;
 
+  /// Whether the legend was measured: until then, the list would place the
+  /// current month behind it, then jump up, and stays hidden.
+  bool _measured = false;
+
   /// Space under the current month: the legend, and the room the months
   /// leave when they do not fill the screen.
   double _bottomPadding = 0;
 
   /// How far the list can still scroll up, towards the oldest month.
   final _scrollLeft = ValueNotifier<double>(0);
+
+  /// What colors the days.
+  CalendarMode _mode = CalendarMode.protein;
 
   @override
   void initState() {
@@ -117,9 +128,10 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         if (day.creatineDoses > 0) day.dayKey,
     };
     // Shown to those who track creatine, or did.
-    final creatineLegend =
+    final creatineShown =
         (ref.watch(creatineSettingsProvider).value?.everEnabled ?? false) ||
         creatineDays.isNotEmpty;
+    final mode = creatineShown ? _mode : CalendarMode.protein;
     final firstWeekday = MaterialLocalizations.of(context).firstDayOfWeekIndex;
     DateTime monthAt(int index) => DateTime(today.year, today.month - index);
 
@@ -137,65 +149,69 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           child: Stack(
             children: [
               Positioned.fill(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final cell =
-                        (constraints.maxWidth - _sidePadding * 2 - _gap * 6) /
-                        7;
-                    _heights = [
-                      for (var index = 0; index < count; index++)
-                        _MonthSection.heightOf(
-                          monthAt(index),
-                          firstWeekday,
-                          cell,
-                        ),
-                    ];
-                    // The months not filling the screen stay right under the
-                    // initials rather than on the legend: the room left goes
-                    // under the current month, where the list starts.
-                    final space =
-                        constraints.maxHeight -
-                        _bottomInset -
-                        _heights.fold(0.0, (sum, height) => sum + height);
-                    _bottomPadding = _bottomInset + max(0, space);
-                    return NotificationListener<ScrollMetricsNotification>(
-                      onNotification: (_) {
-                        _onScroll();
-                        return false;
-                      },
-                      child: ListView.builder(
-                        controller: _scroll,
-                        // From the current month, at the bottom, up to the
-                        // oldest one.
-                        reverse: true,
-                        // Ends right under the initials: the fade goes once
-                        // the oldest month shows.
-                        padding: EdgeInsets.fromLTRB(
-                          _sidePadding,
-                          0,
-                          _sidePadding,
-                          _bottomPadding,
-                        ),
-                        itemCount: count,
-                        // The same heights as the focus uses, so both agree.
-                        itemExtentBuilder: (index, _) =>
-                            index < count ? _heights[index] : null,
-                        itemBuilder: (context, index) => AnimatedOpacity(
-                          opacity: index == _focused ? 1 : 0.45,
-                          duration: MediaQuery.disableAnimationsOf(context)
-                              ? Duration.zero
-                              : const Duration(milliseconds: 220),
-                          child: _MonthSection(
-                            month: monthAt(index),
-                            todayKey: todayKey,
-                            totals: totals,
-                            creatineDays: creatineDays,
-                            goals: goals,
+                child: Opacity(
+                  opacity: _measured ? 1 : 0,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cell =
+                          (constraints.maxWidth - _sidePadding * 2 - _gap * 6) /
+                          7;
+                      _heights = [
+                        for (var index = 0; index < count; index++)
+                          _MonthSection.heightOf(
+                            monthAt(index),
+                            firstWeekday,
+                            cell,
+                          ),
+                      ];
+                      // The months not filling the screen stay right under the
+                      // initials rather than on the legend: the room left goes
+                      // under the current month, where the list starts.
+                      final space =
+                          constraints.maxHeight -
+                          _bottomInset -
+                          _heights.fold(0.0, (sum, height) => sum + height);
+                      _bottomPadding = _bottomInset + max(0, space);
+                      return NotificationListener<ScrollMetricsNotification>(
+                        onNotification: (_) {
+                          _onScroll();
+                          return false;
+                        },
+                        child: ListView.builder(
+                          controller: _scroll,
+                          // From the current month, at the bottom, up to the
+                          // oldest one.
+                          reverse: true,
+                          // Ends right under the initials: the fade goes once
+                          // the oldest month shows.
+                          padding: EdgeInsets.fromLTRB(
+                            _sidePadding,
+                            0,
+                            _sidePadding,
+                            _bottomPadding,
+                          ),
+                          itemCount: count,
+                          // The same heights as the focus uses, so both agree.
+                          itemExtentBuilder: (index, _) =>
+                              index < count ? _heights[index] : null,
+                          itemBuilder: (context, index) => AnimatedOpacity(
+                            opacity: index == _focused ? 1 : 0.45,
+                            duration: MediaQuery.disableAnimationsOf(context)
+                                ? Duration.zero
+                                : const Duration(milliseconds: 220),
+                            child: _MonthSection(
+                              month: monthAt(index),
+                              todayKey: todayKey,
+                              totals: totals,
+                              creatineDays: creatineDays,
+                              goals: goals,
+                              mode: mode,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
               // The top of the list fading into the page background, so the
@@ -214,26 +230,32 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                   child: _Fade(color: background),
                 ),
               ),
-              // The legend over the bottom of the list: the days pass
-              // behind it, and show around its top corners rather than
-              // being cut straight.
+              // The filter and the legend over the bottom of the list: the
+              // days pass behind them, and show around the top corners of
+              // the first rather than being cut straight.
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
                 child: _Measured(
                   onHeight: (height) {
-                    if (mounted) setState(() => _bottomInset = height);
+                    if (mounted) {
+                      setState(() {
+                        _bottomInset = height;
+                        _measured = true;
+                      });
+                    }
                   },
                   child: Stack(
                     children: [
                       // The page background from the middle of the card
                       // down, so its bottom corners and the space under it
-                      // stay clear.
+                      // stay clear. The filter floats above it, over the
+                      // days.
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: 24,
+                        top: creatineShown ? 24 + _ModeFilter.height + 8 : 24,
                         bottom: 0,
                         child: AbsorbPointer(
                           child: ColoredBox(color: background),
@@ -241,8 +263,26 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: AbsorbPointer(
-                          child: _Legend(creatine: creatineLegend),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          spacing: 8,
+                          children: [
+                            if (creatineShown)
+                              Align(
+                                alignment: AlignmentDirectional.centerEnd,
+                                child: _ModeFilter(
+                                  selected: mode,
+                                  onChanged: (value) =>
+                                      setState(() => _mode = value),
+                                ),
+                              ),
+                            AbsorbPointer(
+                              child: _Legend(
+                                mode: mode,
+                                creatine: creatineShown,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -253,6 +293,79 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Small filter of what colors the days, its options shown by their icons
+/// only: the shaker of protein, the sparkles of creatine.
+class _ModeFilter extends StatelessWidget {
+  const _ModeFilter({required this.selected, required this.onChanged});
+
+  static const height = 36.0;
+
+  /// Width of each option.
+  static const _optionWidth = 44.0;
+
+  /// Space around the options, and between them.
+  static const _padding = 3.0;
+
+  final CalendarMode selected;
+  final ValueChanged<CalendarMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final options = CalendarMode.values;
+
+    return Container(
+      width: _optionWidth * options.length + _padding * (options.length + 1),
+      height: height,
+      padding: const EdgeInsets.all(_padding),
+      decoration: ShapeDecoration(
+        color: colors.surface,
+        shape: StadiumBorder(side: BorderSide(color: colors.divider)),
+      ),
+      child: SlidingSelector(
+        selectedIndex: options.indexOf(selected),
+        gap: _padding,
+        shape: const StadiumBorder(),
+        children: [
+          for (final mode in options)
+            Tooltip(
+              message: switch (mode) {
+                CalendarMode.protein => l10n.formProtein,
+                CalendarMode.creatine => l10n.creatine,
+              },
+              child: Semantics(
+                button: true,
+                selected: mode == selected,
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: InkWell(
+                    customBorder: const StadiumBorder(),
+                    onTap: () => onChanged(mode),
+                    child: IconTheme(
+                      data: IconThemeData(
+                        size: 18,
+                        color: mode == selected
+                            ? AppColors.onAccent
+                            : colors.textSecondary,
+                      ),
+                      child: Center(
+                        child: switch (mode) {
+                          CalendarMode.protein => const ShakerIcon(),
+                          CalendarMode.creatine => const Icon(creatineIcon),
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -312,6 +425,10 @@ class _RenderMeasured extends RenderProxyBox {
   }
 }
 
+/// What colors the days of the calendar: how far each went towards its
+/// goal, or whether creatine was taken.
+enum CalendarMode { protein, creatine }
+
 /// Space between two columns of days, and between two weeks.
 const _gap = 6.0;
 
@@ -359,6 +476,7 @@ class _MonthSection extends StatelessWidget {
     required this.totals,
     required this.creatineDays,
     required this.goals,
+    required this.mode,
   });
 
   final DateTime month;
@@ -370,6 +488,7 @@ class _MonthSection extends StatelessWidget {
   /// App days creatine was taken.
   final Set<int> creatineDays;
   final List<({int dayKey, double grams})> goals;
+  final CalendarMode mode;
 
   /// Height of the title above the weeks.
   static const _titleHeight = 46.0;
@@ -464,6 +583,7 @@ class _MonthSection extends StatelessWidget {
       isFuture: dayKey > todayKey,
       hasEntries: total != null,
       creatineTaken: creatineDays.contains(dayKey),
+      mode: mode,
     );
   }
 }
@@ -485,6 +605,13 @@ class _MonthSection extends StatelessWidget {
   DayProgress.reached => (fill: AppColors.accent, text: AppColors.onAccent),
 };
 
+/// Fill and text colors of a day in the creatine mode: blue if creatine was
+/// [taken], as a day without protein otherwise.
+({Color fill, Color text}) _creatineColors(bool taken, AppColors colors) =>
+    taken
+    ? (fill: AppColors.creatine, text: AppColors.onAccent)
+    : _progressColors(DayProgress.none, colors);
+
 /// A day: a bubble with its number in the middle, colored by its progress,
 /// and under it the marks of the day, two side by side at most.
 class _DayCell extends StatelessWidget {
@@ -495,6 +622,7 @@ class _DayCell extends StatelessWidget {
     required this.isFuture,
     required this.hasEntries,
     required this.creatineTaken,
+    required this.mode,
   });
 
   final int dayKey;
@@ -505,6 +633,10 @@ class _DayCell extends StatelessWidget {
   final bool isFuture;
   final bool hasEntries;
   final bool creatineTaken;
+
+  /// Colors the day by its [progress], or by whether [creatineTaken]; its
+  /// marks stay the same.
+  final CalendarMode mode;
 
   @override
   Widget build(BuildContext context) {
@@ -517,7 +649,15 @@ class _DayCell extends StatelessWidget {
             fill: Colors.transparent,
             text: colors.textSecondary.withValues(alpha: isFuture ? 0.5 : 1),
           )
-        : _progressColors(progress, colors);
+        : switch (mode) {
+            CalendarMode.protein => _progressColors(progress, colors),
+            CalendarMode.creatine => _creatineColors(creatineTaken, colors),
+          };
+    // The days standing out in the colors of the mode.
+    final highlighted = switch (mode) {
+      CalendarMode.protein => progress == DayProgress.reached,
+      CalendarMode.creatine => progress != null && creatineTaken,
+    };
 
     final marks = [
       if (progress == DayProgress.reached)
@@ -558,7 +698,7 @@ class _DayCell extends StatelessWidget {
                       fontSize: 15,
                       height: 1,
                       color: style.text,
-                      fontWeight: isToday || progress == DayProgress.reached
+                      fontWeight: isToday || highlighted
                           ? FontWeight.w700
                           : FontWeight.w500,
                     ),
@@ -589,9 +729,13 @@ String _progressLabel(AppLocalizations l10n, DayProgress progress) =>
     };
 
 class _Legend extends StatelessWidget {
-  const _Legend({required this.creatine});
+  const _Legend({required this.mode, required this.creatine});
 
-  /// Whether it tells the mark of the days creatine was taken.
+  /// What colors the days, which the legend tells.
+  final CalendarMode mode;
+
+  /// Whether creatine is tracked: the legend tells the mark of the days it
+  /// was taken, and the colors of the creatine filter.
   final bool creatine;
 
   @override
@@ -601,34 +745,78 @@ class _Legend extends StatelessWidget {
     final style = Theme.of(context).textTheme.bodySmall!
         .copyWith(color: colors.textSecondary);
 
-    Widget item(DayProgress progress) => Row(
+    /// A line of the legend: the dot of [fill], none if null, its [label],
+    /// and the [mark] the days show for it.
+    Widget item(
+      String label, {
+      ({Color fill, Color text})? fill,
+      bool bordered = false,
+      Widget? mark,
+    }) => Row(
       children: [
-        Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(
-            color: _progressColors(progress, colors).fill,
-            shape: BoxShape.circle,
-            border: progress == DayProgress.none
-                ? Border.all(color: colors.divider)
-                : null,
+        if (fill == null)
+          // No color of its own: lined up with the others, the room of
+          // their dot left empty.
+          const SizedBox(width: 14)
+        else
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: fill.fill,
+              shape: BoxShape.circle,
+              border: bordered ? Border.all(color: colors.divider) : null,
+            ),
           ),
-        ),
         const SizedBox(width: 8),
         Flexible(
           child: Text(
-            _progressLabel(l10n, progress),
+            label,
             style: style,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (progress == DayProgress.reached) ...[
-          const SizedBox(width: 4),
-          Icon(LucideIcons.circleCheck, size: 12, color: colors.accentText),
-        ],
+        if (mark != null) ...[const SizedBox(width: 4), mark],
       ],
     );
+
+    final goalMark = Icon(
+      LucideIcons.circleCheck,
+      size: 12,
+      color: colors.accentText,
+    );
+    const creatineMark = CreatineCheck(size: 12);
+    List<List<Widget>> rowsOf(CalendarMode mode) => switch (mode) {
+      CalendarMode.protein => [
+        ...[
+          for (final progress in DayProgress.values)
+            item(
+              _progressLabel(l10n, progress),
+              fill: _progressColors(progress, colors),
+              bordered: progress == DayProgress.none,
+              mark: progress == DayProgress.reached ? goalMark : null,
+            ),
+        ].slices(2),
+        if (creatine) [item(l10n.calendarCreatine, mark: creatineMark)],
+      ],
+      // The marks of the days stay: that of the goal reached is told too.
+      CalendarMode.creatine => [
+        [
+          item(
+            l10n.calendarNone,
+            fill: _creatineColors(false, colors),
+            bordered: true,
+          ),
+          item(
+            l10n.calendarCreatine,
+            fill: _creatineColors(true, colors),
+            mark: creatineMark,
+          ),
+        ],
+        [item(l10n.calendarReached, mark: goalMark)],
+      ],
+    };
 
     return ExcludeSemantics(
       child: Container(
@@ -638,43 +826,26 @@ class _Legend extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: colors.divider),
         ),
-        child: Column(
-          spacing: 6,
+        // As high as the highest legend, whatever the filter: the shorter
+        // one leaves room at the bottom of the card, and the list the same
+        // room under the current month, so the days do not move when the
+        // filter changes.
+        child: IndexedStack(
+          index: creatine ? mode.index : 0,
           children: [
-            for (final pair in [
-              [DayProgress.none, DayProgress.low],
-              [DayProgress.half, DayProgress.reached],
-            ])
-              Row(
-                spacing: 12,
+            for (final value
+                in creatine ? CalendarMode.values : [CalendarMode.protein])
+              Column(
+                spacing: 6,
                 children: [
-                  for (final progress in pair) Expanded(child: item(progress)),
-                ],
-              ),
-            if (creatine)
-              Row(
-                spacing: 12,
-                children: [
-                  Expanded(
-                    // No color of its own: lined up with the others, the
-                    // room of their dot left empty.
-                    child: Row(
+                  for (final row in rowsOf(value))
+                    Row(
+                      spacing: 12,
                       children: [
-                        const SizedBox(width: 22),
-                        Flexible(
-                          child: Text(
-                            l10n.calendarCreatine,
-                            style: style,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const CreatineCheck(size: 12),
+                        for (final cell in row) Expanded(child: cell),
+                        if (row.length == 1) const Spacer(),
                       ],
                     ),
-                  ),
-                  const Spacer(),
                 ],
               ),
           ],

@@ -150,7 +150,7 @@
   },
   "formProtein": "Protéines",
   "@formProtein": {
-    "description": "Label of the protein amount field."
+    "description": "Label of the protein amount field, and name of the protein option of the calendar filter."
   },
   "formConsumed": "Quantité consommée",
   "@formConsumed": {
@@ -865,9 +865,9 @@
   "@historyCalendar": {
     "description": "History view: the days of a month, colored by how far each went towards its goal."
   },
-  "calendarNone": "Rien",
+  "calendarNone": "Aucune prise",
   "@calendarNone": {
-    "description": "Calendar legend and screen reader text: a day without protein."
+    "description": "Calendar legend and screen reader text: a day without protein, or without creatine in the creatine filter."
   },
   "calendarLow": "Moins de 50 %",
   "@calendarLow": {
@@ -942,7 +942,7 @@
   },
   "creatine": "Créatine",
   "@creatine": {
-    "description": "Name of creatine: card of the menu, entries of creatine taken on its own without a name, label of the form counter."
+    "description": "Name of creatine: card of the menu, entries of creatine taken on its own without a name, label of the form counter, creatine option of the calendar filter."
   },
   "creatineTaken": "créatine prise",
   "@creatineTaken": {
@@ -1020,7 +1020,11 @@
   },
   "calendarCreatine": "Créatine prise",
   "@calendarCreatine": {
-    "description": "Calendar legend: the blue check of the days creatine was taken."
+    "description": "Calendar legend: the blue check of the days creatine was taken, and the blue days of the creatine filter."
+  },
+  "productCopyHint": "créer un produit à partir de celui-ci",
+  "@productCopyHint": {
+    "description": "Read by screen readers on a saved product: what a long press does."
   },
   "creatineMark": "{count, plural, =1{contient de la créatine} other{contient {count} doses de créatine}}",
   "@creatineMark": {
@@ -1030,6 +1034,10 @@
         "type": "int"
       }
     }
+  },
+  "productBarcodeMark": "a un code-barres",
+  "@productBarcodeMark": {
+    "description": "Read by screen readers on the barcode mark of a saved product."
   },
   "creatineGrams": "{grams} de créatine",
   "@creatineGrams": {

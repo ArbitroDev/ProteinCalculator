@@ -42,6 +42,9 @@ abstract final class AppRoutes {
   static String newProductFromScan(String barcode) =>
       '$newProduct?barcode=$barcode';
 
+  /// New product prefilled with the values of the product [productId].
+  static String copyProduct(int productId) => '$newProduct?copyOf=$productId';
+
   static String editProduct(int productId) => '$products/$productId';
 
   /// Camera reading a barcode, giving it back to the page that opened it.
@@ -138,7 +141,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.newProduct,
         builder: (context, state) => EntryFormPage(
-          args: NewProductArgs(barcode: state.uri.queryParameters['barcode']),
+          args: NewProductArgs(
+            barcode: state.uri.queryParameters['barcode'],
+            copyOf: int.tryParse(state.uri.queryParameters['copyOf'] ?? ''),
+          ),
         ),
       ),
       GoRoute(

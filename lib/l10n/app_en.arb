@@ -178,7 +178,7 @@
   "routinesMayBeLateBanner": "Alarms & reminders not allowed: your routines may notify you late.",
   "historyList": "List",
   "historyCalendar": "Calendar",
-  "calendarNone": "Nothing",
+  "calendarNone": "None taken",
   "calendarLow": "Under 50%",
   "calendarHalf": "50% or more",
   "calendarReached": "Goal reached",
@@ -209,5 +209,7 @@
   "creatineDoseInvalid": "Between {min} and {max} g",
   "calendarCreatine": "Creatine taken",
   "creatineMark": "{count, plural, =1{contains creatine} other{contains {count} doses of creatine}}",
+  "productBarcodeMark": "has a barcode",
+  "productCopyHint": "create a product from this one",
   "creatineGrams": "{grams} of creatine"
 }

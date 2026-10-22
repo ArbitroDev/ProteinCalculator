@@ -428,6 +428,49 @@ void main() {
     ]);
   });
 
+  test('saves an edited entry as a product, counted as one use', () async {
+    final id = await db.entriesDao.insertEntry(
+      name: 'Shaker',
+      amount: const DirectAmount(25),
+      createdAt: DateTime(2026, 10, 1, 8),
+    );
+    final args = EditEntryArgs(id);
+    final form = await open(args);
+    expect(stateOf(args).nameTaken, isFalse);
+
+    form
+      ..setName('Shaker whey')
+      ..setSaveAsProduct(true);
+    expect(await form.submit(), isTrue);
+
+    final product = (await products()).single;
+    expect(product.name, 'Shaker whey');
+    expect(product.proteinGrams, 25);
+    expect(product.useCount, 1);
+    final entry = (await todayEntries()).single;
+    expect((entry.id, entry.name), (id, 'Shaker whey'));
+  });
+
+  test(
+    'an edited entry is not saved as a product under a taken name',
+    () async {
+      await addProduct('Skyr');
+      final id = await db.entriesDao.insertEntry(
+        name: 'Skyr',
+        amount: const DirectAmount(15),
+        createdAt: DateTime(2026, 10, 1, 8),
+      );
+      final args = EditEntryArgs(id);
+      final form = await open(args);
+
+      expect(stateOf(args).nameTaken, isTrue);
+      form.setSaveAsProduct(true);
+      expect(stateOf(args).saveAsProduct, isFalse);
+      expect(await form.submit(), isTrue);
+      expect(await products(), hasLength(1));
+    },
+  );
+
   group('time of the entry', () {
     test('is now for a new entry, the time added for one edited', () async {
       await open(const NewEntryArgs());
@@ -530,6 +573,46 @@ void main() {
       expect((await db.productsDao.getProduct(id))!.proteinPerReference, 9);
       expect((await todayEntries()).single.proteinPerReference, 10);
     });
+
+    test(
+      'copies another product, but not its barcode nor its routine',
+      () async {
+        final id = await addProduct('Skyr');
+        await db.productsDao.setBarcode(id, '3017620422003');
+        await db.productsDao.setRoutine(
+          id,
+          DailyRoutine.autoAdd,
+          minutes: 480,
+          now: DateTime(2026, 9, 20),
+        );
+        final args = NewProductArgs(copyOf: id);
+        final form = await open(args);
+
+        final state = stateOf(args);
+        expect(state.name, 'Skyr');
+        expect(state.consumed, '150');
+        expect(state.proteinPerReference, '10');
+        expect(state.barcode, isNull);
+        expect(state.routine, DailyRoutine.none);
+        expect(state.nameTaken, isTrue);
+        // The name field tells at once that it must change.
+        expect(state.errors[EntryFormField.name], EntryFormError.nameTaken);
+
+        expect(await form.submit(), isFalse);
+        expect(
+          stateOf(args).errors[EntryFormField.name],
+          EntryFormError.nameTaken,
+        );
+        form.setName('Skyr vanille');
+        expect(await form.submit(), isTrue);
+
+        final copy = (await products()).firstWhere((p) => p.id != id);
+        expect(copy.name, 'Skyr vanille');
+        expect(copy.consumedGrams, 150);
+        expect(copy.barcode, isNull);
+        expect(copy.routine, DailyRoutine.none);
+      },
+    );
 
     test('needs a name', () async {
       const args = NewProductArgs();
