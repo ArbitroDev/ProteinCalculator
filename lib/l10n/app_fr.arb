@@ -865,9 +865,9 @@
   "@historyCalendar": {
     "description": "History view: the days of a month, colored by how far each went towards its goal."
   },
-  "calendarNone": "Rien",
+  "calendarNone": "Aucune prise",
   "@calendarNone": {
-    "description": "Calendar legend and screen reader text: a day without protein."
+    "description": "Calendar legend and screen reader text: a day without protein, or without creatine in the creatine filter."
   },
   "calendarLow": "Moins de 50 %",
   "@calendarLow": {

@@ -178,7 +178,7 @@
   "routinesMayBeLateBanner": "Alarms & reminders not allowed: your routines may notify you late.",
   "historyList": "List",
   "historyCalendar": "Calendar",
-  "calendarNone": "Nothing",
+  "calendarNone": "None taken",
   "calendarLow": "Under 50%",
   "calendarHalf": "50% or more",
   "calendarReached": "Goal reached",
