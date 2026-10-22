@@ -230,9 +230,13 @@ void main() {
       expect(creatineDays, findsNothing);
       expect(find.text('Under 50%'), findsOneWidget);
       final marks = tester.widgetList(goalMark).length;
+      final first = tester.getCenter(find.text('1'));
 
       await tester.tap(find.byTooltip('Creatine'));
       await tester.pumpAndSettle();
+
+      // The days stay in place, though the legend is shorter.
+      expect(tester.getCenter(find.text('1')), first);
 
       expect(creatineDays, findsOneWidget);
       expect(reachedDays, findsNothing);

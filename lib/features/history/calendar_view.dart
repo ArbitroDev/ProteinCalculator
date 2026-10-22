@@ -264,10 +264,22 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                       setState(() => _mode = value),
                                 ),
                               ),
+                            // As high as the highest legend, whatever the
+                            // filter: the space the list keeps under the
+                            // current month stays, so the days do not move
+                            // when the filter changes.
                             AbsorbPointer(
-                              child: _Legend(
-                                mode: mode,
-                                creatine: creatineShown,
+                              child: IndexedStack(
+                                index: mode.index,
+                                children: [
+                                  for (final value in CalendarMode.values)
+                                    if (creatineShown ||
+                                        value == CalendarMode.protein)
+                                      _Legend(
+                                        mode: value,
+                                        creatine: creatineShown,
+                                      ),
+                                ],
                               ),
                             ),
                           ],
