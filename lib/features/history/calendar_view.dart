@@ -264,22 +264,10 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                       setState(() => _mode = value),
                                 ),
                               ),
-                            // As high as the highest legend, whatever the
-                            // filter: the space the list keeps under the
-                            // current month stays, so the days do not move
-                            // when the filter changes.
                             AbsorbPointer(
-                              child: IndexedStack(
-                                index: mode.index,
-                                children: [
-                                  for (final value in CalendarMode.values)
-                                    if (creatineShown ||
-                                        value == CalendarMode.protein)
-                                      _Legend(
-                                        mode: value,
-                                        creatine: creatineShown,
-                                      ),
-                                ],
+                              child: _Legend(
+                                mode: mode,
+                                creatine: creatineShown,
                               ),
                             ),
                           ],
@@ -734,7 +722,8 @@ class _Legend extends StatelessWidget {
   /// What colors the days, which the legend tells.
   final CalendarMode mode;
 
-  /// Whether it tells the mark of the days creatine was taken.
+  /// Whether creatine is tracked: the legend tells the mark of the days it
+  /// was taken, and the colors of the creatine filter.
   final bool creatine;
 
   @override
@@ -786,7 +775,7 @@ class _Legend extends StatelessWidget {
       color: colors.accentText,
     );
     const creatineMark = CreatineCheck(size: 12);
-    final rows = switch (mode) {
+    List<List<Widget>> rowsOf(CalendarMode mode) => switch (mode) {
       CalendarMode.protein => [
         ...[
           for (final progress in DayProgress.values)
@@ -825,15 +814,26 @@ class _Legend extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: colors.divider),
         ),
-        child: Column(
-          spacing: 6,
+        // As high as the highest legend, whatever the filter: the shorter
+        // one leaves room at the bottom of the card, and the list the same
+        // room under the current month, so the days do not move when the
+        // filter changes.
+        child: IndexedStack(
+          index: creatine ? mode.index : 0,
           children: [
-            for (final row in rows)
-              Row(
-                spacing: 12,
+            for (final value
+                in creatine ? CalendarMode.values : [CalendarMode.protein])
+              Column(
+                spacing: 6,
                 children: [
-                  for (final cell in row) Expanded(child: cell),
-                  if (row.length == 1) const Spacer(),
+                  for (final row in rowsOf(value))
+                    Row(
+                      spacing: 12,
+                      children: [
+                        for (final cell in row) Expanded(child: cell),
+                        if (row.length == 1) const Spacer(),
+                      ],
+                    ),
                 ],
               ),
           ],
