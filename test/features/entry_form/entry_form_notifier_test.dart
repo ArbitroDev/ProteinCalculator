@@ -595,8 +595,9 @@ void main() {
         expect(state.barcode, isNull);
         expect(state.routine, DailyRoutine.none);
         expect(state.nameTaken, isTrue);
+        // The name field tells at once that it must change.
+        expect(state.errors[EntryFormField.name], EntryFormError.nameTaken);
 
-        // The name must change.
         expect(await form.submit(), isFalse);
         expect(
           stateOf(args).errors[EntryFormField.name],

@@ -210,5 +210,6 @@
   "calendarCreatine": "Creatine taken",
   "creatineMark": "{count, plural, =1{contains creatine} other{contains {count} doses of creatine}}",
   "productBarcodeMark": "has a barcode",
+  "productCopyHint": "create a product from this one",
   "creatineGrams": "{grams} of creatine"
 }

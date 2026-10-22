@@ -126,11 +126,12 @@ class EntryFormNotifier extends AsyncNotifier<EntryFormState> {
       case NewProductArgs(:final copyOf):
         // From another product: its values, without its barcode, which no
         // two products share, nor its routine, which would run twice. Its
-        // name is taken until changed.
+        // name is taken, as the name field tells at once, until changed.
         if (copyOf == null) return blank;
         final product = await db.productsDao.getProduct(copyOf);
         if (product == null) return blank;
-        return _withNameStatus(_fromProduct(blank, product, routine: false));
+        return _withNameStatus(_fromProduct(blank, product, routine: false))
+            .copyWith(errors: {EntryFormField.name: EntryFormError.nameTaken});
       case EditEntryArgs(:final entryId):
         final entry = await db.entriesDao.getEntry(entryId);
         if (entry == null) return const EntryFormState();

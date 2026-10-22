@@ -400,113 +400,117 @@ class _ProductTile extends StatelessWidget {
       onDelete: onDelete,
       child: Material(
         color: colors.background,
-        child: InkWell(
-          onTap: () => context.push(AppRoutes.editProduct(product.id)),
-          onLongPress: () => context.push(AppRoutes.copyProduct(product.id)),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: colors.divider)),
-            ),
-            child: Row(
-              children: [
-                SizedBox.square(
-                  dimension: 40,
-                  child: IconButton(
-                    onPressed: onToggleFavorite,
-                    tooltip: product.isFavorite
-                        ? l10n.removeFavorite
-                        : l10n.setFavorite,
-                    isSelected: product.isFavorite,
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      LucideIcons.star,
-                      size: 20,
-                      color: colors.textSecondary,
-                    ),
-                    // Lucide has no filled icons: the favorite uses the
-                    // Material star, filled with the accent.
-                    selectedIcon: const Icon(
-                      Icons.star_rounded,
-                      size: 26,
-                      color: AppColors.accent,
+        // Screen readers tell what a long press does.
+        child: Semantics(
+          onLongPressHint: l10n.productCopyHint,
+          child: InkWell(
+            onTap: () => context.push(AppRoutes.editProduct(product.id)),
+            onLongPress: () => context.push(AppRoutes.copyProduct(product.id)),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: colors.divider)),
+              ),
+              child: Row(
+                children: [
+                  SizedBox.square(
+                    dimension: 40,
+                    child: IconButton(
+                      onPressed: onToggleFavorite,
+                      tooltip: product.isFavorite
+                          ? l10n.removeFavorite
+                          : l10n.setFavorite,
+                      isSelected: product.isFavorite,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        LucideIcons.star,
+                        size: 20,
+                        color: colors.textSecondary,
+                      ),
+                      // Lucide has no filled icons: the favorite uses the
+                      // Material star, filled with the accent.
+                      selectedIcon: const Icon(
+                        Icons.star_rounded,
+                        size: 26,
+                        color: AppColors.accent,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyLarge!.copyWith(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyLarge!.copyWith(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      // Its marks first, barcode then creatine, apart like
-                      // the rest of the description.
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            for (final (index, part) in [
-                              if (product.barcode != null)
-                                _mark(
-                                  Semantics(
-                                    label: l10n.productBarcodeMark,
-                                    excludeSemantics: true,
-                                    child: Icon(
-                                      LucideIcons.barcode,
-                                      size: 14,
-                                      color: colors.scan,
+                        const SizedBox(height: 2),
+                        // Its marks first, barcode then creatine, apart like
+                        // the rest of the description.
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              for (final (index, part) in [
+                                if (product.barcode != null)
+                                  _mark(
+                                    Semantics(
+                                      label: l10n.productBarcodeMark,
+                                      excludeSemantics: true,
+                                      child: Icon(
+                                        LucideIcons.barcode,
+                                        size: 14,
+                                        color: colors.scan,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              if (product.creatineDoses > 0)
-                                _mark(
-                                  CreatineMark(
-                                    doses: product.creatineDoses,
-                                    weight: FontWeight.w400,
+                                if (product.creatineDoses > 0)
+                                  _mark(
+                                    CreatineMark(
+                                      doses: product.creatineDoses,
+                                      weight: FontWeight.w400,
+                                    ),
                                   ),
-                                ),
-                              TextSpan(text: details),
-                            ].indexed) ...[
-                              if (index > 0) const TextSpan(text: ' · '),
-                              part,
+                                TextSpan(text: details),
+                              ].indexed) ...[
+                                if (index > 0) const TextSpan(text: ' · '),
+                                part,
+                              ],
                             ],
-                          ],
+                          ),
+                          style: textTheme.bodySmall,
                         ),
-                        style: textTheme.bodySmall,
-                      ),
-                      if (product.activeRoutineMinutes case final minutes?)
-                        _RoutineLabel(
-                          routine: product.routine,
-                          minutes: minutes,
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Same look as the add button of the tab bar.
-                SizedBox.square(
-                  dimension: 32,
-                  child: IconButton.filled(
-                    onPressed: () =>
-                        context.push(AppRoutes.newEntryFrom(product.id)),
-                    tooltip: l10n.addToToday,
-                    padding: EdgeInsets.zero,
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: AppColors.onAccent,
+                        if (product.activeRoutineMinutes case final minutes?)
+                          _RoutineLabel(
+                            routine: product.routine,
+                            minutes: minutes,
+                          ),
+                      ],
                     ),
-                    icon: const Icon(LucideIcons.plus, size: 18),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  // Same look as the add button of the tab bar.
+                  SizedBox.square(
+                    dimension: 32,
+                    child: IconButton.filled(
+                      onPressed: () =>
+                          context.push(AppRoutes.newEntryFrom(product.id)),
+                      tooltip: l10n.addToToday,
+                      padding: EdgeInsets.zero,
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: AppColors.onAccent,
+                      ),
+                      icon: const Icon(LucideIcons.plus, size: 18),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

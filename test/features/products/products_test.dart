@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
@@ -81,7 +82,17 @@ void main() {
   testWidgets('opens a new product from a product on long press', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     await openProducts(tester);
+
+    // Screen readers tell what the long press does.
+    final data = tester.getSemantics(find.text('Amandes')).getSemanticsData();
+    expect(data.hasAction(SemanticsAction.longPress), isTrue);
+    expect([
+      for (final id in data.customSemanticsActionIds ?? const <int>[])
+        CustomSemanticsAction.getAction(id)?.hint,
+    ], contains('create a product from this one'));
+    semantics.dispose();
 
     await tester.longPress(find.text('Amandes'));
     await tester.pumpAndSettle();
