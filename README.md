@@ -58,6 +58,8 @@ No account, no ads, and your data stays on your phone.
 **Products**
 - Save the foods you eat often and add them in one tap, from a list sorted
   alphabetically, by use or by date, or from the suggestions while typing.
+- Save an entry as a product when adding or editing it, or long press a
+  product to create a new one from its values.
 - Set a favorite product to add it straight from the main screen.
 - Scan a barcode to fill in a product from
   [Open Food Facts](https://world.openfoodfacts.org), or type the code by
@@ -71,7 +73,7 @@ No account, no ads, and your data stays on your phone.
 
 **History**
 - Every day with its total, as a list or as a calendar colored by progress
-  toward the goal.
+  toward the goal, or by creatine taken.
 - The detail of each day, split into morning, afternoon and evening.
 
 **Your data**
