@@ -44,6 +44,10 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   /// Height of the legend laid over the bottom of the list.
   double _bottomInset = 0;
 
+  /// Whether the legend was measured: until then, the list would place the
+  /// current month behind it, then jump up, and stays hidden.
+  bool _measured = false;
+
   /// Space under the current month: the legend, and the room the months
   /// leave when they do not fill the screen.
   double _bottomPadding = 0;
@@ -145,66 +149,69 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           child: Stack(
             children: [
               Positioned.fill(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final cell =
-                        (constraints.maxWidth - _sidePadding * 2 - _gap * 6) /
-                        7;
-                    _heights = [
-                      for (var index = 0; index < count; index++)
-                        _MonthSection.heightOf(
-                          monthAt(index),
-                          firstWeekday,
-                          cell,
-                        ),
-                    ];
-                    // The months not filling the screen stay right under the
-                    // initials rather than on the legend: the room left goes
-                    // under the current month, where the list starts.
-                    final space =
-                        constraints.maxHeight -
-                        _bottomInset -
-                        _heights.fold(0.0, (sum, height) => sum + height);
-                    _bottomPadding = _bottomInset + max(0, space);
-                    return NotificationListener<ScrollMetricsNotification>(
-                      onNotification: (_) {
-                        _onScroll();
-                        return false;
-                      },
-                      child: ListView.builder(
-                        controller: _scroll,
-                        // From the current month, at the bottom, up to the
-                        // oldest one.
-                        reverse: true,
-                        // Ends right under the initials: the fade goes once
-                        // the oldest month shows.
-                        padding: EdgeInsets.fromLTRB(
-                          _sidePadding,
-                          0,
-                          _sidePadding,
-                          _bottomPadding,
-                        ),
-                        itemCount: count,
-                        // The same heights as the focus uses, so both agree.
-                        itemExtentBuilder: (index, _) =>
-                            index < count ? _heights[index] : null,
-                        itemBuilder: (context, index) => AnimatedOpacity(
-                          opacity: index == _focused ? 1 : 0.45,
-                          duration: MediaQuery.disableAnimationsOf(context)
-                              ? Duration.zero
-                              : const Duration(milliseconds: 220),
-                          child: _MonthSection(
-                            month: monthAt(index),
-                            todayKey: todayKey,
-                            totals: totals,
-                            creatineDays: creatineDays,
-                            goals: goals,
-                            mode: mode,
+                child: Opacity(
+                  opacity: _measured ? 1 : 0,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cell =
+                          (constraints.maxWidth - _sidePadding * 2 - _gap * 6) /
+                          7;
+                      _heights = [
+                        for (var index = 0; index < count; index++)
+                          _MonthSection.heightOf(
+                            monthAt(index),
+                            firstWeekday,
+                            cell,
+                          ),
+                      ];
+                      // The months not filling the screen stay right under the
+                      // initials rather than on the legend: the room left goes
+                      // under the current month, where the list starts.
+                      final space =
+                          constraints.maxHeight -
+                          _bottomInset -
+                          _heights.fold(0.0, (sum, height) => sum + height);
+                      _bottomPadding = _bottomInset + max(0, space);
+                      return NotificationListener<ScrollMetricsNotification>(
+                        onNotification: (_) {
+                          _onScroll();
+                          return false;
+                        },
+                        child: ListView.builder(
+                          controller: _scroll,
+                          // From the current month, at the bottom, up to the
+                          // oldest one.
+                          reverse: true,
+                          // Ends right under the initials: the fade goes once
+                          // the oldest month shows.
+                          padding: EdgeInsets.fromLTRB(
+                            _sidePadding,
+                            0,
+                            _sidePadding,
+                            _bottomPadding,
+                          ),
+                          itemCount: count,
+                          // The same heights as the focus uses, so both agree.
+                          itemExtentBuilder: (index, _) =>
+                              index < count ? _heights[index] : null,
+                          itemBuilder: (context, index) => AnimatedOpacity(
+                            opacity: index == _focused ? 1 : 0.45,
+                            duration: MediaQuery.disableAnimationsOf(context)
+                                ? Duration.zero
+                                : const Duration(milliseconds: 220),
+                            child: _MonthSection(
+                              month: monthAt(index),
+                              todayKey: todayKey,
+                              totals: totals,
+                              creatineDays: creatineDays,
+                              goals: goals,
+                              mode: mode,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
               // The top of the list fading into the page background, so the
@@ -232,7 +239,12 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                 bottom: 0,
                 child: _Measured(
                   onHeight: (height) {
-                    if (mounted) setState(() => _bottomInset = height);
+                    if (mounted) {
+                      setState(() {
+                        _bottomInset = height;
+                        _measured = true;
+                      });
+                    }
                   },
                   child: Stack(
                     children: [
