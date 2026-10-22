@@ -1,11 +1,13 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/food_facts/food_facts.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 
 import '../../helpers.dart';
 
@@ -86,6 +88,47 @@ void main() {
 
     expect(find.text('New product'), findsWidgets);
     expect(find.widgetWithText(TextField, 'Amandes'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('shows the barcode and creatine marks first in the description, '
+      'and the name on two lines at most', (tester) async {
+    final id = await db.productsDao.insertProduct(
+      name: 'Shaker whey vanille ' * 8,
+      amount: const DirectAmount(25),
+      createdAt: DateTime(2026, 9, 1),
+      creatineDoses: 1,
+    );
+    await db.productsDao.setBarcode(id, '3017620422003');
+    final semantics = tester.ensureSemantics();
+    await openProducts(tester);
+
+    final barcode = find.byIcon(LucideIcons.barcode);
+    final creatine = find.byIcon(creatineIcon);
+    final details = find.textContaining('25 g', findRichText: true);
+    expect(barcode, findsOneWidget);
+    expect(creatine, findsOneWidget);
+    // Barcode, creatine, then the rest, on the line of the description.
+    expect(
+      tester.getCenter(barcode).dx,
+      lessThan(tester.getCenter(creatine).dx),
+    );
+    expect(
+      tester.getCenter(creatine).dy,
+      moreOrLessEquals(tester.getCenter(barcode).dy, epsilon: 1),
+    );
+    expect(
+      tester.getTopLeft(barcode).dx,
+      moreOrLessEquals(tester.getTopLeft(details).dx, epsilon: 1),
+    );
+
+    final name = tester.widget<Text>(find.textContaining('Shaker whey'));
+    expect(name.maxLines, 2);
+    expect(name.overflow, TextOverflow.ellipsis);
+    // Screen readers tell both marks.
+    expect(find.bySemanticsLabel(RegExp('has a barcode')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('contains creatine')), findsOneWidget);
+    semantics.dispose();
     await disposeApp(tester, db);
   });
 

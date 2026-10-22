@@ -1031,6 +1031,10 @@
       }
     }
   },
+  "productBarcodeMark": "a un code-barres",
+  "@productBarcodeMark": {
+    "description": "Read by screen readers on the barcode mark of a saved product."
+  },
   "creatineGrams": "{grams} de créatine",
   "@creatineGrams": {
     "description": "Read by screen readers on the grams of creatine taken on its own, already formatted with their unit.",

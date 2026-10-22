@@ -209,5 +209,6 @@
   "creatineDoseInvalid": "Between {min} and {max} g",
   "calendarCreatine": "Creatine taken",
   "creatineMark": "{count, plural, =1{contains creatine} other{contains {count} doses of creatine}}",
+  "productBarcodeMark": "has a barcode",
   "creatineGrams": "{grams} of creatine"
 }
