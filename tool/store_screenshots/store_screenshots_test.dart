@@ -105,7 +105,9 @@ const _english = _Texts(
 Future<AppDatabase> _seed(_Texts texts) async {
   final db = openTestDatabase();
   await db.settingsDao.setDailyGoal(140);
-  for (final (name, per, portion) in texts.products) {
+  // The skyr and the whey were scanned, and the whey holds a creatine dose:
+  // the products show their marks.
+  for (final (index, (name, per, portion)) in texts.products.indexed) {
     await db.productsDao.insertProduct(
       name: name,
       amount: PerQuantityAmount(
@@ -114,6 +116,12 @@ Future<AppDatabase> _seed(_Texts texts) async {
         referenceGrams: 100,
       ),
       createdAt: _now.subtract(const Duration(days: 20)),
+      barcode: switch (index) {
+        0 => '4006381333931',
+        2 => '5901234123457',
+        _ => null,
+      },
+      creatineDoses: index == 2 ? 1 : 0,
     );
   }
   final favorite = (await db.productsDao.watchAll(_sortAz).first).firstWhere(
