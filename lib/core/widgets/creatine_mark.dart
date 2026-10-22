@@ -69,10 +69,15 @@ class CreatineMark extends StatelessWidget {
     required this.doses,
     this.size = 14,
     this.color,
+    this.weight = FontWeight.w600,
   });
 
   final int doses;
   final double size;
+
+  /// Weight of the number of doses: bold next to a name, regular in a
+  /// description, like the text around it.
+  final FontWeight weight;
 
   /// The blue of creatine by default; another one where it would not read,
   /// such as the colored cards of the parts of the day.
@@ -91,11 +96,8 @@ class CreatineMark extends StatelessWidget {
           if (doses > 1)
             Text(
               '×$doses',
-              style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
+              style: Theme.of(context).textTheme.labelSmall!
+                  .copyWith(fontSize: 12, fontWeight: weight, color: color),
             ),
         ],
       ),

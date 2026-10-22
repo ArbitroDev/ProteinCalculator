@@ -438,25 +438,50 @@ class _ProductTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              product.name,
-                              style: textTheme.bodyLarge!.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          if (product.creatineDoses > 0) ...[
-                            const SizedBox(width: 6),
-                            CreatineMark(doses: product.creatineDoses),
-                          ],
-                        ],
+                      Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyLarge!.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(height: 2),
-                      Text(details, style: textTheme.bodySmall),
+                      // Its marks first, barcode then creatine, apart like
+                      // the rest of the description.
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            for (final (index, part) in [
+                              if (product.barcode != null)
+                                _mark(
+                                  Semantics(
+                                    label: l10n.productBarcodeMark,
+                                    excludeSemantics: true,
+                                    child: Icon(
+                                      LucideIcons.barcode,
+                                      size: 14,
+                                      color: colors.scan,
+                                    ),
+                                  ),
+                                ),
+                              if (product.creatineDoses > 0)
+                                _mark(
+                                  CreatineMark(
+                                    doses: product.creatineDoses,
+                                    weight: FontWeight.w400,
+                                  ),
+                                ),
+                              TextSpan(text: details),
+                            ].indexed) ...[
+                              if (index > 0) const TextSpan(text: ' · '),
+                              part,
+                            ],
+                          ],
+                        ),
+                        style: textTheme.bodySmall,
+                      ),
                       if (product.activeRoutineMinutes case final minutes?)
                         _RoutineLabel(
                           routine: product.routine,
@@ -489,6 +514,10 @@ class _ProductTile extends StatelessWidget {
     );
   }
 }
+
+/// [mark] in the description of a product, centered on its line.
+WidgetSpan _mark(Widget mark) =>
+    WidgetSpan(alignment: PlaceholderAlignment.middle, child: mark);
 
 /// Daily routine of a product: a reminder or an automatic addition, and its
 /// time.
