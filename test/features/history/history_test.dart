@@ -1,10 +1,11 @@
 import 'package:drift/native.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/theme.dart';
 
 import '../../helpers.dart';
 
@@ -100,7 +101,7 @@ void main() {
       expect(day('Wednesday, September 30, Goal reached'), findsWidgets);
       expect(day('Tuesday, September 29, 50% or more'), findsWidgets);
       expect(day('Monday, September 28, Under 50%'), findsWidgets);
-      expect(day('Sunday, September 27, Nothing'), findsWidgets);
+      expect(day('Sunday, September 27, None taken'), findsWidgets);
       await disposeApp(tester, db);
     });
 
@@ -193,6 +194,65 @@ void main() {
       await db.settingsDao.setCreatineEnabled(true);
       await tester.pumpAndSettle();
       expect(find.text('Creatine taken'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the calendar colors the days by creatine taken on demand', (
+      tester,
+    ) async {
+      // Reaches the goal and takes creatine on October 1.
+      await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 1, 9));
+      await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
+      await db.entriesDao.addCreatineDose(
+        createdAt: DateTime(2026, 10, 1, 8, 30),
+      );
+      await openHistory(tester);
+      await tester.tap(find.text('Calendar'));
+      await tester.pumpAndSettle();
+
+      final creatineDays = find.byWidgetPredicate(
+        (widget) =>
+            widget is Material &&
+            widget.shape is CircleBorder &&
+            widget.color == AppColors.creatine,
+      );
+      final reachedDays = find.byWidgetPredicate(
+        (widget) =>
+            widget is Material &&
+            widget.shape is CircleBorder &&
+            widget.color == AppColors.accent,
+      );
+      final goalMark = find.byWidgetPredicate(
+        (widget) => widget is Icon && widget.icon == LucideIcons.circleCheck,
+      );
+      expect(find.byTooltip('Protein'), findsOneWidget);
+      expect(reachedDays, findsOneWidget);
+      expect(creatineDays, findsNothing);
+      expect(find.text('Under 50%'), findsOneWidget);
+      final marks = tester.widgetList(goalMark).length;
+
+      await tester.tap(find.byTooltip('Creatine'));
+      await tester.pumpAndSettle();
+
+      expect(creatineDays, findsOneWidget);
+      expect(reachedDays, findsNothing);
+      // The legend tells the new colors, and the marks of the days stay.
+      expect(find.text('None taken'), findsOneWidget);
+      expect(find.text('Creatine taken'), findsOneWidget);
+      expect(find.text('Goal reached'), findsOneWidget);
+      expect(find.text('Under 50%'), findsNothing);
+      expect(tester.widgetList(goalMark), hasLength(marks));
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the calendar has no filter without creatine', (tester) async {
+      await addEntry('Skyr', 15, DateTime(2026, 10, 1, 8));
+      await openHistory(tester);
+      await tester.tap(find.text('Calendar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Protein'), findsNothing);
+      expect(find.byTooltip('Creatine'), findsNothing);
       await disposeApp(tester, db);
     });
 
