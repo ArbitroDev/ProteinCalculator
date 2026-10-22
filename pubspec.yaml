@@ -2,7 +2,7 @@ name: protein_calculator
 description: "Daily protein intake tracker."
 publish_to: 'none'
 
-version: 1.4.0+14
+version: 1.5.0+15
 
 environment:
   sdk: ^3.13.0
