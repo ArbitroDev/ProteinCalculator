@@ -89,6 +89,29 @@ void main() {
       await disposeApp(tester, db);
     });
 
+    testWidgets('shows the current month in place from the first frame', (
+      tester,
+    ) async {
+      await openHistory(tester);
+      await tester.tap(find.text('Calendar'));
+      final title = find.text('October 2026');
+      // Hidden until the legend is measured, rather than shown lower
+      // first, behind it.
+      final positions = <double>[];
+      for (var frame = 0; frame < 4; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        final hidden = tester
+            .widgetList<Opacity>(
+              find.ancestor(of: title, matching: find.byType(Opacity)),
+            )
+            .any((opacity) => opacity.opacity == 0);
+        if (!hidden) positions.add(tester.getTopLeft(title).dy);
+      }
+      expect(positions, isNotEmpty);
+      expect(positions.toSet(), hasLength(1));
+      await disposeApp(tester, db);
+    });
+
     testWidgets('says how far each day went towards its goal', (tester) async {
       // The goal counts from September 1.
       await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 1, 9));
