@@ -28,13 +28,7 @@ final backgroundChangesProvider = Provider<void>((ref) {
   final db = ref.watch(databaseProvider);
   ref.onDispose(
     listenToBackgroundChanges(
-      () => db.markTablesUpdated([
-        db.entries,
-        db.products,
-        db.watchRequests,
-        db.hevySessions,
-        db.appSettings,
-      ]),
+      () => db.markTablesUpdated([db.entries, db.products, db.watchRequests]),
     ),
   );
 });

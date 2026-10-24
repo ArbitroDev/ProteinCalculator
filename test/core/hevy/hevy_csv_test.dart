@@ -111,6 +111,19 @@ void main() {
     expect(workouts.last.duration, equals(null));
   });
 
+  test('reads a time skipped when the clocks go forward', () async {
+    // 2:30 on the night of summer time does not exist in Europe: in that time
+    // zone, the date moves on by an hour, and anywhere else it stays.
+    final workouts = await parseHevyCsv(
+      [
+        _header,
+        _set('Push', '29 mars 2026, 02:30', '29 mars 2026, 03:30'),
+      ].join('\n'),
+    );
+
+    expect(workouts.single.start, DateTime(2026, 3, 29, 2, 30));
+  });
+
   test('rejects a file without the Hevy columns', () async {
     expect(
       await _errorOf('{"format":"protein_calculator","version":9}'),

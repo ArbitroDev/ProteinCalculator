@@ -7,6 +7,7 @@ import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/formatting.dart';
+import 'package:protein_calculator/core/hevy/hevy_csv.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
@@ -310,13 +311,6 @@ class _HevyCard extends StatelessWidget {
 
   final List<HevySession> sessions;
 
-  /// Length of [session], none when its end is missing or not after its start.
-  Duration? _length(HevySession session) {
-    final end = session.endedAt;
-    if (end == null || !end.isAfter(session.startedAt)) return null;
-    return end.difference(session.startedAt);
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -378,7 +372,8 @@ class _HevyCard extends StatelessWidget {
                           style: textTheme.bodyMedium,
                         ),
                       ),
-                      if (_length(session) case final length?) ...[
+                      if (workoutDuration(session.startedAt, session.endedAt)
+                          case final length?) ...[
                         const SizedBox(width: 12),
                         Text(formatDuration(length, l10n), style: faded),
                       ],

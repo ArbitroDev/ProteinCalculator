@@ -1,3 +1,9 @@
+/// Reads the exports of Hevy. The way the dates are read follows Hevy
+/// Dashboard, an earlier app by the same author: ISO dates first, then the
+/// dates Hevy writes in the language of the phone, tried in every language
+/// `intl` knows.
+library;
+
 import 'dart:ui';
 
 import 'package:csv/csv.dart';
@@ -37,13 +43,15 @@ class HevyWorkout {
   /// Null when the file gives no end.
   final DateTime? end;
 
-  /// How long the workout lasted; null when the end is missing or not after
-  /// the start.
-  Duration? get duration {
-    final end = this.end;
-    if (end == null || !end.isAfter(start)) return null;
-    return end.difference(start);
-  }
+  /// How long the workout lasted, see [workoutDuration].
+  Duration? get duration => workoutDuration(start, end);
+}
+
+/// How long a workout from [start] to [end] lasted; null when the end is
+/// missing or not after the start.
+Duration? workoutDuration(DateTime start, DateTime? end) {
+  if (end == null || !end.isAfter(start)) return null;
+  return end.difference(start);
 }
 
 /// Reads the workouts of a Hevy export (Profile > Settings > Export & Import
@@ -187,7 +195,18 @@ class _FileDates {
       };
       for (final spelling in spellings) {
         try {
-          return format.parseStrict(spelling);
+          // Read as UTC, then taken as the same time of the phone: a time
+          // skipped when the clocks go forward, such as 2:30 on the night of
+          // summer time, is checked against no gap and moves on by an hour,
+          // instead of refusing the whole file.
+          final date = format.parseStrict(spelling, true);
+          return DateTime(
+            date.year,
+            date.month,
+            date.day,
+            date.hour,
+            date.minute,
+          );
         } on Object {
           // Whatever the way this language gives up, it only means that the
           // spelling does not fit.

@@ -244,6 +244,11 @@ Backup parseBackup(String text) {
             for (final s in json['hevySessions'] as List)
               _hevySession(s as Map<String, dynamic>),
           ];
+    // Workouts are only kept with the date of their import, which shows
+    // them in the history.
+    if (hevySessions.isNotEmpty && hevyImportedAt == null) {
+      throw const InvalidBackupException('workouts without an import date');
+    }
 
     return Backup(
       entries: entries,
