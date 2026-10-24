@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/core/daily_routines.dart';
+import 'package:protein_calculator/core/hevy/shared_file.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/watch/watch_sync.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
+
+/// Messenger of the app, to tell the user about what happens outside any
+/// screen, such as a file shared to the app: the message shows over whichever
+/// screen is open.
+final appMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 class ProteinCalculatorApp extends ConsumerWidget {
   const ProteinCalculatorApp({super.key});
@@ -15,6 +21,7 @@ class ProteinCalculatorApp extends ConsumerWidget {
     ref
       ..watch(backgroundChangesProvider)
       ..watch(dailyRoutinesProvider)
+      ..watch(sharedFileProvider)
       ..watch(watchSyncProvider);
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
@@ -24,6 +31,7 @@ class ProteinCalculatorApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       localeListResolutionCallback: resolveLocale,
       routerConfig: ref.watch(routerProvider),
+      scaffoldMessengerKey: appMessengerKey,
       // In landscape, the Android navigation bar and the camera cutout sit
       // on the sides: every screen keeps clear of them.
       builder: (context, child) => ColoredBox(

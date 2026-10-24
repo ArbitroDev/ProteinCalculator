@@ -61,6 +61,17 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- The Hevy workouts export, shared to the app from Hevy: imported
+                 as from the menu, see lib/core/hevy/shared_file.dart. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/csv" />
+                <data android:mimeType="text/comma-separated-values" />
+                <data android:mimeType="application/csv" />
+                <data android:mimeType="text/x-csv" />
+                <data android:mimeType="text/tab-separated-values" />
+            </intent-filter>
         </activity>
         <!-- Widget "Today's goal" of the home screen, see GoalWidget. -->
         <receiver

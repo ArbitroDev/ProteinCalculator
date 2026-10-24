@@ -170,7 +170,12 @@ class _DataPrivacyPageState extends ConsumerState<DataPrivacyPage> {
         ],
       ],
       paragraphsTitle: l10n.privacyDataTitle,
-      paragraphs: [l10n.privacyLocal, l10n.privacyScan, l10n.privacyBackup],
+      paragraphs: [
+        l10n.privacyLocal,
+        l10n.privacyScan,
+        l10n.privacyHevy,
+        l10n.privacyBackup,
+      ],
     );
   }
 }

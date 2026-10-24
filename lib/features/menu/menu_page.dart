@@ -9,12 +9,14 @@ import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/domain/slot_reminder.dart';
 import 'package:protein_calculator/core/formatting.dart';
+import 'package:protein_calculator/core/hevy/hevy_import_flow.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/goal_field.dart';
+import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/notifications_off.dart';
 import 'package:protein_calculator/core/widgets/shaker_icon.dart';
@@ -88,6 +90,8 @@ class MenuPage extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             const _CreatineCard(),
+            const SizedBox(height: 10),
+            const _HevyCard(),
             const SizedBox(height: 10),
             Material(
               color: colors.surface,
@@ -170,6 +174,9 @@ Future<void> _editStartHour(BuildContext context, int hour) =>
 
 Future<void> _editCreatineDose(BuildContext context, double grams) =>
     _showSheet(context, _CreatineDoseSheet(grams: grams));
+
+Future<void> _showHevy(BuildContext context) =>
+    _showSheet(context, const _HevySheet());
 
 /// Shows [sheet] at the bottom of the screen, over the tab bar, which would
 /// otherwise stay around it and take taps, and as tall as its content,
@@ -367,6 +374,255 @@ class _CreatineDoseSheetState extends ConsumerState<_CreatineDoseSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Card opening the Hevy sheet, with what was imported once something was.
+/// Always there, even while nothing is imported: it is the way in.
+class _HevyCard extends ConsumerWidget {
+  const _HevyCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final importedAt = ref.watch(hevyImportedAtProvider).value;
+    final days = ref.watch(shownHevyDaysProvider).length;
+
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: ListTile(
+        onTap: () => _showHevy(context),
+        leading: const HevyMark(size: 22),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        contentPadding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
+        title: Text(
+          l10n.menuHevy,
+          style: textTheme.bodyLarge!.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          importedAt == null
+              ? l10n.menuHevyNone
+              : l10n.menuHevySummary(
+                  l10n.hevyDays(days),
+                  formatDayMonth(
+                    importedAt,
+                    context.localeName,
+                    now: ref.read(clockProvider)(),
+                  ),
+                ),
+          style: textTheme.bodySmall!.copyWith(color: colors.textSecondary),
+        ),
+        trailing: TextButton(
+          onPressed: () => _showHevy(context),
+          // As wide as its text, close to the edge of the card.
+          style: TextButton.styleFrom(
+            minimumSize: const Size(0, 40),
+            padding: const EdgeInsets.only(left: 12, right: 4),
+          ),
+          child: Text(l10n.menuHevyImport),
+        ),
+      ),
+    );
+  }
+}
+
+/// When the latest Hevy workout starts, read again after each import.
+final _lastHevyStartProvider = FutureProvider.autoDispose<DateTime?>((ref) {
+  ref.watch(hevyImportedAtProvider);
+  return ref.watch(databaseProvider).hevyDao.getLastSessionStart();
+});
+
+/// Bottom sheet importing the Hevy workouts from an export, telling what is
+/// imported and deleting it. It stays open through an import and follows it.
+class _HevySheet extends ConsumerStatefulWidget {
+  const _HevySheet();
+
+  @override
+  ConsumerState<_HevySheet> createState() => _HevySheetState();
+}
+
+class _HevySheetState extends ConsumerState<_HevySheet> {
+  /// Whether a file is being chosen or imported: its buttons wait.
+  bool _busy = false;
+
+  Future<void> _pickFile() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final clock = ref.read(clockProvider);
+    setState(() => _busy = true);
+    try {
+      final content = await runUserAction(
+        messenger,
+        l10n,
+        () => pickHevyFile(messenger, l10n),
+      );
+      if (content == null || !mounted) return;
+      await runHevyImport(
+        context: context,
+        db: ref.read(databaseProvider),
+        messenger: messenger,
+        l10n: l10n,
+        firstDayKey: ref.read(firstAppDayKeyProvider),
+        todayKey: ref.read(currentDayKeyProvider).value ?? dayKeyOf(clock()),
+        content: content,
+        clock: clock,
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _clear() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.hevyClearTitle),
+        content: Text(l10n.hevyClearBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.hevyClearConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await runUserAction(
+      messenger,
+      l10n,
+      () => ref.read(databaseProvider).hevyDao.clear(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final locale = context.localeName;
+    final now = ref.read(clockProvider)();
+    final importedAt = ref.watch(hevyImportedAtProvider).value;
+    final days = ref.watch(shownHevyDaysProvider).length;
+    final lastStart = importedAt == null
+        ? null
+        : ref.watch(_lastHevyStartProvider).value;
+
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const HevyMark(size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        l10n.menuHevy,
+                        style: textTheme.headlineSmall,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                if (importedAt != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.hevyDays(days),
+                          style: textTheme.bodyLarge!.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (lastStart != null)
+                          Text(
+                            l10n.hevyLastWorkout(
+                              formatDayMonth(lastStart, locale, now: now),
+                            ),
+                            style: textTheme.bodyMedium,
+                          ),
+                        Text(
+                          l10n.hevyImportedOn(
+                            formatDayMonth(importedAt, locale, now: now),
+                          ),
+                          style: textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                Text(l10n.hevyHowTo, style: textTheme.bodyLarge),
+                const SizedBox(height: 10),
+                Text(
+                  l10n.hevyPrivacyNote,
+                  style: textTheme.bodyLarge!.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _busy ? null : _pickFile,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
+                  child: Text(l10n.hevyPickFile),
+                ),
+                if (importedAt != null) ...[
+                  const SizedBox(height: 6),
+                  TextButton(
+                    onPressed: _busy ? null : _clear,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.danger,
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    child: Text(l10n.hevyClear),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                Text(
+                  l10n.hevyTrademark,
+                  textAlign: TextAlign.center,
+                  style: textTheme.bodySmall!.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // The sheet hides the messages of the page behind it: this scaffold
+        // gives them a place over the sheet, where the user looks.
+        const Positioned.fill(
+          child: IgnorePointer(
+            child: Scaffold(backgroundColor: Colors.transparent),
+          ),
+        ),
+      ],
     );
   }
 }

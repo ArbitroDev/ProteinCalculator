@@ -154,11 +154,16 @@ class _RoutineRunner {
     unawaited(_dataChanges.cancel());
   }
 
-  /// The buttons of the notifications and the watch change the data apart
-  /// from the app, maybe while it was in the background: the screens read
-  /// it again.
-  void _reloadData() =>
-      db.markTablesUpdated([db.entries, db.products, db.watchRequests]);
+  /// The buttons of the notifications, the watch and a Hevy import made in
+  /// another window of the app change the data apart from the app, maybe
+  /// while it was in the background: the screens read it again.
+  void _reloadData() => db.markTablesUpdated([
+    db.entries,
+    db.products,
+    db.watchRequests,
+    db.hevySessions,
+    db.appSettings,
+  ]);
 
   Future<void> _onResume() async {
     _reloadData();
