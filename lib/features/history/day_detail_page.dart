@@ -11,6 +11,7 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/creatine_mark.dart';
+import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
@@ -51,6 +52,12 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
           in ref.watch(dayEntriesProvider(widget.dayKey)).value ?? <Entry>[])
         if (!isDeleted(entry.id)) entry,
     ];
+    // Workouts before the first app day stay hidden, like in the history.
+    final firstDayKey = ref.watch(firstAppDayKeyProvider);
+    final sessions = firstDayKey != null && widget.dayKey >= firstDayKey
+        ? ref.watch(daySessionsProvider(widget.dayKey)).value ??
+              const <HevySession>[]
+        : const <HevySession>[];
 
     final bySlot = <DaySlot, List<Entry>>{};
     for (final entry in entries) {
@@ -169,6 +176,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
               ),
           ],
         ),
+      if (sessions.isNotEmpty) _HevyCard(sessions: sessions),
     ];
     final landscape =
         MediaQuery.orientationOf(context) == Orientation.landscape;
@@ -291,6 +299,97 @@ class _SlotCard extends StatelessWidget {
                 card,
               ],
             ),
+    );
+  }
+}
+
+/// Card of the Hevy workouts of the day, set apart from the stack of the cards
+/// of the parts of the day.
+class _HevyCard extends StatelessWidget {
+  const _HevyCard({required this.sessions});
+
+  final List<HevySession> sessions;
+
+  /// Length of [session], none when its end is missing or not after its start.
+  Duration? _length(HevySession session) {
+    final end = session.endedAt;
+    if (end == null || !end.isAfter(session.startedAt)) return null;
+    return end.difference(session.startedAt);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final style = textTheme.headlineSmall!.copyWith(
+      color: colors.text,
+      fontSize: 20,
+    );
+    final faded = textTheme.bodyMedium!.copyWith(color: colors.textSecondary);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 18, 6, 0),
+      child: Material(
+        color: colors.surfaceRaised,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+                child: Row(
+                  children: [
+                    Icon(hevyIcon, size: 22, color: colors.hevy),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('Hevy', style: style)),
+                    Text(
+                      l10n.hevyWorkoutCount(sessions.length),
+                      style: textTheme.bodyLarge!.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              for (final (index, session) in sessions.indexed) ...[
+                // Not `divider`: it is the color of the card in the dark theme.
+                if (index > 0)
+                  Divider(
+                    height: 1,
+                    indent: 16,
+                    endIndent: 16,
+                    color: colors.background,
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          session.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyMedium,
+                        ),
+                      ),
+                      if (_length(session) case final length?) ...[
+                        const SizedBox(width: 12),
+                        Text(formatDuration(length, l10n), style: faded),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

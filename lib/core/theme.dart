@@ -22,6 +22,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.scan,
     required this.scanSurface,
     required this.creatineText,
+    required this.hevy,
+    required this.onHevy,
   });
 
   final Color background;
@@ -48,6 +50,12 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Blue of creatine readable as text and icons on the background: the
   /// check of the days it was taken, the marks of the entries holding it.
   final Color creatineText;
+
+  /// Color of the Hevy workouts, such as the dumbbell of the days holding
+  /// one: black on the light theme, white on the dark one. [onHevy] is the
+  /// one for what sits on it.
+  final Color hevy;
+  final Color onHevy;
 
   /// Blue of creatine: its button, its dot and its veil in the shaker.
   static const creatine = Color(0xFF3FA9F5);
@@ -81,6 +89,8 @@ class AppColors extends ThemeExtension<AppColors> {
     scan: Color(0xFF17703F),
     scanSurface: Color(0xFFCDEFD9),
     creatineText: Color(0xFF1A64A3),
+    hevy: Color(0xFF000000),
+    onHevy: Color(0xFFFFFFFF),
   );
 
   static const dark = AppColors(
@@ -96,6 +106,8 @@ class AppColors extends ThemeExtension<AppColors> {
     scan: Color(0xFF5FD38F),
     scanSurface: Color(0xFF1B3B34),
     creatineText: creatine,
+    hevy: Color(0xFFFFFFFF),
+    onHevy: Color(0xFF000000),
   );
 
   /// Color of the entries added during [slot].
@@ -122,6 +134,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? scan,
     Color? scanSurface,
     Color? creatineText,
+    Color? hevy,
+    Color? onHevy,
   }) => AppColors(
     background: background ?? this.background,
     surface: surface ?? this.surface,
@@ -135,6 +149,8 @@ class AppColors extends ThemeExtension<AppColors> {
     scan: scan ?? this.scan,
     scanSurface: scanSurface ?? this.scanSurface,
     creatineText: creatineText ?? this.creatineText,
+    hevy: hevy ?? this.hevy,
+    onHevy: onHevy ?? this.onHevy,
   );
 
   @override
@@ -154,6 +170,8 @@ class AppColors extends ThemeExtension<AppColors> {
       scan: mix(scan, other.scan),
       scanSurface: mix(scanSurface, other.scanSurface),
       creatineText: mix(creatineText, other.creatineText),
+      hevy: mix(hevy, other.hevy),
+      onHevy: mix(onHevy, other.onHevy),
     );
   }
 }

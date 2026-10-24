@@ -13,6 +13,7 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/creatine_mark.dart';
+import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/shaker_icon.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
@@ -22,9 +23,10 @@ import 'package:protein_calculator/l10n/app_localizations.dart';
 /// each went towards the goal it had. The current month comes last, right
 /// above the legend, and shows first; the months before go up above it, back
 /// to the first goal. The month being read, the one taking the most room on
-/// screen, shows fully; the others are dimmed. Tap a day with entries to see
-/// them. Those who track creatine can color the days by creatine taken
-/// instead, with the filter above the legend.
+/// screen, shows fully; the others are dimmed. Tap a day with entries or a
+/// Hevy workout to see them. Those who track creatine, or imported their Hevy
+/// workouts, can color the days by creatine taken or by workout instead, with
+/// the filter above the legend.
 class CalendarView extends ConsumerStatefulWidget {
   const CalendarView({super.key});
 
@@ -115,9 +117,10 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     // From the first day the app was used, or the oldest entry, added
     // afterwards for an earlier day.
     final first = dateOfDayKey(
-      days.fold(
-        goals.isEmpty ? todayKey : min(goals.first.dayKey, todayKey),
-        (first, day) => min(first, day.dayKey),
+      firstAppDayKey(
+        todayKey: todayKey,
+        firstGoalDayKey: goals.isEmpty ? null : goals.first.dayKey,
+        entryDayKeys: days.map((day) => day.dayKey),
       ),
     );
     final count =
@@ -131,7 +134,14 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final creatineShown =
         (ref.watch(creatineSettingsProvider).value?.everEnabled ?? false) ||
         creatineDays.isNotEmpty;
-    final mode = creatineShown ? _mode : CalendarMode.protein;
+    final hevyDays = ref.watch(shownHevyDaysProvider);
+    // Shown while Hevy workouts are imported.
+    final hevyShown = ref.watch(hevyImportedAtProvider).value != null;
+    final options = _modesOf(creatine: creatineShown, hevy: hevyShown);
+    // Back to protein when the option chosen is no longer offered.
+    final mode = options.contains(_mode) ? _mode : CalendarMode.protein;
+    // Only with something to choose from.
+    final filtered = options.length > 1;
     final firstWeekday = MaterialLocalizations.of(context).firstDayOfWeekIndex;
     DateTime monthAt(int index) => DateTime(today.year, today.month - index);
 
@@ -204,6 +214,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                               todayKey: todayKey,
                               totals: totals,
                               creatineDays: creatineDays,
+                              hevyDays: hevyDays,
                               goals: goals,
                               mode: mode,
                             ),
@@ -255,7 +266,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: creatineShown ? 24 + _ModeFilter.height + 8 : 24,
+                        top: filtered ? 24 + _ModeFilter.height + 8 : 24,
                         bottom: 0,
                         child: AbsorbPointer(
                           child: ColoredBox(color: background),
@@ -267,10 +278,11 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           spacing: 8,
                           children: [
-                            if (creatineShown)
+                            if (filtered)
                               Align(
                                 alignment: AlignmentDirectional.centerEnd,
                                 child: _ModeFilter(
+                                  options: options,
                                   selected: mode,
                                   onChanged: (value) =>
                                       setState(() => _mode = value),
@@ -280,6 +292,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                               child: _Legend(
                                 mode: mode,
                                 creatine: creatineShown,
+                                hevy: hevyShown,
                               ),
                             ),
                           ],
@@ -298,9 +311,14 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
 }
 
 /// Small filter of what colors the days, its options shown by their icons
-/// only: the shaker of protein, the sparkles of creatine.
+/// only: the shaker of protein, the sparkles of creatine, the dumbbell of the
+/// Hevy workouts.
 class _ModeFilter extends StatelessWidget {
-  const _ModeFilter({required this.selected, required this.onChanged});
+  const _ModeFilter({
+    required this.options,
+    required this.selected,
+    required this.onChanged,
+  });
 
   static const height = 36.0;
 
@@ -310,6 +328,8 @@ class _ModeFilter extends StatelessWidget {
   /// Space around the options, and between them.
   static const _padding = 3.0;
 
+  /// The modes offered, in order.
+  final List<CalendarMode> options;
   final CalendarMode selected;
   final ValueChanged<CalendarMode> onChanged;
 
@@ -317,7 +337,11 @@ class _ModeFilter extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
-    final options = CalendarMode.values;
+    // The pill of the option chosen, and its icon: in the black or white of
+    // the Hevy workouts while they color the days, in the accent otherwise.
+    final pill = selected == CalendarMode.hevy
+        ? (fill: colors.hevy, icon: colors.onHevy)
+        : (fill: AppColors.selection, icon: AppColors.onAccent);
 
     return Container(
       width: _optionWidth * options.length + _padding * (options.length + 1),
@@ -331,12 +355,14 @@ class _ModeFilter extends StatelessWidget {
         selectedIndex: options.indexOf(selected),
         gap: _padding,
         shape: const StadiumBorder(),
+        color: pill.fill,
         children: [
           for (final mode in options)
             Tooltip(
               message: switch (mode) {
                 CalendarMode.protein => l10n.formProtein,
                 CalendarMode.creatine => l10n.creatine,
+                CalendarMode.hevy => l10n.hevyFilter,
               },
               child: Semantics(
                 button: true,
@@ -350,13 +376,14 @@ class _ModeFilter extends StatelessWidget {
                       data: IconThemeData(
                         size: 18,
                         color: mode == selected
-                            ? AppColors.onAccent
+                            ? pill.icon
                             : colors.textSecondary,
                       ),
                       child: Center(
                         child: switch (mode) {
                           CalendarMode.protein => const ShakerIcon(),
                           CalendarMode.creatine => const Icon(creatineIcon),
+                          CalendarMode.hevy => const Icon(hevyIcon),
                         },
                       ),
                     ),
@@ -426,13 +453,21 @@ class _RenderMeasured extends RenderProxyBox {
 }
 
 /// What colors the days of the calendar: how far each went towards its
-/// goal, or whether creatine was taken.
-enum CalendarMode { protein, creatine }
+/// goal, whether creatine was taken, or whether it holds a Hevy workout.
+enum CalendarMode { protein, creatine, hevy }
+
+/// Modes the filter offers: protein always, creatine to those who track it,
+/// the Hevy workouts while they are imported.
+List<CalendarMode> _modesOf({required bool creatine, required bool hevy}) => [
+  CalendarMode.protein,
+  if (creatine) CalendarMode.creatine,
+  if (hevy) CalendarMode.hevy,
+];
 
 /// Space between two columns of days, and between two weeks.
 const _gap = 6.0;
 
-/// Height under each bubble for its marks, two side by side at most.
+/// Height under each bubble for its marks, three side by side at most.
 const _marksHeight = 16.0;
 
 /// Space between two weeks.
@@ -475,6 +510,7 @@ class _MonthSection extends StatelessWidget {
     required this.todayKey,
     required this.totals,
     required this.creatineDays,
+    required this.hevyDays,
     required this.goals,
     required this.mode,
   });
@@ -487,6 +523,9 @@ class _MonthSection extends StatelessWidget {
 
   /// App days creatine was taken.
   final Set<int> creatineDays;
+
+  /// App days with a Hevy workout, from the first app day to today.
+  final Set<int> hevyDays;
   final List<({int dayKey, double grams})> goals;
   final CalendarMode mode;
 
@@ -570,12 +609,14 @@ class _MonthSection extends StatelessWidget {
   Widget _dayCell(int dayKey, {required int? start}) {
     final total = totals[dayKey];
     final goal = goalOn(dayKey, goals);
+    final workedOut = hevyDays.contains(dayKey);
     // Days to come, and those before the app was used, have no color, but
-    // for the days given entries afterwards: they count with the first goal.
+    // for the days given entries afterwards, or holding a workout: they count
+    // with the first goal.
     final tracked =
         dayKey <= todayKey &&
         goal != null &&
-        (total != null || start != null && dayKey >= start);
+        (total != null || workedOut || start != null && dayKey >= start);
     return _DayCell(
       dayKey: dayKey,
       progress: tracked ? DayProgress.of(total ?? 0, goal) : null,
@@ -583,6 +624,7 @@ class _MonthSection extends StatelessWidget {
       isFuture: dayKey > todayKey,
       hasEntries: total != null,
       creatineTaken: creatineDays.contains(dayKey),
+      workedOut: workedOut,
       mode: mode,
     );
   }
@@ -612,8 +654,15 @@ class _MonthSection extends StatelessWidget {
     ? (fill: AppColors.creatine, text: AppColors.onAccent)
     : _progressColors(DayProgress.none, colors);
 
+/// Fill and text colors of a day in the Hevy mode: black or white, by the
+/// theme, if it [workedOut], as a day without protein otherwise.
+({Color fill, Color text}) _hevyColors(bool workedOut, AppColors colors) =>
+    workedOut
+    ? (fill: colors.hevy, text: colors.onHevy)
+    : _progressColors(DayProgress.none, colors);
+
 /// A day: a bubble with its number in the middle, colored by its progress,
-/// and under it the marks of the day, two side by side at most.
+/// and under it the marks of the day, three side by side at most.
 class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.dayKey,
@@ -622,6 +671,7 @@ class _DayCell extends StatelessWidget {
     required this.isFuture,
     required this.hasEntries,
     required this.creatineTaken,
+    required this.workedOut,
     required this.mode,
   });
 
@@ -634,8 +684,11 @@ class _DayCell extends StatelessWidget {
   final bool hasEntries;
   final bool creatineTaken;
 
-  /// Colors the day by its [progress], or by whether [creatineTaken]; its
-  /// marks stay the same.
+  /// Whether the day holds a Hevy workout.
+  final bool workedOut;
+
+  /// Colors the day by its [progress], by whether [creatineTaken], or by
+  /// whether it [workedOut]; its marks stay the same.
   final CalendarMode mode;
 
   @override
@@ -652,12 +705,16 @@ class _DayCell extends StatelessWidget {
         : switch (mode) {
             CalendarMode.protein => _progressColors(progress, colors),
             CalendarMode.creatine => _creatineColors(creatineTaken, colors),
+            CalendarMode.hevy => _hevyColors(workedOut, colors),
           };
     // The days standing out in the colors of the mode.
     final highlighted = switch (mode) {
       CalendarMode.protein => progress == DayProgress.reached,
       CalendarMode.creatine => progress != null && creatineTaken,
+      CalendarMode.hevy => progress != null && workedOut,
     };
+    // A day opens on its entries, or on its workouts when it has none.
+    final opens = hasEntries || workedOut;
 
     final marks = [
       if (progress == DayProgress.reached)
@@ -665,6 +722,8 @@ class _DayCell extends StatelessWidget {
         Icon(LucideIcons.circleCheck, size: 12, color: colors.accentText),
       // The mark of the days creatine was taken.
       if (creatineTaken) const CreatineCheck(size: 12),
+      // The mark of the days with a Hevy workout.
+      if (workedOut) const HevyMark(size: 12),
     ];
 
     return Semantics(
@@ -672,8 +731,9 @@ class _DayCell extends StatelessWidget {
         formatLongDate(dateOfDayKey(dayKey), context.localeName),
         if (progress != null) _progressLabel(l10n, progress),
         if (creatineTaken) l10n.creatineTaken,
+        if (workedOut) l10n.hevyWorkout,
       ].join(', '),
-      button: hasEntries,
+      button: opens,
       excludeSemantics: true,
       child: Column(
         children: [
@@ -688,7 +748,7 @@ class _DayCell extends StatelessWidget {
               ),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
-                onTap: hasEntries
+                onTap: opens
                     ? () => context.go(AppRoutes.historyDay(dayKey))
                     : null,
                 child: Center(
@@ -708,10 +768,15 @@ class _DayCell extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              spacing: 2,
-              children: marks,
+            // Three marks are wider than the day on the narrowest screens:
+            // they shrink to fit.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 2,
+                children: marks,
+              ),
             ),
           ),
         ],
@@ -729,7 +794,11 @@ String _progressLabel(AppLocalizations l10n, DayProgress progress) =>
     };
 
 class _Legend extends StatelessWidget {
-  const _Legend({required this.mode, required this.creatine});
+  const _Legend({
+    required this.mode,
+    required this.creatine,
+    required this.hevy,
+  });
 
   /// What colors the days, which the legend tells.
   final CalendarMode mode;
@@ -737,6 +806,10 @@ class _Legend extends StatelessWidget {
   /// Whether creatine is tracked: the legend tells the mark of the days it
   /// was taken, and the colors of the creatine filter.
   final bool creatine;
+
+  /// Whether Hevy workouts are imported: the legend tells the mark of the
+  /// days holding one, and the colors of the Hevy filter.
+  final bool hevy;
 
   @override
   Widget build(BuildContext context) {
@@ -787,6 +860,7 @@ class _Legend extends StatelessWidget {
       color: colors.accentText,
     );
     const creatineMark = CreatineCheck(size: 12);
+    const hevyMark = HevyMark(size: 12);
     List<List<Widget>> rowsOf(CalendarMode mode) => switch (mode) {
       CalendarMode.protein => [
         ...[
@@ -798,9 +872,13 @@ class _Legend extends StatelessWidget {
               mark: progress == DayProgress.reached ? goalMark : null,
             ),
         ].slices(2),
-        if (creatine) [item(l10n.calendarCreatine, mark: creatineMark)],
+        if (creatine || hevy)
+          [
+            if (creatine) item(l10n.calendarCreatine, mark: creatineMark),
+            if (hevy) item(l10n.calendarHevy, mark: hevyMark),
+          ],
       ],
-      // The marks of the days stay: that of the goal reached is told too.
+      // The marks of the days stay: the others are told too.
       CalendarMode.creatine => [
         [
           item(
@@ -814,9 +892,33 @@ class _Legend extends StatelessWidget {
             mark: creatineMark,
           ),
         ],
-        [item(l10n.calendarReached, mark: goalMark)],
+        [
+          item(l10n.calendarReached, mark: goalMark),
+          if (hevy) item(l10n.calendarHevy, mark: hevyMark),
+        ],
+      ],
+      // Likewise.
+      CalendarMode.hevy => [
+        [
+          item(
+            l10n.calendarNoHevy,
+            fill: _hevyColors(false, colors),
+            bordered: true,
+          ),
+          item(
+            l10n.calendarHevy,
+            fill: _hevyColors(true, colors),
+            bordered: true,
+            mark: hevyMark,
+          ),
+        ],
+        [
+          item(l10n.calendarReached, mark: goalMark),
+          if (creatine) item(l10n.calendarCreatine, mark: creatineMark),
+        ],
       ],
     };
+    final modes = _modesOf(creatine: creatine, hevy: hevy);
 
     return ExcludeSemantics(
       child: Container(
@@ -831,10 +933,9 @@ class _Legend extends StatelessWidget {
         // room under the current month, so the days do not move when the
         // filter changes.
         child: IndexedStack(
-          index: creatine ? mode.index : 0,
+          index: modes.indexOf(mode),
           children: [
-            for (final value
-                in creatine ? CalendarMode.values : [CalendarMode.protein])
+            for (final value in modes)
               Column(
                 spacing: 6,
                 children: [
