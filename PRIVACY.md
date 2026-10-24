@@ -2,7 +2,7 @@
 
 *[English version below](#privacy-policy--protein-calculator)*
 
-**Date d'entrée en vigueur : 17 octobre 2026**
+**Date d'entrée en vigueur : 24 octobre 2026**
 
 Cette politique explique quelles données l'application **Protein Calculator** (Android) traite,
 pourquoi, et quels sont tes droits. Elle s'applique à l'application publiée sur Google Play.
@@ -16,7 +16,8 @@ Contact : <arbitro.contact@gmail.com>.
 
 - Pas de compte, pas de publicité, pas de suivi publicitaire, pas de revente de données.
 - Ton suivi (entrées, produits, objectif, réglages) **reste sur ton téléphone**, et sur ta
-  montre si tu en utilises une. Nous n'y avons jamais accès.
+  montre si tu en utilises une ; tes séances Hevy importées restent **sur ton téléphone
+  seulement**. Nous n'y avons jamais accès.
 - Deux choses seulement peuvent quitter ton téléphone : un **rapport d'erreur technique**,
   **seulement si tu l'acceptes** (désactivé par défaut), et le **code-barres** d'un produit que tu
   scannes, envoyé à **Open Food Facts** pour en trouver les valeurs.
@@ -34,6 +35,8 @@ L'application enregistre localement, dans une base de données sur ton télépho
   automatique, et son heure) ;
 - les codes-barres de tes produits, et les derniers produits scannés avec les valeurs données par
   Open Food Facts ;
+- si tu importes tes séances Hevy, la date, le nom et la durée de chaque séance, et la date de
+  l'import ;
 - ton objectif quotidien et tes réglages (tri des produits, suivi de la créatine et sa dose,
   choix concernant les rapports d'erreur).
 
@@ -43,8 +46,8 @@ en supprimant les entrées et produits dans l'application, en effaçant les donn
 dans les réglages d'Android, ou en la désinstallant.
 
 **Export et import.** Si tu utilises « Exporter mes données », un fichier est créé à l'endroit que
-tu choisis. Ce que tu en fais ensuite (le garder, le partager) relève de ton choix ; nous n'y
-avons pas accès.
+tu choisis, avec tes séances Hevy importées s'il y en a. Ce que tu en fais ensuite (le garder, le
+partager) relève de ton choix ; nous n'y avons pas accès.
 
 **Sauvegarde Android.** Si la sauvegarde Google est activée sur ton appareil, Android peut inclure
 les données de l'application dans cette sauvegarde. Elle est gérée par Google, chiffrée, liée à
@@ -95,7 +98,26 @@ fournir la fonction que tu utilises (article 6.1.f du RGPD) ; il se limite au co
 peux l'éviter en remplissant les valeurs à la main. Open Food Facts traite ces demandes selon sa
 propre politique de confidentialité : <https://world.openfoodfacts.org/privacy>.
 
-## 3. Rapports d'erreur (facultatifs)
+## 3. Séances Hevy (facultatif)
+
+**Ce qui est lu.** Si tu le souhaites, tu peux importer le fichier d'export de tes séances créé par
+l'application Hevy, en le choisissant dans le Menu ou en le partageant avec Protein Calculator
+depuis Hevy. L'application lit ce fichier **sur ton téléphone** et n'en garde que la **date, le nom
+et la durée** de chaque séance ; le reste du fichier (exercices, séries, poids, notes…) est ignoré
+et jamais enregistré.
+
+**Ce qui est gardé et envoyé.** Ces informations restent sur ton téléphone, servent uniquement à
+repérer les jours d'entraînement dans l'historique, et **ne sont envoyées à personne**, pas même
+dans les rapports d'erreur. Chaque import remplace le précédent. Les séances importées sont
+incluses dans l'export de tes données (« Exporter mes données ») et peuvent être effacées à tout
+moment avec « Effacer les séances Hevy » dans le Menu. L'application n'accède ni à ton compte Hevy
+ni à ses serveurs. Hevy est une marque de Hevy Studios ; Protein Calculator n'y est pas affiliée.
+
+**Base légale.** Ce traitement a lieu uniquement sur ton téléphone, à ta demande, quand tu importes
+un fichier. Il repose sur notre **intérêt légitime** à te fournir la fonction que tu utilises
+(article 6.1.f du RGPD).
+
+## 4. Rapports d'erreur (facultatifs)
 
 Pour corriger les bugs, l'application peut envoyer des rapports d'erreur à **Sentry**, un service
 de suivi des erreurs. Cet envoi est **désactivé par défaut** : il n'a lieu que si tu coches la case
@@ -114,10 +136,10 @@ peux le désactiver à tout moment au même endroit ; l'arrêt est immédiat.
 - un historique technique des derniers événements de l'application (par exemple l'écran ouvert),
   sans contenu saisi.
 
-**Ce qu'un rapport ne contient jamais :** tes entrées, tes produits, ton objectif, les
-codes-barres que tu scannes, ton nom, ton adresse e-mail, des captures d'écran ou ta localisation.
-L'adresse IP de connexion, nécessairement vue lors de l'envoi, **n'est pas conservée** (réglage
-activé sur notre projet Sentry).
+**Ce qu'un rapport ne contient jamais :** tes entrées, tes produits, ton objectif, les codes-barres
+que tu scannes, tes séances Hevy et le contenu du fichier importé, ton nom, ton adresse e-mail, des
+captures d'écran ou ta localisation. L'adresse IP de connexion, nécessairement vue lors de l'envoi,
+**n'est pas conservée** (réglage activé sur notre projet Sentry).
 
 **Finalité et base légale.** Les rapports servent uniquement à détecter et corriger les
 erreurs de l'application. Leur envoi repose sur ton **consentement** (article 6.1.a du RGPD),
@@ -133,14 +155,14 @@ confidentialité de Sentry : <https://sentry.io/privacy/>.
 
 **Sécurité.** Les rapports sont transmis de façon chiffrée (HTTPS).
 
-## 4. Partage des données
+## 5. Partage des données
 
 Nous ne vendons, ne louons et ne partageons aucune donnée. En dehors de Sentry pour les rapports
 d'erreur que tu as acceptés, et d'Open Food Facts qui reçoit le code-barres des produits que tu
 scannes, aucun tiers ne reçoit de données de l'application. L'application ne contient ni
 publicité, ni outil d'analyse d'audience.
 
-## 5. Autorisations Android
+## 6. Autorisations Android
 
 - **Internet** : utilisée pour chercher sur Open Food Facts les produits que tu scannes, et pour
   envoyer les rapports d'erreur si tu les as acceptés.
@@ -159,7 +181,7 @@ L'application de la montre n'a pas l'autorisation Internet. Elle n'utilise que d
 techniques, accordées à l'installation, pour envoyer en arrière-plan les ajouts et suppressions
 en attente, même après un redémarrage de la montre.
 
-## 6. Tes droits
+## 7. Tes droits
 
 Conformément au RGPD, tu disposes d'un droit d'accès, de rectification, d'effacement, de
 limitation, d'opposition et de retrait de ton consentement. Les données de suivi étant
@@ -169,12 +191,12 @@ l'adresse ci-dessus. Pour les codes-barres reçus par Open Food Facts, adresse-t
 l'indique sa politique de confidentialité. Tu peux aussi déposer une réclamation auprès de
 l'autorité de protection des données de ton pays (en France, la CNIL : <https://www.cnil.fr>).
 
-## 7. Enfants
+## 8. Enfants
 
 L'application n'est pas destinée aux enfants de moins de 13 ans et ne collecte sciemment aucune
 donnée les concernant.
 
-## 8. Modifications
+## 9. Modifications
 
 Cette politique peut évoluer, par exemple si l'application change. La date d'entrée en vigueur en
 haut de page sera alors mise à jour. Toute nouvelle collecte de données ferait l'objet d'une
@@ -184,7 +206,7 @@ demande de consentement dans l'application.
 
 # Privacy policy — Protein Calculator
 
-**Effective date: October 17, 2026**
+**Effective date: October 24, 2026**
 
 This policy explains what data the **Protein Calculator** Android app processes, why, and what
 your rights are. It applies to the app published on Google Play.
@@ -198,7 +220,8 @@ Contact: <arbitro.contact@gmail.com>.
 
 - No account, no ads, no ad tracking, no data sale.
 - Your tracking data (entries, products, goal, settings) **stays on your phone**, and on your
-  watch if you use one. We never have access to it.
+  watch if you use one; your imported Hevy workouts stay **on your phone only**. We never have
+  access to it.
 - Only two things may leave your phone: a **technical crash report**, **only if you agree** (off by
   default), and the **barcode** of a product you scan, sent to **Open Food Facts** to find its
   values.
@@ -216,6 +239,8 @@ The app stores locally, in a database on your phone:
   addition, and its time);
 - the barcodes of your products, and the latest products scanned with the values given by Open Food
   Facts;
+- if you import your Hevy workouts, the date, name and duration of each workout, and the date of
+  the import;
 - your daily goal and your settings (product sort, creatine tracking and dose, crash report
   choice).
 
@@ -223,8 +248,9 @@ This data is **never sent to us or to any third party**, except the barcode of a
 sent to Open Food Facts (see section 2). You can delete it at any time by deleting entries and
 products in the app, by clearing the app's data in Android settings, or by uninstalling the app.
 
-**Export and import.** If you use "Export my data", a file is created where you choose. What you
-do with it afterwards (keep it, share it) is up to you; we have no access to it.
+**Export and import.** If you use "Export my data", a file is created where you choose, with your
+imported Hevy workouts if there are any. What you do with it afterwards (keep it, share it) is up to
+you; we have no access to it.
 
 **Android backup.** If Google backup is turned on for your device, Android may include the app's
 data in that backup. It is managed by Google, encrypted, tied to your Google account and not
@@ -271,7 +297,25 @@ feature you use (Article 6(1)(f) GDPR); it is limited to the barcode, and you ca
 filling in the values yourself. Open Food Facts processes these requests under its own privacy
 policy: <https://world.openfoodfacts.org/privacy>.
 
-## 3. Crash reports (optional)
+## 3. Hevy workouts (optional)
+
+**What is read.** If you wish, you can import the workout export file created by the Hevy app, by
+choosing it in the Menu or by sharing it with Protein Calculator from Hevy. The app reads this file
+**on your phone** and only keeps the **date, name and duration** of each workout; the rest of the
+file (exercises, sets, weights, notes…) is ignored and never stored.
+
+**What is kept and sent.** This information stays on your phone, is only used to mark workout days
+in the history, and is **sent to no one**, not even in crash reports. Each import replaces the
+previous one. The imported workouts are included in the export of your data ("Export my data") and
+can be deleted at any time with "Delete Hevy workouts" in the Menu. The app has no access to your
+Hevy account or to its servers. Hevy is a trademark of Hevy Studios; Protein Calculator is not
+affiliated with it.
+
+**Legal basis.** This processing only happens on your phone, at your request, when you import a
+file. It relies on our **legitimate interest** in providing the feature you use (Article 6(1)(f)
+GDPR).
+
+## 4. Crash reports (optional)
 
 To fix bugs, the app can send crash reports to **Sentry**, an error tracking service. This is
 **off by default**: it only happens if you check the box offered on first launch or turn it on
@@ -288,9 +332,10 @@ once.
 - a technical history of the app's latest events (for example the screen opened), without any
   content you typed.
 
-**A report never contains:** your entries, products or goal, the barcodes you scan, your name,
-your email address, screenshots or your location. The connection IP address, necessarily seen when
-sending, **is not stored** (setting turned on for our Sentry project).
+**A report never contains:** your entries, products or goal, the barcodes you scan, your Hevy
+workouts and the content of the imported file, your name, your email address, screenshots or your
+location. The connection IP address, necessarily seen when sending, **is not stored** (setting
+turned on for our Sentry project).
 
 **Purpose and legal basis.** Reports are only used to detect and fix errors in the app. Sending
 them relies on your **consent** (Article 6(1)(a) GDPR), which you can withdraw at any time.
@@ -304,13 +349,13 @@ contractual clauses or the EU–U.S. Data Privacy Framework). See Sentry's priva
 
 **Security.** Reports are sent encrypted (HTTPS).
 
-## 4. Data sharing
+## 5. Data sharing
 
 We do not sell, rent or share any data. Apart from Sentry for the crash reports you agreed to, and
 Open Food Facts, which receives the barcode of the products you scan, no third party receives data
 from the app. The app contains no ads and no audience analytics.
 
-## 5. Android permissions
+## 6. Android permissions
 
 - **Internet**: used to look up the products you scan on Open Food Facts, and to send crash reports
   if you agreed to them.
@@ -328,7 +373,7 @@ The watch app has no Internet permission. It only uses technical permissions, gr
 install, to send the waiting additions and deletions in the background, even after the watch
 restarts.
 
-## 6. Your rights
+## 7. Your rights
 
 Under the GDPR, you have the right of access, rectification, erasure, restriction, objection and
 withdrawal of consent. Your tracking data is only on your device, so you control it directly.
@@ -337,11 +382,11 @@ above. For the barcodes Open Food Facts receives, contact it as its privacy poli
 also lodge a complaint with your country's data protection authority (in France, the CNIL:
 <https://www.cnil.fr>).
 
-## 7. Children
+## 8. Children
 
 The app is not intended for children under 13 and does not knowingly collect data about them.
 
-## 8. Changes
+## 9. Changes
 
 This policy may change, for example if the app changes. The effective date at the top will then
 be updated. Any new data collection would be subject to a consent request in the app.
