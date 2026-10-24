@@ -111,7 +111,7 @@ repérer les jours d'entraînement dans l'historique, et **ne sont envoyées à 
 dans les rapports d'erreur. Chaque import remplace le précédent. Les séances importées sont
 incluses dans l'export de tes données (« Exporter mes données ») et peuvent être effacées à tout
 moment avec « Effacer les séances Hevy » dans le Menu. L'application n'accède ni à ton compte Hevy
-ni à ses serveurs. Hevy est une marque de Hevy Studios ; Protein Calculator n'y est pas affiliée.
+ni à ses serveurs. Hevy est une marque de Hevy Studios ; Protein Calculator n'y est pas affilié.
 
 **Base légale.** Ce traitement a lieu uniquement sur ton téléphone, à ta demande, quand tu importes
 un fichier. Il repose sur notre **intérêt légitime** à te fournir la fonction que tu utilises

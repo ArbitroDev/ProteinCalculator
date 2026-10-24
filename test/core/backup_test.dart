@@ -344,6 +344,16 @@ void main() {
         throwsA(isA<InvalidBackupException>()),
       );
     });
+
+    test('backup rejects workouts without an import date', () async {
+      final json = jsonDecode(await export()) as Map<String, dynamic>;
+      (json['settings'] as Map<String, dynamic>)['hevyImportedAt'] = null;
+
+      expect(
+        () => parseBackup(jsonEncode(json)),
+        throwsA(isA<InvalidBackupException>()),
+      );
+    });
   });
 
   test('keeps the unit of quantities and the barcodes of products', () async {
