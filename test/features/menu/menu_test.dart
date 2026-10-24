@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide isNull;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -202,6 +203,85 @@ void main() {
     });
   });
 
+  group('Hevy', () {
+    /// Scrolls the menu down to the Hevy card and opens its sheet.
+    Future<void> openHevySheet(WidgetTester tester) async {
+      await openMenu(tester);
+      await tester.scrollUntilVisible(find.text('Hevy workouts'), 100);
+      await tester.tap(find.text('Hevy workouts'));
+      await tester.pumpAndSettle();
+    }
+
+    /// The scrollable of the sheet, opened over the menu.
+    final sheet = find.byType(Scrollable).last;
+
+    testWidgets('the Hevy card opens its sheet', (tester) async {
+      await openMenu(tester);
+      await tester.scrollUntilVisible(find.text('Hevy workouts'), 100);
+      expect(find.text('Not imported yet'), findsOneWidget);
+
+      await tester.tap(find.text('Import'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('In Hevy: Profile'), findsOneWidget);
+      expect(find.textContaining('Only the date, name'), findsOneWidget);
+      expect(find.text('Choose the file'), findsOneWidget);
+      // Nothing to delete before an import.
+      expect(find.text('Delete Hevy workouts'), findsNothing);
+      await tester.scrollUntilVisible(
+        find.textContaining('trademark of Hevy Studios'),
+        100,
+        scrollable: sheet,
+      );
+      expect(find.textContaining('trademark of Hevy Studios'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('clearing Hevy workouts asks first', (tester) async {
+      await db.hevyDao.replaceSessions([
+        HevySessionsCompanion.insert(
+          title: 'Push',
+          startedAt: DateTime(2026, 10, 1, 7),
+          endedAt: Value(DateTime(2026, 10, 1, 8)),
+          dayKey: dayKeyOf(DateTime(2026, 10, 1, 7)),
+        ),
+      ], importedAt: DateTime(2026, 10, 1, 8, 30));
+      await openHevySheet(tester);
+
+      expect(find.text('1 day'), findsOneWidget);
+      expect(find.text('Last workout: Oct 1'), findsOneWidget);
+      expect(find.text('Imported on Oct 1'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Delete Hevy workouts'),
+        100,
+        scrollable: sheet,
+      );
+      await tester.tap(find.text('Delete Hevy workouts'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete Hevy workouts?'), findsOneWidget);
+
+      // Cancelling keeps them.
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(await db.select(db.hevySessions).get(), hasLength(1));
+
+      await tester.tap(find.text('Delete Hevy workouts'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(await db.select(db.hevySessions).get(), isEmpty);
+      expect(
+        (await db.select(db.appSettings).getSingle()).hevyImportedAt,
+        equals(null),
+      );
+      // The sheet follows: nothing left to delete.
+      expect(find.text('Delete Hevy workouts'), findsNothing);
+      expect(find.text('1 day'), findsNothing);
+      await disposeApp(tester, db);
+    });
+  });
+
   testWidgets('chooses when the day starts', (tester) async {
     addTearDown(() => appDayStartHour = defaultAppDayStartHour);
     await openMenu(tester);
@@ -257,6 +337,7 @@ void main() {
   testWidgets('opens the about page with the GitHub link', (tester) async {
     await openMenu(tester);
 
+    await tester.scrollUntilVisible(find.text('About'), 200);
     await tester.tap(find.text('About'));
     await tester.pumpAndSettle();
 

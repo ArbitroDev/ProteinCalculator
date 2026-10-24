@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart' hide isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/backup.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
@@ -265,6 +266,84 @@ void main() {
     expect(backup.products.map((p) => p.creatineDoses.value), [0]);
     expect(backup.creatineEnabled, isFalse);
     expect(backup.creatineDoseGrams, isNull);
+  });
+
+  group('Hevy workouts', () {
+    final importedAt = DateTime(2026, 10, 1, 9, 30);
+
+    setUp(
+      () => source.hevyDao.replaceSessions([
+        HevySessionsCompanion.insert(
+          title: 'Push',
+          startedAt: DateTime(2026, 10, 1, 1, 10),
+          endedAt: Value(DateTime(2026, 10, 1, 2, 15)),
+          dayKey: 20260930,
+        ),
+        HevySessionsCompanion.insert(
+          title: 'Pull',
+          startedAt: DateTime(2026, 9, 28, 18),
+          dayKey: 20260928,
+        ),
+      ], importedAt: importedAt),
+    );
+
+    test('backup keeps Hevy workouts', () async {
+      final target = openTestDatabase();
+      addTearDown(target.close);
+
+      await restoreBackup(target, parseBackup(await export()));
+
+      final sessions = await (target.select(
+        target.hevySessions,
+      )..orderBy([(s) => OrderingTerm.asc(s.startedAt)])).get();
+      expect(sessions.map((s) => s.title), ['Pull', 'Push']);
+      expect(sessions.map((s) => s.dayKey), [20260928, 20260930]);
+      expect(sessions.map((s) => s.startedAt), [
+        DateTime(2026, 9, 28, 18),
+        DateTime(2026, 10, 1, 1, 10),
+      ]);
+      expect(sessions.map((s) => s.endedAt), [
+        null,
+        DateTime(2026, 10, 1, 2, 15),
+      ]);
+      expect(await target.hevyDao.watchImportedAt().first, importedAt);
+    });
+
+    test('backup of version 8 restores without workouts', () async {
+      final json = jsonDecode(await export()) as Map<String, dynamic>;
+      json['version'] = 8;
+      json.remove('hevySessions');
+      (json['settings'] as Map<String, dynamic>).remove('hevyImportedAt');
+      // The target had imported workouts: the restoration replaces them.
+      final target = openTestDatabase();
+      addTearDown(target.close);
+      await target.hevyDao.replaceSessions([
+        HevySessionsCompanion.insert(
+          title: 'Legs',
+          startedAt: DateTime(2026, 9, 20, 18),
+          dayKey: 20260920,
+        ),
+      ], importedAt: importedAt);
+
+      final backup = parseBackup(jsonEncode(json));
+      expect(backup.hevySessions, isEmpty);
+      expect(backup.hevyImportedAt, isNull);
+      await restoreBackup(target, backup);
+
+      expect(await target.select(target.hevySessions).get(), isEmpty);
+      expect(await target.hevyDao.watchImportedAt().first, isNull);
+      expect(await target.select(target.entries).get(), hasLength(2));
+    });
+
+    test('backup rejects an invalid workout day', () async {
+      final json = jsonDecode(await export()) as Map<String, dynamic>;
+      rows(json, 'hevySessions').first['dayKey'] = 20260931;
+
+      expect(
+        () => parseBackup(jsonEncode(json)),
+        throwsA(isA<InvalidBackupException>()),
+      );
+    });
   });
 
   test('keeps the unit of quantities and the barcodes of products', () async {
