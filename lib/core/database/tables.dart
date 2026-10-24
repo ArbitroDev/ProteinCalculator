@@ -138,6 +138,21 @@ class ScannedProducts extends Table {
   Set<Column<Object>> get primaryKey => {barcode};
 }
 
+/// Workouts read from a Hevy export, all replaced by each import. Only what
+/// the history shows is kept: when, how long, and the name.
+class HevySessions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text()();
+  DateTimeColumn get startedAt => dateTime()();
+
+  /// Null when the file gives no end: the duration is then unknown.
+  DateTimeColumn get endedAt => dateTime().nullable()();
+
+  /// App day of [startedAt], see `dayKeyOf`. Like the day of an entry, it is
+  /// fixed when the workout is imported: the next import computes it again.
+  IntColumn get dayKey => integer()();
+}
+
 /// Daily goals over time: each row holds the goal set on an app day, which
 /// counts from that day until the next change. Days are judged against the
 /// goal they had, not the current one.
@@ -206,6 +221,10 @@ class AppSettings extends Table {
 
   /// Grams of one creatine dose; null until creatine is first turned on.
   RealColumn get creatineDoseGrams => real().nullable()();
+
+  /// When the Hevy workouts were last imported; null while there are none,
+  /// which leaves the Hevy marks off the history.
+  DateTimeColumn get hevyImportedAt => dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

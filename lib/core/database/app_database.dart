@@ -4,6 +4,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:protein_calculator/core/database/app_database.steps.dart';
 import 'package:protein_calculator/core/database/database_file.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
+import 'package:protein_calculator/core/database/hevy_dao.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
 import 'package:protein_calculator/core/database/scans_dao.dart';
 import 'package:protein_calculator/core/database/settings_dao.dart';
@@ -28,8 +29,9 @@ part 'app_database.g.dart';
     GoalChanges,
     WatchRequests,
     ScannedProducts,
+    HevySessions,
   ],
-  daos: [EntriesDao, ProductsDao, SettingsDao, WatchDao, ScansDao],
+  daos: [EntriesDao, ProductsDao, SettingsDao, WatchDao, ScansDao, HevyDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
@@ -55,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -129,6 +131,13 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(
           schema.appSettings,
           schema.appSettings.creatineDoseGrams,
+        );
+      },
+      from13To14: (m, schema) async {
+        await m.create(schema.hevySessions);
+        await m.addColumn(
+          schema.appSettings,
+          schema.appSettings.hevyImportedAt,
         );
       },
     ),

@@ -11,6 +11,7 @@ dependencies:
   camera: ^0.12.1
   characters: ^1.4.1
   collection: ^1.19.1
+  csv: ^8.0.0
   drift: ^2.35.2
   drift_flutter: ^0.3.1
   file_picker: ^13.1.0

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 /// An app day runs from its start hour, 3 a.m. by default, to the same hour
 /// the next calendar day, so that a late-night snack still counts for the
 /// evening it belongs to. The user picks the hour in the menu, from
@@ -39,6 +41,18 @@ bool isValidDayKey(int dayKey) {
   final date = dateOfDayKey(dayKey);
   return date.year * 10000 + date.month * 100 + date.day == dayKey;
 }
+
+/// First app day of the app, where the calendar starts: the day of the first
+/// goal ([firstGoalDayKey]), or of the oldest entry, added afterwards for an
+/// earlier day. [todayKey] when there is neither.
+int firstAppDayKey({
+  required int todayKey,
+  int? firstGoalDayKey,
+  required Iterable<int> entryDayKeys,
+}) => entryDayKeys.fold(
+  firstGoalDayKey == null ? todayKey : min(todayKey, firstGoalDayKey),
+  min,
+);
 
 /// Moment the app day following the one containing [time] starts.
 DateTime nextDayStart(DateTime time) {

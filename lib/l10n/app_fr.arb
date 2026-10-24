@@ -602,6 +602,10 @@
   "@privacyScan": {
     "description": "Paragraph of the data and privacy page about barcode scanning."
   },
+  "privacyHevy": "Si tu importes tes séances Hevy, l'app lit le fichier que tu choisis ou partages et n'en garde que la date, le nom et la durée de chaque séance, sur ton téléphone. Rien n'est envoyé.",
+  "@privacyHevy": {
+    "description": "Paragraph of the data and privacy page about the Hevy workouts import."
+  },
   "aboutFoodFacts": "Les valeurs des produits scannés viennent d'Open Food Facts, une base de données libre et collaborative, sous licence Open Database License (ODbL). Ses contributeurs les fournissent et elles peuvent contenir des erreurs : vérifie-les.",
   "@aboutFoodFacts": {
     "description": "Paragraph of the about page crediting Open Food Facts, as its license asks."
@@ -1047,5 +1051,187 @@
         "type": "String"
       }
     }
+  },
+  "hevyWorkout": "séance Hevy",
+  "@hevyWorkout": {
+    "description": "Read by screen readers on the dumbbell of a day with a Hevy workout."
+  },
+  "calendarHevy": "Séance Hevy",
+  "@calendarHevy": {
+    "description": "Calendar legend: the dumbbell of the days with a Hevy workout, and the black or white days of the Hevy filter."
+  },
+  "calendarNoHevy": "Sans séance",
+  "@calendarNoHevy": {
+    "description": "Calendar legend of the Hevy filter: a day without a Hevy workout."
+  },
+  "hevyFilter": "Séances Hevy",
+  "@hevyFilter": {
+    "description": "Tooltip of the Hevy option of the calendar filter, coloring the days with a Hevy workout."
+  },
+  "hevyWorkoutCount": "{count, plural, =1{1 séance} other{{count} séances}}",
+  "@hevyWorkoutCount": {
+    "description": "Number of Hevy workouts of a day, on the header of the Hevy card of the day details.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "durationMinutes": "{minutes} min",
+  "@durationMinutes": {
+    "description": "Length of a Hevy workout shorter than one hour.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "durationHours": "{hours} h {paddedMinutes}",
+  "@durationHours": {
+    "description": "Length of a Hevy workout of one hour or more, with minutes left over. Each language picks the minutes as they are or on two digits (\"1 h 05\"), as it writes them.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "paddedMinutes": {
+        "type": "String"
+      }
+    }
+  },
+  "durationWholeHours": "{hours} h",
+  "@durationWholeHours": {
+    "description": "Length of a Hevy workout of a whole number of hours.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "hevyDays": "{count, plural, =0{aucun jour} =1{1 jour} other{{count} jours}}",
+  "@hevyDays": {
+    "description": "Number of days with a Hevy workout, on the Hevy card of the menu and in its sheet.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "menuHevy": "Séances Hevy",
+  "@menuHevy": {
+    "description": "Title of the Hevy card of the menu and of its sheet."
+  },
+  "menuHevyNone": "Pas encore importées",
+  "@menuHevyNone": {
+    "description": "Subtitle of the Hevy card of the menu while no workouts are imported."
+  },
+  "menuHevySummary": "{days} · importé le {date}",
+  "@menuHevySummary": {
+    "description": "Subtitle of the Hevy card of the menu once workouts are imported: the number of days with a workout and the date of the import, both already formatted.",
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "menuHevyImport": "Importer",
+  "@menuHevyImport": {
+    "description": "Button of the Hevy card of the menu opening the import sheet."
+  },
+  "hevyLastWorkout": "Dernière séance : {date}",
+  "@hevyLastWorkout": {
+    "description": "Hevy sheet of the menu: the date of the latest imported workout, already formatted.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "hevyImportedOn": "Importé le {date}",
+  "@hevyImportedOn": {
+    "description": "Hevy sheet of the menu: the date of the last import, already formatted.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "hevyHowTo": "Dans Hevy : Profil › Réglages › Exporter et importer des données › Exporter les séances. Partage ensuite le fichier avec Protein Calculator, ou choisis-le ici.",
+  "@hevyHowTo": {
+    "description": "Hevy sheet of the menu: how to export the workouts from the Hevy app, then give the file to this app. The menu names are those of the Hevy app."
+  },
+  "hevyPrivacyNote": "Seuls la date, le nom et la durée de tes séances sont gardés, sur ton téléphone. Chaque import remplace le précédent.",
+  "@hevyPrivacyNote": {
+    "description": "Hevy sheet of the menu: what is kept of the workouts and that each import replaces the previous one."
+  },
+  "hevyPickFile": "Choisir le fichier",
+  "@hevyPickFile": {
+    "description": "Button of the Hevy sheet opening the file picker."
+  },
+  "hevyClear": "Effacer les séances Hevy",
+  "@hevyClear": {
+    "description": "Button of the Hevy sheet deleting the imported workouts."
+  },
+  "hevyClearTitle": "Effacer les séances Hevy ?",
+  "@hevyClearTitle": {
+    "description": "Title of the dialog confirming the deletion of the Hevy workouts."
+  },
+  "hevyClearBody": "Les jours d'entraînement disparaîtront de l'historique. Tes entrées ne changent pas.",
+  "@hevyClearBody": {
+    "description": "Body of the dialog confirming the deletion of the Hevy workouts."
+  },
+  "hevyClearConfirm": "Effacer",
+  "@hevyClearConfirm": {
+    "description": "Button confirming the deletion of the Hevy workouts."
+  },
+  "hevyTrademark": "Hevy est une marque de Hevy Studios. Protein Calculator n'y est pas affilié.",
+  "@hevyTrademark": {
+    "description": "Small print of the Hevy sheet: Hevy is not ours."
+  },
+  "hevyImported": "{count, plural, =0{Import réussi, aucune séance à afficher} =1{1 séance Hevy importée} other{{count} séances Hevy importées}}",
+  "@hevyImported": {
+    "description": "Message after a successful Hevy import: the number of workouts the history shows, which may be none.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hevyOlderTitle": "Fichier plus ancien",
+  "@hevyOlderTitle": {
+    "description": "Title of the dialog asking to replace the Hevy workouts with those of an older file."
+  },
+  "hevyOlderBody": "Ce fichier s'arrête au {fileDate}, avant ton dernier import ({lastDate}). Le remplacer quand même ?",
+  "@hevyOlderBody": {
+    "description": "Body of the dialog asking to replace the Hevy workouts with those of an older file: the date its last workout starts and the date the last imported one starts, both already formatted.",
+    "placeholders": {
+      "fileDate": {
+        "type": "String"
+      },
+      "lastDate": {
+        "type": "String"
+      }
+    }
+  },
+  "hevyOlderReplace": "Remplacer",
+  "@hevyOlderReplace": {
+    "description": "Button replacing the Hevy workouts with those of an older file."
+  },
+  "hevyErrorUnreadable": "Ce fichier est illisible.",
+  "@hevyErrorUnreadable": {
+    "description": "Message when the file chosen for the Hevy import is empty or cannot be read."
+  },
+  "hevyErrorNotHevy": "Ce fichier n'est pas un export de séances Hevy.",
+  "@hevyErrorNotHevy": {
+    "description": "Message when the file chosen for the Hevy import has not the columns of a Hevy workout export."
+  },
+  "hevyErrorDates": "Les dates de ce fichier sont illisibles.",
+  "@hevyErrorDates": {
+    "description": "Message when the dates of the file chosen for the Hevy import cannot be read."
   }
 }

@@ -28,7 +28,13 @@ final backgroundChangesProvider = Provider<void>((ref) {
   final db = ref.watch(databaseProvider);
   ref.onDispose(
     listenToBackgroundChanges(
-      () => db.markTablesUpdated([db.entries, db.products, db.watchRequests]),
+      () => db.markTablesUpdated([
+        db.entries,
+        db.products,
+        db.watchRequests,
+        db.hevySessions,
+        db.appSettings,
+      ]),
     ),
   );
 });
@@ -120,6 +126,51 @@ final favoriteProductProvider = Provider<Product?>(
 /// Days having at least one entry, most recent first.
 final historyProvider = StreamProvider<List<DaySummary>>(
   (ref) => ref.watch(databaseProvider).entriesDao.watchHistory(),
+);
+
+/// When the Hevy workouts were last imported; null while there are none,
+/// which leaves the Hevy marks off the history.
+final hevyImportedAtProvider = StreamProvider<DateTime?>(
+  (ref) => ref.watch(databaseProvider).hevyDao.watchImportedAt(),
+);
+
+/// App days having at least one Hevy workout, shown or not, see
+/// `shownHevyDaysProvider`.
+final hevySessionDaysProvider = StreamProvider<Set<int>>(
+  (ref) => ref.watch(databaseProvider).hevyDao.watchSessionDays(),
+);
+
+/// First app day of the app, see `firstAppDayKey`; null until the data it
+/// comes from is read.
+final firstAppDayKeyProvider = Provider<int?>((ref) {
+  final todayKey = ref.watch(currentDayKeyProvider).value;
+  final goals = ref.watch(goalChangesProvider).value;
+  final days = ref.watch(historyProvider).value;
+  if (todayKey == null || goals == null || days == null) return null;
+  return firstAppDayKey(
+    todayKey: todayKey,
+    firstGoalDayKey: goals.isEmpty ? null : goals.first.dayKey,
+    entryDayKeys: days.map((day) => day.dayKey),
+  );
+});
+
+/// App days with a Hevy workout that the history shows: those from the first
+/// app day to today, like the days the calendar colors. Empty until the data
+/// they come from is read.
+final shownHevyDaysProvider = Provider<Set<int>>((ref) {
+  final first = ref.watch(firstAppDayKeyProvider);
+  final todayKey = ref.watch(currentDayKeyProvider).value;
+  final days = ref.watch(hevySessionDaysProvider).value;
+  if (first == null || todayKey == null || days == null) return const {};
+  return {
+    for (final day in days)
+      if (day >= first && day <= todayKey) day,
+  };
+});
+
+/// Hevy workouts of one app day, in the order they started.
+final daySessionsProvider = StreamProvider.family<List<HevySession>, int>(
+  (ref, dayKey) => ref.watch(databaseProvider).hevyDao.watchDaySessions(dayKey),
 );
 
 /// Whether the user agreed to send crash reports, see `setCrashReporting`.
