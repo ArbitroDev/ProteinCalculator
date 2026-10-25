@@ -16,13 +16,13 @@ The `DataClient`, which may sync through Google servers, is not used.
 ## Format
 
 Each message is a JSON object in UTF-8. Its `v` field holds the version of
-the messages it belongs to, an integer, currently **2**.
+the messages it belongs to, an integer, currently **3**.
 
 - Any change of the messages (a field added, removed, renamed, or used with
   another meaning) comes with a new version, written here.
 - A message of a version the app does not read is never read: its fields may
   mean something else. A request of such a version is answered with
-  `{"unsupported": [1, 2]}`, the versions the app reads. This answer never
+  `{"unsupported": [1, 2, 3]}`, the versions the app reads. This answer never
   changes, whatever the version. The watch then tells the user which app to
   update.
 - The phone keeps reading the additions and deletions of every earlier
@@ -39,10 +39,40 @@ while to sync them, so they are not needed to send.
 | Capability | Declared by |
 |---|---|
 | `protein_calculator_phone` | The phone app |
-| `protein_calculator_watch_v2` | The watch app, reading the messages of version 2 |
+| `protein_calculator_watch_v3` | The watch app, reading the messages of version 3 |
 
-Watch apps reading the messages of version 1 declared
-`protein_calculator_watch_v1`.
+Watch apps reading the messages of versions 1 and 2 declared
+`protein_calculator_watch_v1` and `protein_calculator_watch_v2`.
+
+## Version 3
+
+The messages of version 2 below, with the Hevy workouts of the day. Fields
+not listed here keep their meaning.
+
+The phone reads the requests of the watch (`sync`, `add`, `delete`) of
+versions 1, 2 and 3: those of version 2 are those of version 3. It writes the
+states and its answers in version 3 only, which a watch reading version 2
+does not read: it then tells the user to update the watch app. The watch
+reads the states and the answers of version 3 only.
+
+### State of the day
+
+| Field | Meaning |
+|---|---|
+| `hevyWorkouts` | Hevy workouts of `day` imported in the phone app, from 0; 0 without any, or when none are imported. Absent, 0. |
+| `creatineEnabled` | Whether the user tracks creatine. |
+
+The watch shows the creatine doses of the day, from its entries, and the Hevy
+workouts of the day, each with their number when there are several.
+
+```json
+{
+  "v": 3,
+  "hevyWorkouts": 1
+}
+```
+
+(Other fields as in version 2.)
 
 ## Version 2
 

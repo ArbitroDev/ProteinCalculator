@@ -68,7 +68,12 @@ final watchStateProvider = Provider<WatchState?>((ref) {
   final entries = ref.watch(dayEntriesProvider(dayKey)).value;
   final handled = ref.watch(watchHandledProvider(dayKey)).value;
   final creatine = ref.watch(creatineSettingsProvider).value;
-  if (entries == null || handled == null || creatine == null || !goalsLoaded) {
+  final sessions = ref.watch(daySessionsProvider(dayKey)).value;
+  if (entries == null ||
+      handled == null ||
+      creatine == null ||
+      sessions == null ||
+      !goalsLoaded) {
     return null;
   }
   return WatchState.of(
@@ -79,6 +84,7 @@ final watchStateProvider = Provider<WatchState?>((ref) {
     products: products,
     handled: handled,
     creatineEnabled: creatine.enabled,
+    hevyWorkouts: sessions.length,
   );
 });
 

@@ -2,7 +2,7 @@
 
 *[English version below](#privacy-policy--protein-calculator)*
 
-**Date d'entrée en vigueur : 24 octobre 2026**
+**Date d'entrée en vigueur : 25 octobre 2026**
 
 Cette politique explique quelles données l'application **Protein Calculator** (Android) traite,
 pourquoi, et quels sont tes droits. Elle s'applique à l'application publiée sur Google Play.
@@ -15,9 +15,9 @@ Contact : <arbitro.contact@gmail.com>.
 ## En résumé
 
 - Pas de compte, pas de publicité, pas de suivi publicitaire, pas de revente de données.
-- Ton suivi (entrées, produits, objectif, réglages) **reste sur ton téléphone**, et sur ta
-  montre si tu en utilises une ; tes séances Hevy importées restent **sur ton téléphone
-  seulement**. Nous n'y avons jamais accès.
+- Ton suivi (entrées, produits, objectif, réglages) **reste sur ton téléphone**, et sur ta montre si
+  tu en utilises une ; tes séances Hevy importées restent **sur ton téléphone**, ta montre n'en
+  recevant que le nombre de séances du jour. Nous n'y avons jamais accès.
 - Deux choses seulement peuvent quitter ton téléphone : un **rapport d'erreur technique**,
   **seulement si tu l'acceptes** (désactivé par défaut), et le **code-barres** d'un produit que tu
   scannes, envoyé à **Open Food Facts** pour en trouver les valeurs.
@@ -108,10 +108,12 @@ et jamais enregistré.
 
 **Ce qui est gardé et envoyé.** Ces informations restent sur ton téléphone, servent uniquement à
 repérer les jours d'entraînement dans l'historique, et **ne sont envoyées à personne**, pas même
-dans les rapports d'erreur. Chaque import remplace le précédent. Les séances importées sont
-incluses dans l'export de tes données (« Exporter mes données ») et peuvent être effacées à tout
-moment avec « Effacer les séances Hevy » dans le Menu. L'application n'accède ni à ton compte Hevy
-ni à ses serveurs. Hevy est une marque de Hevy Studios ; Protein Calculator n'y est pas affilié.
+dans les rapports d'erreur. Si tu utilises la montre, elle en reçoit seulement le nombre de séances
+du jour, directement depuis ton téléphone, pour l'afficher. Chaque import remplace le précédent. Les
+séances importées sont incluses dans l'export de tes données (« Exporter mes données ») et peuvent
+être effacées à tout moment avec « Effacer les séances Hevy » dans le Menu. L'application n'accède
+ni à ton compte Hevy ni à ses serveurs. Hevy est une marque de Hevy Studios ; Protein Calculator n'y
+est pas affilié.
 
 **Base légale.** Ce traitement a lieu uniquement sur ton téléphone, à ta demande, quand tu importes
 un fichier. Il repose sur notre **intérêt légitime** à te fournir la fonction que tu utilises
@@ -206,7 +208,7 @@ demande de consentement dans l'application.
 
 # Privacy policy — Protein Calculator
 
-**Effective date: October 24, 2026**
+**Effective date: October 25, 2026**
 
 This policy explains what data the **Protein Calculator** Android app processes, why, and what
 your rights are. It applies to the app published on Google Play.
@@ -219,9 +221,9 @@ Contact: <arbitro.contact@gmail.com>.
 ## In short
 
 - No account, no ads, no ad tracking, no data sale.
-- Your tracking data (entries, products, goal, settings) **stays on your phone**, and on your
-  watch if you use one; your imported Hevy workouts stay **on your phone only**. We never have
-  access to it.
+- Your tracking data (entries, products, goal, settings) **stays on your phone**, and on your watch
+  if you use one; your imported Hevy workouts stay **on your phone**, your watch only receiving the
+  number of workouts of the day. We never have access to it.
 - Only two things may leave your phone: a **technical crash report**, **only if you agree** (off by
   default), and the **barcode** of a product you scan, sent to **Open Food Facts** to find its
   values.
@@ -305,11 +307,12 @@ choosing it in the Menu or by sharing it with Protein Calculator from Hevy. The 
 file (exercises, sets, weights, notes…) is ignored and never stored.
 
 **What is kept and sent.** This information stays on your phone, is only used to mark workout days
-in the history, and is **sent to no one**, not even in crash reports. Each import replaces the
-previous one. The imported workouts are included in the export of your data ("Export my data") and
-can be deleted at any time with "Delete Hevy workouts" in the Menu. The app has no access to your
-Hevy account or to its servers. Hevy is a trademark of Hevy Studios; Protein Calculator is not
-affiliated with it.
+in the history, and is **sent to no one**, not even in crash reports. If you use the watch, it only
+receives the number of workouts of the day, straight from your phone, to show it. Each import
+replaces the previous one. The imported workouts are included in the export of your data ("Export my
+data") and can be deleted at any time with "Delete Hevy workouts" in the Menu. The app has no access
+to your Hevy account or to its servers. Hevy is a trademark of Hevy Studios; Protein Calculator is
+not affiliated with it.
 
 **Legal basis.** This processing only happens on your phone, at your request, when you import a
 file. It relies on our **legitimate interest** in providing the feature you use (Article 6(1)(f)

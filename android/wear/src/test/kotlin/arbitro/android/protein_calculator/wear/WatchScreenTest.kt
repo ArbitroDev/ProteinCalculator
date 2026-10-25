@@ -71,17 +71,10 @@ class WatchScreenTest {
     }
 
     @Test
-    fun `tells whether creatine was taken today, waiting additions included`() {
+    fun `counts the creatine doses of today, waiting additions included`() {
         val tracked = state.copy(creatineEnabled = true)
-        val none = assertIs<WatchScreen.Day>(screen(saved(tracked)))
-        assertEquals(true, none.creatineEnabled)
-        assertEquals(false, none.creatineTaken)
+        assertEquals(0, assertIs<WatchScreen.Day>(screen(saved(tracked))).creatineDoses)
 
-        val dose = addition("a1", at(1, 13)).copy(protein = 0.0, creatineDoses = 1)
-        val waiting = assertIs<WatchScreen.Day>(screen(saved(tracked, pending = listOf(dose))))
-        assertEquals(true, waiting.creatineTaken)
-
-        // Taken yesterday: nothing once the day is over.
         val sent = tracked.copy(
             entries = listOf(
                 WatchEntry(
@@ -90,11 +83,21 @@ class WatchScreenTest {
                 ),
             ),
         )
-        assertEquals(true, assertIs<WatchScreen.Day>(screen(saved(sent))).creatineTaken)
-        assertEquals(
-            false,
-            assertIs<WatchScreen.Day>(screen(saved(sent), now = at(2, 9))).creatineTaken,
-        )
+        assertEquals(1, assertIs<WatchScreen.Day>(screen(saved(sent))).creatineDoses)
+
+        val doses = addition("a1", at(1, 13)).copy(protein = 0.0, creatineDoses = 2)
+        val waiting = assertIs<WatchScreen.Day>(screen(saved(sent, pending = listOf(doses))))
+        assertEquals(3, waiting.creatineDoses)
+
+        // Taken yesterday: nothing once the day is over.
+        assertEquals(0, assertIs<WatchScreen.Day>(screen(saved(sent), now = at(2, 9))).creatineDoses)
+    }
+
+    @Test
+    fun `counts the Hevy workouts of today only`() {
+        val workouts = state.copy(hevyWorkouts = 2)
+        assertEquals(2, assertIs<WatchScreen.Day>(screen(saved(workouts))).hevyWorkouts)
+        assertEquals(0, assertIs<WatchScreen.Day>(screen(saved(workouts), now = at(2, 9))).hevyWorkouts)
     }
 
     @Test

@@ -20,6 +20,7 @@ class WatchState {
     required this.products,
     required this.handled,
     this.creatineEnabled = false,
+    this.hevyWorkouts = 0,
   });
 
   /// State of the app day [dayKey], from its [entries], its [goal] and the
@@ -32,6 +33,7 @@ class WatchState {
     required Iterable<Product> products,
     required List<String> handled,
     bool creatineEnabled = false,
+    int hevyWorkouts = 0,
   }) => WatchState(
     dayKey: dayKey,
     dayStartHour: dayStartHour,
@@ -61,6 +63,7 @@ class WatchState {
     ],
     handled: handled,
     creatineEnabled: creatineEnabled,
+    hevyWorkouts: hevyWorkouts,
   );
 
   final int dayKey;
@@ -84,9 +87,11 @@ class WatchState {
   /// get.
   final List<String> handled;
 
-  /// Whether the user tracks creatine: the tile of the watch then tells
-  /// whether it was taken.
+  /// Whether the user tracks creatine.
   final bool creatineEnabled;
+
+  /// Hevy workouts of the day, which the watch shows; 0 without any.
+  final int hevyWorkouts;
 
   /// Values taken by `sendWatchState` of the plugin `watch_link`.
   Map<String, Object?> toChannel() => {
@@ -118,6 +123,7 @@ class WatchState {
     ],
     'handled': handled,
     'creatineEnabled': creatineEnabled,
+    'hevyWorkouts': hevyWorkouts,
   };
 
   @override
@@ -130,7 +136,8 @@ class WatchState {
       const ListEquality<WatchEntry>().equals(other.entries, entries) &&
       const ListEquality<WatchProduct>().equals(other.products, products) &&
       const ListEquality<String>().equals(other.handled, handled) &&
-      other.creatineEnabled == creatineEnabled;
+      other.creatineEnabled == creatineEnabled &&
+      other.hevyWorkouts == hevyWorkouts;
 
   @override
   int get hashCode => Object.hash(
@@ -142,6 +149,7 @@ class WatchState {
     const ListEquality<WatchProduct>().hash(products),
     const ListEquality<String>().hash(handled),
     creatineEnabled,
+    hevyWorkouts,
   );
 }
 
@@ -248,6 +256,7 @@ Future<WatchState> readWatchState(AppDatabase db, DateTime now) async {
     products: await db.productsDao.watchAll(sort).first,
     handled: await db.watchDao.watchHandledSince(handledSince(dayKey)).first,
     creatineEnabled: (await db.settingsDao.getCreatine()).enabled,
+    hevyWorkouts: (await db.hevyDao.watchDaySessions(dayKey).first).length,
   );
 }
 

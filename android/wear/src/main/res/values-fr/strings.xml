@@ -2,8 +2,6 @@
 <resources>
     <string name="tile_label">Objectif du jour</string>
     <string name="tile_title">Objectif du jour</string>
-    <string name="tile_creatine_taken">✓ Créatine</string>
-    <string name="tile_creatine_to_take">Créatine à prendre</string>
     <string name="complication_label">Protéines du jour</string>
     <string name="complication_description">%1$s g de protéines sur %2$s g</string>
     <string name="grams">%1$s g</string>
@@ -41,4 +39,14 @@
     <string name="open_phone">Ouvre Protein Calculator sur ton téléphone.</string>
     <string name="update_watch">Mets à jour Protein Calculator sur ta montre.</string>
     <string name="update_phone">Mets à jour Protein Calculator sur ton téléphone.</string>
+    <plurals name="creatine_doses">
+        <item quantity="one">Créatine prise</item>
+        <item quantity="many">%d doses de créatine</item>
+        <item quantity="other">%d doses de créatine</item>
+    </plurals>
+    <plurals name="hevy_workouts">
+        <item quantity="one">Séance Hevy</item>
+        <item quantity="many">%d séances Hevy</item>
+        <item quantity="other">%d séances Hevy</item>
+    </plurals>
 </resources>

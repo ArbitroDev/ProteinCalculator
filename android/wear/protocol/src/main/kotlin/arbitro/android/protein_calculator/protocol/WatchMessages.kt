@@ -38,8 +38,10 @@ data class DayState(
      * too.
      */
     val handled: List<String>,
-    /** Whether the user tracks creatine: the tile tells whether it was taken. */
+    /** Whether the user tracks creatine. */
     val creatineEnabled: Boolean = false,
+    /** Hevy workouts of [day] imported on the phone; 0 without any. */
+    val hevyWorkouts: Int = 0,
 ) {
     internal fun isValid(): Boolean =
         isValidDay(day) &&
@@ -51,7 +53,8 @@ data class DayState(
             products.size <= WatchProtocol.MAX_PRODUCTS &&
             products.all { it.isValid() } &&
             products.count { it.favorite } <= 1 &&
-            handled.all(::isValidRequestId)
+            handled.all(::isValidRequestId) &&
+            hevyWorkouts >= 0
 
     companion object {
         const val MAX_DAY_START_HOUR = 7

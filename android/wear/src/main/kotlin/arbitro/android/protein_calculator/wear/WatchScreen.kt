@@ -28,9 +28,10 @@ sealed interface WatchScreen {
         /** When the phone sent this day, in milliseconds since the epoch. */
         val updatedAt: Long,
         val phoneNearby: Boolean,
-        /** Whether the user tracks creatine, and whether a dose was taken today. */
-        val creatineEnabled: Boolean = false,
-        val creatineTaken: Boolean = false,
+        /** Creatine doses taken today, the additions waiting for the phone included. */
+        val creatineDoses: Int = 0,
+        /** Hevy workouts of today imported on the phone. */
+        val hevyWorkouts: Int = 0,
     ) : WatchScreen
 }
 
@@ -101,7 +102,8 @@ fun watchScreenOf(saved: Saved, phoneNearby: Boolean, now: Long, zone: ZoneId): 
         products = state.products,
         updatedAt = saved.receivedAt ?: now,
         phoneNearby = phoneNearby,
-        creatineEnabled = state.creatineEnabled,
-        creatineTaken = entries.any { it.creatineDoses > 0 },
+        creatineDoses = entries.sumOf { it.creatineDoses },
+        // Once the app day of the state is over, its workouts are too.
+        hevyWorkouts = if (today > state.day) 0 else state.hevyWorkouts,
     )
 }

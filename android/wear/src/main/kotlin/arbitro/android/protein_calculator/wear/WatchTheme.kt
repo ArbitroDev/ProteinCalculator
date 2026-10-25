@@ -37,6 +37,9 @@ object WatchColors {
 
     /** Blue of creatine, as in the phone app. */
     val creatine = Color(0xFF3FA9F5)
+
+    /** The Hevy workouts, white as in the dark theme of the phone app. */
+    val hevy = Color.White
 }
 
 /** Text styles of the app: Saira Semi Condensed for numbers, Outfit for text. */

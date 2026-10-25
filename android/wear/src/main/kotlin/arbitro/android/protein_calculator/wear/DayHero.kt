@@ -2,6 +2,7 @@ package arbitro.android.protein_calculator.wear
 
 import android.text.format.DateUtils
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -150,11 +151,18 @@ fun TransformingLazyColumnItemScope.DayHero(day: WatchScreen.Day, viewportWidth:
                 modifier = Modifier.offset(y = (-6).dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    stringResource(R.string.goal_of, formatGrams(day.goal, locale)),
-                    style = goalStyle,
-                    color = WatchColors.textSecondary,
-                )
+                // The creatine and the workouts of the day follow the goal.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        stringResource(R.string.goal_of, formatGrams(day.goal, locale)),
+                        style = goalStyle,
+                        color = WatchColors.textSecondary,
+                    )
+                    DayMarks(day, lineStyle)
+                }
                 Text(
                     if (left <= 0) {
                         stringResource(R.string.goal_reached)

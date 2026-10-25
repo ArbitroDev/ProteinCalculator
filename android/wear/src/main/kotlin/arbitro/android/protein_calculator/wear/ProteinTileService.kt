@@ -4,23 +4,32 @@ import android.content.ComponentName
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.graphics.toArgb
 import androidx.wear.protolayout.ActionBuilders.launchAction
+import androidx.wear.protolayout.DimensionBuilders.dp
 import androidx.wear.protolayout.DimensionBuilders.expand
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
+import androidx.wear.protolayout.ResourceBuilders.AndroidImageResourceByResId
+import androidx.wear.protolayout.ResourceBuilders.ImageResource
 import androidx.wear.protolayout.TimelineBuilders.Timeline
 import androidx.wear.protolayout.layout.box
 import androidx.wear.protolayout.layout.column
+import androidx.wear.protolayout.layout.row
+import androidx.wear.protolayout.layout.spacer
 import androidx.wear.protolayout.material3.ButtonColors
 import androidx.wear.protolayout.material3.ColorScheme
 import androidx.wear.protolayout.material3.MaterialScope
 import androidx.wear.protolayout.material3.ProgressIndicatorColors
 import androidx.wear.protolayout.material3.Typography
 import androidx.wear.protolayout.material3.circularProgressIndicator
+import androidx.wear.protolayout.material3.icon
 import androidx.wear.protolayout.material3.primaryLayout
 import androidx.wear.protolayout.material3.text
 import androidx.wear.protolayout.material3.textEdgeButton
+import androidx.wear.protolayout.modifiers.LayoutModifier
 import androidx.wear.protolayout.modifiers.clickable
+import androidx.wear.protolayout.modifiers.contentDescription
 import androidx.wear.protolayout.modifiers.loadAction
 import androidx.wear.protolayout.types.LayoutColor
 import androidx.wear.protolayout.types.LayoutString
@@ -71,25 +80,57 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
     }
 
     /**
-     * Whether creatine was taken today, while the user tracks it: nothing
-     * otherwise.
+     * Marks of the day, as in the app: the creatine doses taken and the Hevy
+     * workouts, each with their number when there are several. Nothing for
+     * what the day has none of.
      */
-    private fun MaterialScope.creatine(screen: WatchScreen.Day): Array<LayoutElement> = when {
-        screen.creatineTaken -> arrayOf(
-            text(
-                LayoutString(context.getString(R.string.tile_creatine_taken)),
-                typography = Typography.BODY_SMALL,
-                color = LayoutColor(WatchColors.creatine.toArgb()),
-            ),
-        )
-        screen.creatineEnabled -> arrayOf(
-            text(
-                LayoutString(context.getString(R.string.tile_creatine_to_take)),
-                typography = Typography.BODY_SMALL,
-                color = LayoutColor(TEXT_SECONDARY),
-            ),
-        )
-        else -> emptyArray()
+    private fun MaterialScope.marks(screen: WatchScreen.Day): Array<LayoutElement> {
+        val marks = buildList<LayoutElement> {
+            if (screen.creatineDoses > 0) {
+                add(
+                    countMark(
+                        R.drawable.ic_creatine,
+                        WatchColors.creatine.toArgb(),
+                        screen.creatineDoses,
+                        context.resources.getQuantityString(
+                            R.plurals.creatine_doses,
+                            screen.creatineDoses,
+                            screen.creatineDoses,
+                        ),
+                    ),
+                )
+            }
+            if (screen.hevyWorkouts > 0) {
+                if (isNotEmpty()) add(spacer(width = dp(MARK_GAP)))
+                add(
+                    countMark(
+                        R.drawable.ic_dumbbell,
+                        WatchColors.hevy.toArgb(),
+                        screen.hevyWorkouts,
+                        context.resources.getQuantityString(
+                            R.plurals.hevy_workouts,
+                            screen.hevyWorkouts,
+                            screen.hevyWorkouts,
+                        ),
+                    ),
+                )
+            }
+        }
+        return if (marks.isEmpty()) emptyArray() else arrayOf(row(*marks.toTypedArray()))
+    }
+
+    /** [drawable] in [color], then "×N" when [count] is above one, read as [description]. */
+    private fun MaterialScope.countMark(@DrawableRes drawable: Int, color: Int, count: Int, description: String): LayoutElement {
+        val image = ImageResource.Builder()
+            .setAndroidResourceByResId(AndroidImageResourceByResId.Builder().setResourceId(drawable).build())
+            .build()
+        val mark = icon(image, width = dp(MARK_SIZE), height = dp(MARK_SIZE), tintColor = LayoutColor(color))
+        val parts = if (count > 1) {
+            arrayOf(mark, text(LayoutString("×$count"), typography = Typography.BODY_SMALL, color = LayoutColor(color)))
+        } else {
+            arrayOf(mark)
+        }
+        return row(*parts, modifier = LayoutModifier.contentDescription(description))
     }
 
     /** Layout of the tile showing [screen]; also drawn by the store screenshots. */
@@ -123,7 +164,7 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
                         typography = Typography.BODY_SMALL,
                         color = LayoutColor(TEXT_SECONDARY),
                     ),
-                    *creatine(screen),
+                    *marks(screen),
                 )
             },
             bottomSlot = favorite?.let { product ->
@@ -162,6 +203,10 @@ class ProteinTileService : Material3TileService(allowDynamicTheme = false, defau
 
     companion object {
         private const val RESOURCES_VERSION = "1"
+
+        /** Size of the marks of the day, and the space between them, in dp. */
+        private const val MARK_SIZE = 14f
+        private const val MARK_GAP = 8f
         private const val OPEN = "open"
         private const val FAVORITE_PREFIX = "favorite:"
 

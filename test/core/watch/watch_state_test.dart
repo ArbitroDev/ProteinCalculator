@@ -88,6 +88,7 @@ void main() {
           ],
           'handled': ['a1'],
           'creatineEnabled': false,
+          'hevyWorkouts': 0,
         });
       },
     );
@@ -121,36 +122,57 @@ void main() {
     });
 
     test('equals another state of the same values only', () {
-      WatchState state({double total = 20, List<String> handled = const []}) =>
-          WatchState(
-            dayKey: 20261001,
-            dayStartHour: 3,
-            total: total,
-            goal: 140,
-            entries: [
-              WatchEntry(
-                id: 1,
-                name: 'Skyr',
-                protein: 20,
-                time: DateTime(2026, 10, 1, 8),
-                fromWatch: true,
-              ),
-            ],
-            products: const [
-              WatchProduct(id: 1, name: 'Skyr', protein: 20, isFavorite: false),
-            ],
-            handled: handled,
-          );
+      WatchState state({
+        double total = 20,
+        List<String> handled = const [],
+        int hevyWorkouts = 0,
+      }) => WatchState(
+        dayKey: 20261001,
+        dayStartHour: 3,
+        total: total,
+        goal: 140,
+        entries: [
+          WatchEntry(
+            id: 1,
+            name: 'Skyr',
+            protein: 20,
+            time: DateTime(2026, 10, 1, 8),
+            fromWatch: true,
+          ),
+        ],
+        products: const [
+          WatchProduct(id: 1, name: 'Skyr', protein: 20, isFavorite: false),
+        ],
+        handled: handled,
+        hevyWorkouts: hevyWorkouts,
+      );
 
       expect(state(), state());
       expect(state().hashCode, state().hashCode);
       expect(state(total: 21), isNot(state()));
       expect(state(handled: ['a1']), isNot(state()));
+      expect(state(hevyWorkouts: 1), isNot(state()));
     });
   });
 
   group('readWatchState', () {
     final now = DateTime(2026, 10, 1, 9);
+
+    test('counts the Hevy workouts of the day only', () async {
+      await db.hevyDao.replaceSessions([
+        for (final (day, hour) in [(1, 7), (1, 18), (2, 7)])
+          HevySessionsCompanion.insert(
+            title: 'Push',
+            startedAt: DateTime(2026, 10, day, hour),
+            dayKey: dayKeyOf(DateTime(2026, 10, day, hour)),
+          ),
+      ], importedAt: now);
+
+      final state = await readWatchState(db, now);
+
+      expect(state.hevyWorkouts, 2);
+      expect(state.toChannel()['hevyWorkouts'], 2);
+    });
 
     test(
       'reads the current app day, its goal and the sorted products',
