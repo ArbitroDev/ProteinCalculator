@@ -1424,10 +1424,6 @@
   "@statsDaysAfterWorkout": {
     "description": "Protein per day on the rest days following a workout day."
   },
-  "statsOtherRestDays": "Autres jours de repos",
-  "@statsOtherRestDays": {
-    "description": "Protein per day on the rest days not following a workout day."
-  },
   "statsGoalByWorkout": "Objectif atteint · entraînement / repos",
   "@statsGoalByWorkout": {
     "description": "Share of the days reaching their goal: workout days, then rest days."
@@ -1539,5 +1535,29 @@
         "type": "int"
       }
     }
+  },
+  "statsChoosePeriod": "Choisir la période",
+  "@statsChoosePeriod": {
+    "description": "Screen reader hint of the name of the period shown, which opens its choice."
+  },
+  "statsPickWeek": "Choisis un jour de la semaine",
+  "@statsPickWeek": {
+    "description": "Title of the calendar choosing the week shown by the statistics tab."
+  },
+  "statsPickYear": "Choisis l'année",
+  "@statsPickYear": {
+    "description": "Title of the choice of the year shown by the statistics tab."
+  },
+  "statsPreviousYear": "Année précédente",
+  "@statsPreviousYear": {
+    "description": "Screen reader label of the button showing the months of the previous year."
+  },
+  "statsNextYear": "Année suivante",
+  "@statsNextYear": {
+    "description": "Screen reader label of the button showing the months of the next year."
+  },
+  "statsPickMonth": "Choisis le mois",
+  "@statsPickMonth": {
+    "description": "Title of the choice of the month shown by the statistics tab."
   }
 }

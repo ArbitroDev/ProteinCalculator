@@ -276,7 +276,6 @@
   "statsOnWorkoutDays": "Workout days",
   "statsOnRestDays": "Rest days",
   "statsDaysAfterWorkout": "Days after a workout",
-  "statsOtherRestDays": "Other rest days",
   "statsGoalByWorkout": "Goal reached · workout / rest",
   "statsAfterWorkout": "Within {hours} h after a workout",
   "statsAfterWorkoutFollowed": "{followed, plural, =1{1 of {sessions} workouts followed by {grams} or more} other{{followed} of {sessions} workouts followed by {grams} or more}}",
@@ -292,5 +291,11 @@
   "statsFirstEntry": "first entry",
   "statsTopProducts": "Most used products",
   "statsProductUses": "{count, plural, =1{once} other{{count} times}} · {grams}",
-  "statsMarks": "{count} of {total} days"
+  "statsMarks": "{count} of {total} days",
+  "statsChoosePeriod": "Choose the period",
+  "statsPickWeek": "Pick a day of the week",
+  "statsPickYear": "Pick the year",
+  "statsPreviousYear": "Previous year",
+  "statsNextYear": "Next year",
+  "statsPickMonth": "Pick the month"
 }
