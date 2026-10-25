@@ -602,7 +602,7 @@
   "@privacyScan": {
     "description": "Paragraph of the data and privacy page about barcode scanning."
   },
-  "privacyHevy": "Si tu importes tes séances Hevy, l'app lit le fichier que tu choisis ou partages et n'en garde que la date, le nom et la durée de chaque séance, sur ton téléphone. Rien n'est envoyé.",
+  "privacyHevy": "Si tu importes tes séances Hevy, l'app lit le fichier que tu choisis ou partages et n'en garde que la date, le nom et la durée de chaque séance, sur ton téléphone. Ta montre n'en reçoit que le nombre de séances du jour ; rien n'est envoyé ailleurs.",
   "@privacyHevy": {
     "description": "Paragraph of the data and privacy page about the Hevy workouts import."
   },
