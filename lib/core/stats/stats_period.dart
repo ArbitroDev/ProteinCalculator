@@ -4,11 +4,6 @@ import 'package:protein_calculator/core/domain/app_day.dart';
 /// Length of the periods the statistics tab sums up.
 enum StatsSpan { week, month, year }
 
-/// Key of the app day falling on the calendar date of [date], see
-/// `dayKeyOf`.
-int dayKeyOfDate(DateTime date) =>
-    date.year * 10000 + date.month * 100 + date.day;
-
 /// A week, a month or a year of app days, from [start] (at midnight) to
 /// [end] (excluded).
 ///

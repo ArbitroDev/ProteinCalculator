@@ -677,7 +677,7 @@ class _MonthSection extends StatelessWidget {
                 for (var i = 0; i < blanks; i++) const SizedBox.shrink(),
                 for (var day = 1; day <= length; day++)
                   _dayCell(
-                    month.year * 10000 + month.month * 100 + day,
+                    dayKeyOfDate(DateTime(month.year, month.month, day)),
                     start: start,
                   ),
               ],

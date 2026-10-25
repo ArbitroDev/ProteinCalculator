@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/hevy_dao.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
 
 import 'test_database.dart';
 
@@ -22,7 +23,7 @@ void main() {
         endedAt: Value(
           minutes == null ? null : start.add(Duration(minutes: minutes)),
         ),
-        dayKey: start.year * 10000 + start.month * 100 + start.day,
+        dayKey: dayKeyOfDate(start),
       );
 
   test('an import replaces all workouts', () async {
