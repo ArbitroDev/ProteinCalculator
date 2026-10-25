@@ -73,8 +73,23 @@ No account, no ads, and your data stays on your phone.
 
 **History**
 - Every day with its total, as a list or as a calendar colored by progress
-  toward the goal, or by creatine taken.
+  toward the goal, by creatine taken, or by Hevy workouts.
 - The detail of each day, split into morning, afternoon and evening.
+
+**Statistics**
+- A week, a month or a year at a glance: daily protein average against the
+  goal, days reaching it and streaks, creatine taken and workouts.
+- What they tell together: protein on workout and rest days and after a
+  workout, the days of the week, the parts of the day, the rhythm of your
+  entries and the products you use most.
+
+**Hevy workouts**
+- Import the workouts exported from [Hevy](https://www.hevy.com), by sharing
+  the file from Hevy or picking it in the menu, to see your workout days in
+  the history, the statistics and on the watch.
+- Only the date, the name and the length of each workout are kept, on the
+  phone. Hevy is a trademark of Hevy Studios; Protein Calculator is not
+  affiliated with it.
 
 **Your data**
 - Export all your data to a backup file and import it again, on the same
@@ -92,7 +107,7 @@ The app is available in **English** and **French**.
 | Platform | Status |
 |---|---|
 | **Android** (7.0 and later) | Main platform, published on [Google Play](https://play.google.com/store/apps/details?id=arbitro.android.protein_calculator). |
-| **Wear OS** (3 and later) | Companion app for the watch, installed from Google Play along with the phone app: the day and its entries, a tile telling the progress and whether creatine was taken, a complication, quick additions of saved products or of protein grams, and deletions of entries, even away from the phone. The phone stays the only source of truth. |
+| **Wear OS** (3 and later) | Companion app for the watch, installed from Google Play along with the phone app: the day and its entries, a tile telling the progress, the creatine doses and the Hevy workouts of the day, a complication, quick additions of saved products or of protein grams, and deletions of entries, even away from the phone. The phone stays the only source of truth. |
 | **Web** | Used for development and debugging only. |
 
 ## Privacy
@@ -115,6 +130,10 @@ With a Wear OS watch, the phone and the watch exchange the day, its entries
 and the saved products directly, over Bluetooth or the same Wi-Fi network,
 never through a server. The watch app has no Internet access.
 
+Hevy workouts are read from the file you share or pick, and only their date,
+name and length are kept on the phone; the watch only gets how many there are
+on the current day.
+
 The full privacy policy is in [PRIVACY.md](PRIVACY.md).
 
 ## Tech stack
@@ -133,8 +152,8 @@ The full privacy policy is in [PRIVACY.md](PRIVACY.md).
 
 | Path | Content |
 |---|---|
-| `lib/features` | Screens of the phone app: today, history, products, scan, entry form, menu, onboarding |
-| `lib/core` | Database, domain rules, Open Food Facts client, link with the watch, shared widgets |
+| `lib/features` | Screens of the phone app: today, products, history, statistics, scan, entry form, menu, onboarding, startup error |
+| `lib/core` | Database, domain rules, statistics, Open Food Facts client, Hevy import, link with the watch, shared widgets |
 | `lib/l10n` | English and French translations |
 | `test` | Tests of the phone app |
 | `android/app` | Android project of the phone app |
