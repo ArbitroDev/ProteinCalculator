@@ -40,6 +40,17 @@ class HevyDao extends DatabaseAccessor<AppDatabase> with _$HevyDaoMixin {
             ]))
           .watch();
 
+  /// Workouts of the app days from [fromKey] to [toKey] included, in the
+  /// order they started.
+  Stream<List<HevySession>> watchSessionsBetween(int fromKey, int toKey) =>
+      (select(hevySessions)
+            ..where((s) => s.dayKey.isBetweenValues(fromKey, toKey))
+            ..orderBy([
+              (s) => OrderingTerm.asc(s.startedAt),
+              (s) => OrderingTerm.asc(s.id),
+            ]))
+          .watch();
+
   /// When the latest workout started; null without workouts.
   Future<DateTime?> getLastSessionStart() async {
     final last =

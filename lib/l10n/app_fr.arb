@@ -1233,5 +1233,311 @@
   "hevyErrorDates": "Les dates de ce fichier sont illisibles.",
   "@hevyErrorDates": {
     "description": "Message when the dates of the file chosen for the Hevy import cannot be read."
+  },
+  "tabStats": "Statistiques",
+  "@tabStats": {
+    "description": "Bottom navigation label of the statistics tab."
+  },
+  "statsWeek": "Semaine",
+  "@statsWeek": {
+    "description": "Option of the statistics tab: one week at a time."
+  },
+  "statsMonth": "Mois",
+  "@statsMonth": {
+    "description": "Option of the statistics tab: one month at a time."
+  },
+  "statsYear": "Année",
+  "@statsYear": {
+    "description": "Option of the statistics tab: one year at a time."
+  },
+  "statsWeekOf": "Semaine du {date}",
+  "@statsWeekOf": {
+    "description": "Week shown by the statistics tab, from its first day (\"24 oct.\", \"Oct 24\").",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statsPrevious": "Période précédente",
+  "@statsPrevious": {
+    "description": "Screen reader label of the button showing the previous period of the statistics tab."
+  },
+  "statsNext": "Période suivante",
+  "@statsNext": {
+    "description": "Screen reader label of the button showing the next period of the statistics tab."
+  },
+  "statsEmpty": "Tes statistiques apparaîtront ici après ta première entrée.",
+  "@statsEmpty": {
+    "description": "Statistics tab before any entry."
+  },
+  "statsNoEntry": "Aucune entrée sur cette période.",
+  "@statsNoEntry": {
+    "description": "Statistics tab, period without any entry."
+  },
+  "statsProtein": "Protéines",
+  "@statsProtein": {
+    "description": "Title of the protein card of the statistics tab."
+  },
+  "statsDailyAverage": "moyenne par jour",
+  "@statsDailyAverage": {
+    "description": "Under the average protein grams per day of the statistics tab."
+  },
+  "statsComparedToPreviousWeek": "{delta} par rapport à la semaine précédente",
+  "@statsComparedToPreviousWeek": {
+    "description": "Difference of the daily average with the previous week, already signed (\"+9 g\").",
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "statsComparedTo": "{delta} par rapport à {period}",
+  "@statsComparedTo": {
+    "description": "Difference of the daily average with the previous month or year, already signed (\"+9 g\"); period is the month name (\"septembre\") or the year.",
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      },
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "statsGoalReached": "objectif atteint · {percent}",
+  "@statsGoalReached": {
+    "description": "Under the days reaching their goal (\"17 / 25\"), their share, already formatted.",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "statsDayCount": "{count} j",
+  "@statsDayCount": {
+    "description": "A number of days in a row, short.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsCurrentStreak": "série en cours",
+  "@statsCurrentStreak": {
+    "description": "Under the days in a row going on up to today."
+  },
+  "statsBestStreak": "meilleure série",
+  "@statsBestStreak": {
+    "description": "Under the most days in a row of the period."
+  },
+  "statsCreatineDays": "jours · {percent}",
+  "@statsCreatineDays": {
+    "description": "Under the days creatine was taken (\"22 / 25\"), their share, already formatted.",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "statsDosesLabel": "{count, plural, =1{dose} other{doses}}",
+  "@statsDosesLabel": {
+    "description": "Under the number of creatine doses of the period.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsNoCreatine": "Aucune dose sur cette période.",
+  "@statsNoCreatine": {
+    "description": "Creatine card of the statistics tab, period without any dose."
+  },
+  "statsWorkouts": "Entraînements",
+  "@statsWorkouts": {
+    "description": "Title of the Hevy workouts card of the statistics tab."
+  },
+  "statsSessionsLabel": "{count, plural, =1{séance} other{séances}}",
+  "@statsSessionsLabel": {
+    "description": "Under the number of Hevy workouts of the period.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsWorkoutDaysLabel": "{count, plural, =1{jour d'entraînement} other{jours d'entraînement}}",
+  "@statsWorkoutDaysLabel": {
+    "description": "Under the number of days with a Hevy workout.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsPerWeek": "par semaine",
+  "@statsPerWeek": {
+    "description": "Under the number of workouts per week."
+  },
+  "statsAverageLength": "durée moyenne",
+  "@statsAverageLength": {
+    "description": "Under the average length of the workouts."
+  },
+  "statsWorkoutDays": "{count, plural, =1{1 jour d'entraînement} other{{count} jours d'entraînement}}",
+  "@statsWorkoutDays": {
+    "description": "Days with a Hevy workout in the period.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsTotalLength": "{length} au total",
+  "@statsTotalLength": {
+    "description": "Length of all the workouts of the period, already formatted (\"15 h 40\").",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "statsNoWorkout": "Aucune séance sur cette période.",
+  "@statsNoWorkout": {
+    "description": "Workouts card of the statistics tab, period without any workout."
+  },
+  "statsInsights": "Croisements",
+  "@statsInsights": {
+    "description": "Title of the card of the statistics tab crossing protein, creatine and workouts."
+  },
+  "statsProteinAndWorkouts": "Protéines et entraînement",
+  "@statsProteinAndWorkouts": {
+    "description": "Section of the insights card."
+  },
+  "statsOnWorkoutDays": "Jours d'entraînement",
+  "@statsOnWorkoutDays": {
+    "description": "Protein per day on the days with a Hevy workout."
+  },
+  "statsOnRestDays": "Jours de repos",
+  "@statsOnRestDays": {
+    "description": "Protein per day on the days without a Hevy workout."
+  },
+  "statsDaysAfterWorkout": "Lendemains d'entraînement",
+  "@statsDaysAfterWorkout": {
+    "description": "Protein per day on the rest days following a workout day."
+  },
+  "statsOtherRestDays": "Autres jours de repos",
+  "@statsOtherRestDays": {
+    "description": "Protein per day on the rest days not following a workout day."
+  },
+  "statsGoalByWorkout": "Objectif atteint · entraînement / repos",
+  "@statsGoalByWorkout": {
+    "description": "Share of the days reaching their goal: workout days, then rest days."
+  },
+  "statsAfterWorkout": "Dans les {hours} h après une séance",
+  "@statsAfterWorkout": {
+    "description": "Average protein grams taken in the hours after a workout.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "statsAfterWorkoutFollowed": "{followed, plural, =1{1 séance sur {sessions} suivie d'au moins {grams}} other{{followed} séances sur {sessions} suivies d'au moins {grams}}}",
+  "@statsAfterWorkoutFollowed": {
+    "description": "Workouts followed by enough protein in the hours after them; grams already formatted (\"20 g\").",
+    "placeholders": {
+      "followed": {
+        "type": "int"
+      },
+      "sessions": {
+        "type": "int"
+      },
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "statsCreatineByWorkout": "Prise les jours d'entraînement / repos",
+  "@statsCreatineByWorkout": {
+    "description": "Share of the days creatine was taken: workout days, then rest days."
+  },
+  "statsCompleteDays": "Jours complets (objectif + créatine)",
+  "@statsCompleteDays": {
+    "description": "Days reaching their goal with creatine taken."
+  },
+  "statsWeekdays": "Jours de la semaine",
+  "@statsWeekdays": {
+    "description": "Section of the insights card: protein per day of each weekday."
+  },
+  "statsBestWeekday": "Meilleur jour : {day} · {grams}",
+  "@statsBestWeekday": {
+    "description": "Weekday of the most protein on average; day in lower case in French (\"dimanche\").",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "statsLowestWeekday": "Le plus faible : {day} · {grams}",
+  "@statsLowestWeekday": {
+    "description": "Weekday of the least protein on average.",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "statsDayParts": "Moments de la journée",
+  "@statsDayParts": {
+    "description": "Section of the insights card: share of the protein of each part of the day."
+  },
+  "statsRhythm": "Rythme",
+  "@statsRhythm": {
+    "description": "Section of the insights card: entries per day, grams per entry, first entry."
+  },
+  "statsEntriesPerDay": "entrées par jour",
+  "@statsEntriesPerDay": {
+    "description": "Under the average number of entries per day."
+  },
+  "statsPerEntry": "par entrée",
+  "@statsPerEntry": {
+    "description": "Under the average protein grams of an entry."
+  },
+  "statsFirstEntry": "1re entrée",
+  "@statsFirstEntry": {
+    "description": "Under the average time of the first entry of a day."
+  },
+  "statsTopProducts": "Produits les plus utilisés",
+  "@statsTopProducts": {
+    "description": "Section of the insights card: the names entered most often."
+  },
+  "statsProductUses": "{count, plural, =1{1 fois} other{{count} fois}} · {grams}",
+  "@statsProductUses": {
+    "description": "Uses of a product in the period and their protein, already formatted.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "statsMarks": "{count} jours sur {total}",
+  "@statsMarks": {
+    "description": "Screen reader summary of a row of days: those marked among those counted.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   }
 }
