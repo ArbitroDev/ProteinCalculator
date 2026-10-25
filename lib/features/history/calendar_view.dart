@@ -124,13 +124,12 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final today = dateOfDayKey(todayKey);
     // From the first day the app was used, or the oldest entry, added
     // afterwards for an earlier day.
-    final first = dateOfDayKey(
-      firstAppDayKey(
-        todayKey: todayKey,
-        firstGoalDayKey: goals.isEmpty ? null : goals.first.dayKey,
-        entryDayKeys: days.map((day) => day.dayKey),
-      ),
+    final firstKey = firstAppDayKey(
+      todayKey: todayKey,
+      firstGoalDayKey: goals.isEmpty ? null : goals.first.dayKey,
+      entryDayKeys: days.map((day) => day.dayKey),
     );
+    final first = dateOfDayKey(firstKey);
     final count =
         (today.year - first.year) * 12 + today.month - first.month + 1;
     final totals = {for (final day in days) day.dayKey: day.proteinGrams};
@@ -238,6 +237,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                             child: _MonthSection(
                               month: monthAt(index),
                               todayKey: todayKey,
+                              firstKey: firstKey,
                               totals: totals,
                               creatineDays: creatineDays,
                               hevyDays: hevyDays,
@@ -578,6 +578,7 @@ class _MonthSection extends StatelessWidget {
   const _MonthSection({
     required this.month,
     required this.todayKey,
+    required this.firstKey,
     required this.totals,
     required this.creatineDays,
     required this.hevyDays,
@@ -589,6 +590,10 @@ class _MonthSection extends StatelessWidget {
 
   final DateTime month;
   final int todayKey;
+
+  /// First app day, see `firstAppDayKey`: the days from it to today are
+  /// colored, those without entries as days of 0 g.
+  final int firstKey;
 
   /// Protein grams of each app day having entries.
   final Map<int, double> totals;
@@ -640,7 +645,6 @@ class _MonthSection extends StatelessWidget {
       MaterialLocalizations.of(context).firstDayOfWeekIndex,
     );
     final length = DateTime(month.year, month.month + 1, 0).day;
-    final start = goals.isEmpty ? null : goals.first.dayKey;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,7 +682,6 @@ class _MonthSection extends StatelessWidget {
                 for (var day = 1; day <= length; day++)
                   _dayCell(
                     dayKeyOfDate(DateTime(month.year, month.month, day)),
-                    start: start,
                   ),
               ],
             );
@@ -688,17 +691,14 @@ class _MonthSection extends StatelessWidget {
     );
   }
 
-  Widget _dayCell(int dayKey, {required int? start}) {
+  Widget _dayCell(int dayKey) {
     final total = totals[dayKey];
     final goal = goalOn(dayKey, goals);
     final workedOut = hevyDays.contains(dayKey);
-    // Days to come, and those before the app was used, have no color, but
-    // for the days given entries afterwards, or holding a workout: they count
-    // with the first goal.
-    final tracked =
-        dayKey <= todayKey &&
-        goal != null &&
-        (total != null || workedOut || start != null && dayKey >= start);
+    // Days to come, and those before the app was used, have no color. From
+    // the first app day, those without entries count as days of 0 g, as in
+    // the statistics, the days before the first goal with it.
+    final tracked = dayKey <= todayKey && goal != null && dayKey >= firstKey;
     return _DayCell(
       dayKey: dayKey,
       progress: tracked ? DayProgress.of(total ?? 0, goal) : null,

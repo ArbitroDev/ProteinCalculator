@@ -189,6 +189,8 @@ void main() {
       await showSeptember(tester);
 
       expect(day('Thursday, September 10, Goal reached'), findsWidgets);
+      // The days in between count from then on, as days of 0 g.
+      expect(day('Friday, September 11, None taken'), findsWidgets);
       await tester.scrollUntilVisible(
         find.text('August 2026'),
         300,
