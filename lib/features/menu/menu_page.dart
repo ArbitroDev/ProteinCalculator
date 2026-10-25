@@ -211,10 +211,8 @@ Future<void> _showSheet(BuildContext context, Widget sheet) =>
       useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: AppColors.of(context).background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
+      // Its color and shape come from the theme, read again when it changes
+      // while the sheet is open.
       // The safe area of the sheet leaves its bottom to it: its content
       // keeps clear of the Android navigation bar, the sheet itself going
       // under it.

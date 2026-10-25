@@ -230,6 +230,14 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: colors.background,
       textTheme: textTheme,
       extensions: [colors],
+      // The sheets of the menu, on the page background.
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colors.background,
+        modalBackgroundColor: colors.background,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: colors.background,
         foregroundColor: colors.text,
