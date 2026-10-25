@@ -192,4 +192,81 @@ void main() {
     expect(tester.takeException(), isNull);
     await disposeApp(tester, db);
   });
+
+  testWidgets('the period stays at the top while the cards scroll', (
+    tester,
+  ) async {
+    holdUpright(tester);
+    await addOctober();
+    await openStats(tester);
+
+    final month = find.text('Month');
+    final period = find.text('October 2026');
+    final spansTop = tester.getTopLeft(month).dy;
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    // The span scrolled away, the period took its place at the top.
+    expect(month.hitTestable(), findsNothing);
+    expect(period.hitTestable(), findsOneWidget);
+    expect(tester.getTopLeft(period).dy, lessThan(spansTop + 20));
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('picks a month from the name of the period', (tester) async {
+    holdUpright(tester);
+    await addOctober();
+    await db.settingsDao.setDailyGoal(100, now: DateTime(2026, 8, 1, 9));
+    await openStats(tester);
+
+    await tester.tap(find.text('October 2026'));
+    await tester.pumpAndSettle();
+    // From August, the first month of the app, to October.
+    expect(find.text('Jul'), findsOneWidget);
+    await tester.tap(find.text('Jul'));
+    await tester.pumpAndSettle();
+    expect(find.text('Jul'), findsOneWidget);
+
+    await tester.tap(find.text('Aug'));
+    await tester.pumpAndSettle();
+    expect(find.text('August 2026'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('picks a week from one of its days', (tester) async {
+    holdUpright(tester);
+    await addOctober();
+    await openStats(tester);
+    await tester.tap(find.text('Week'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Week of Oct 4'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pick a day of the week'), findsOneWidget);
+    await tester.tap(find.text('2'));
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    // Friday, October 2: the week from Sunday, September 27.
+    expect(find.text('Week of Sep 27'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('picks a year', (tester) async {
+    holdUpright(tester);
+    await addOctober();
+    await openStats(tester);
+    await tester.tap(find.text('Year'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('2026'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pick the year'), findsOneWidget);
+    await tester.tap(find.text('2026').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pick the year'), findsNothing);
+    expect(find.text('2026'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
 }

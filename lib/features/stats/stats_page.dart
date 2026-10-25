@@ -38,6 +38,41 @@ class _StatsPageState extends ConsumerState<StatsPage> {
       .read(statsDateProvider.notifier)
       .show(period.contains(todayKey) ? null : period.start);
 
+  /// Lets the user pick the period to show among those from the first app
+  /// day to today: a day of the week, a month of a year, or a year.
+  Future<void> _choose(
+    StatsPeriod period, {
+    required int firstKey,
+    required DateTime today,
+  }) async {
+    final first = dateOfDayKey(firstKey);
+    final firstWeekday = MaterialLocalizations.of(context).firstDayOfWeekIndex;
+    final DateTime? picked;
+    if (period.span == StatsSpan.week) {
+      final l10n = AppLocalizations.of(context);
+      final start = period.start.isBefore(first) ? first : period.start;
+      picked = await showDatePicker(
+        context: context,
+        initialDate: start.isAfter(today) ? today : start,
+        firstDate: first,
+        lastDate: today,
+        helpText: l10n.statsPickWeek,
+      );
+    } else {
+      // Centered, as the calendar of a week.
+      picked = await showDialog<DateTime>(
+        context: context,
+        builder: (context) =>
+            _PeriodPicker(period: period, first: first, today: today),
+      );
+    }
+    if (picked == null || !mounted) return;
+    _show(
+      StatsPeriod.containing(period.span, picked, firstWeekday: firstWeekday),
+      dayKeyOfDate(today),
+    );
+  }
+
   void _selectSpan(StatsSpan span, StatsPeriod period, int todayKey) {
     // The current period stays current; another one gives its middle.
     ref
@@ -86,23 +121,22 @@ class _StatsPageState extends ConsumerState<StatsPage> {
       final canGoBack = period.firstKey > firstKey;
       final canGoForward = period.lastKey < todayKey;
 
-      final header = [
-        PillTabs(
-          labels: {
-            StatsSpan.week: l10n.statsWeek,
-            StatsSpan.month: l10n.statsMonth,
-            StatsSpan.year: l10n.statsYear,
-          },
-          selected: span,
-          onChanged: (value) => _selectSpan(value, period, todayKey),
-        ),
-        _PeriodBar(
-          period: period,
-          today: today,
-          onPrevious: canGoBack ? () => _show(period.previous, todayKey) : null,
-          onNext: canGoForward ? () => _show(period.next, todayKey) : null,
-        ),
-      ];
+      final spans = PillTabs(
+        labels: {
+          StatsSpan.week: l10n.statsWeek,
+          StatsSpan.month: l10n.statsMonth,
+          StatsSpan.year: l10n.statsYear,
+        },
+        selected: span,
+        onChanged: (value) => _selectSpan(value, period, todayKey),
+      );
+      final periodBar = _PeriodBar(
+        period: period,
+        today: today,
+        onPrevious: canGoBack ? () => _show(period.previous, todayKey) : null,
+        onNext: canGoForward ? () => _show(period.next, todayKey) : null,
+        onChoose: () => _choose(period, firstKey: firstKey, today: today),
+      );
       body = stats == null
           ? const SizedBox.shrink()
           : GestureDetector(
@@ -116,7 +150,8 @@ class _StatsPageState extends ConsumerState<StatsPage> {
               },
               child: _StatsContent(
                 stats: stats,
-                header: header,
+                spans: spans,
+                periodBar: periodBar,
                 todayKey: todayKey,
               ),
             );
@@ -143,12 +178,16 @@ class _PeriodBar extends StatelessWidget {
     required this.today,
     required this.onPrevious,
     required this.onNext,
+    required this.onChoose,
   });
 
   final StatsPeriod period;
   final DateTime today;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
+
+  /// Opens the choice of the period, when its name is tapped.
+  final VoidCallback onChoose;
 
   @override
   Widget build(BuildContext context) {
@@ -171,12 +210,39 @@ class _PeriodBar extends StatelessWidget {
             icon: const Icon(LucideIcons.chevronLeft),
           ),
           Expanded(
-            child: Semantics(
-              liveRegion: true,
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium,
+            child: Center(
+              child: Semantics(
+                liveRegion: true,
+                button: true,
+                hint: l10n.statsChoosePeriod,
+                child: InkWell(
+                  onTap: onChoose,
+                  customBorder: const StadiumBorder(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            label,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          LucideIcons.chevronDown,
+                          size: 18,
+                          color: AppColors.of(context).textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -191,17 +257,168 @@ class _PeriodBar extends StatelessWidget {
   }
 }
 
-/// The cards of a period, under [header]: in one column, or in landscape in
-/// two of the same width, the protein beside the rest.
+/// Centered window of the months of a year, or of the years, to pick the
+/// period to show from: those
+/// from [first] to [today], the one of [period] selected.
+class _PeriodPicker extends StatefulWidget {
+  const _PeriodPicker({
+    required this.period,
+    required this.first,
+    required this.today,
+  });
+
+  final StatsPeriod period;
+  final DateTime first;
+  final DateTime today;
+
+  @override
+  State<_PeriodPicker> createState() => _PeriodPickerState();
+}
+
+class _PeriodPickerState extends State<_PeriodPicker> {
+  /// Year whose months are shown.
+  late int _year = widget.period.start.year;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final locale = context.localeName;
+    final first = widget.first;
+    final today = widget.today;
+    final months = widget.period.span == StatsSpan.month;
+
+    Widget option(String label, DateTime value, {required bool enabled}) {
+      final selected = months
+          ? widget.period.start.year == value.year &&
+                widget.period.start.month == value.month
+          : widget.period.start.year == value.year;
+      return Semantics(
+        selected: selected,
+        child: Material(
+          color: selected ? AppColors.selection : colors.surface,
+          shape: const StadiumBorder(),
+          child: InkWell(
+            customBorder: const StadiumBorder(),
+            onTap: enabled ? () => Navigator.of(context).pop(value) : null,
+            child: Center(
+              child: Text(
+                label,
+                style: textTheme.bodyLarge!.copyWith(
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected
+                      ? AppColors.onAccent
+                      : enabled
+                      ? colors.text
+                      : colors.textSecondary.withValues(alpha: 0.4),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final name = DateFormat.MMM(locale);
+    final options = months
+        ? [
+            for (var month = 1; month <= 12; month++)
+              option(
+                toBeginningOfSentenceCase(name.format(DateTime(_year, month))),
+                DateTime(_year, month),
+                enabled:
+                    !DateTime(
+                      _year,
+                      month + 1,
+                    ).isBefore(DateTime(first.year, first.month + 1)) &&
+                    !DateTime(_year, month).isAfter(today),
+              ),
+          ]
+        : [
+            for (var year = first.year; year <= today.year; year++)
+              option('$year', DateTime(year), enabled: true),
+          ];
+
+    return Dialog(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              months ? l10n.statsPickMonth : l10n.statsPickYear,
+              style: textTheme.titleSmall!.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (months)
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: _year > first.year
+                        ? () => setState(() => _year--)
+                        : null,
+                    tooltip: l10n.statsPreviousYear,
+                    icon: const Icon(LucideIcons.chevronLeft),
+                  ),
+                  Expanded(
+                    child: Text(
+                      '$_year',
+                      textAlign: TextAlign.center,
+                      style: textTheme.titleMedium,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _year < today.year
+                        ? () => setState(() => _year++)
+                        : null,
+                    tooltip: l10n.statsNextYear,
+                    icon: const Icon(LucideIcons.chevronRight),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 8),
+            GridView.count(
+              crossAxisCount: months ? 4 : 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: months ? 1.6 : 2.2,
+              children: options,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.cancel),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The cards of a period, under the choice of the [spans] and the
+/// [periodBar], which stays at the top once scrolled to: in one column, or in
+/// landscape in two of the same width, the protein beside the rest.
 class _StatsContent extends ConsumerWidget {
   const _StatsContent({
     required this.stats,
-    required this.header,
+    required this.spans,
+    required this.periodBar,
     required this.todayKey,
   });
 
   final PeriodStats stats;
-  final List<Widget> header;
+  final Widget spans;
+  final Widget periodBar;
   final int todayKey;
 
   @override
@@ -245,31 +462,92 @@ class _StatsContent extends ConsumerWidget {
         _InsightsCard(stats: stats.cross, goal: stats.protein.averageGoal),
     ];
 
-    const padding = EdgeInsets.fromLTRB(18, 0, 18, 24);
+    // The span scrolls away with the cards, which it changes the look of;
+    // the period stays at the top, so that it can change while a card is
+    // read.
+    final background = AppColors.of(context).background;
+    Widget scroll(List<Widget> cards, {required EdgeInsets padding}) =>
+        CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(padding.left, 0, padding.right, 0),
+              sliver: SliverToBoxAdapter(child: spans),
+            ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _PinnedBar(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    padding.left,
+                    0,
+                    padding.right,
+                    0,
+                  ),
+                  child: periodBar,
+                ),
+                color: background,
+              ),
+            ),
+            SliverPadding(
+              padding: padding,
+              sliver: SliverList.list(children: cards),
+            ),
+          ],
+        );
+
     if (MediaQuery.orientationOf(context) == Orientation.landscape) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: ListView(
-              padding: padding.copyWith(right: 8),
-              children: [...header, ...main],
+            child: scroll(
+              main,
+              padding: const EdgeInsets.fromLTRB(18, 4, 8, 24),
             ),
           ),
           Expanded(
             child: ListView(
-              padding: padding.copyWith(left: 8, top: 8),
+              padding: const EdgeInsets.fromLTRB(8, 8, 18, 24),
               children: others,
             ),
           ),
         ],
       );
     }
-    return ListView(
-      padding: padding,
-      children: [...header, ...main, ...others],
-    );
+    return scroll([
+      ...main,
+      ...others,
+    ], padding: const EdgeInsets.fromLTRB(18, 4, 18, 24));
   }
+}
+
+/// The [child] of a scroll view staying at its top once scrolled to, on the
+/// [color] of the page so that what scrolls under it does not show.
+class _PinnedBar extends SliverPersistentHeaderDelegate {
+  const _PinnedBar({required this.child, required this.color});
+
+  final Widget child;
+  final Color color;
+
+  /// Height of the period bar: its buttons and their padding.
+  static const _height = 60.0;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => ColoredBox(color: color, child: child);
+
+  @override
+  bool shouldRebuild(_PinnedBar oldDelegate) =>
+      oldDelegate.child != child || oldDelegate.color != color;
 }
 
 /// Grams rounded to the unit, for averages: "136 g".
@@ -569,8 +847,7 @@ class _InsightsCard extends StatelessWidget {
     final top = [
       ?byWorkout?.first,
       ?byWorkout?.second,
-      ?afterDay?.first,
-      ?afterDay?.second,
+      ?afterDay,
     ].fold(0.0, (a, b) => a > b ? a : b);
     double fraction(double value) => top <= 0 ? 0 : value / top;
     final workoutRows = <Widget>[
@@ -588,20 +865,13 @@ class _InsightsCard extends StatelessWidget {
           color: AppColors.progressHalf,
         ),
       ],
-      if (afterDay != null) ...[
+      if (afterDay != null)
         CompareBar(
           label: l10n.statsDaysAfterWorkout,
-          value: grams(afterDay.first),
-          fraction: fraction(afterDay.first),
-          color: AppColors.accent,
-        ),
-        CompareBar(
-          label: l10n.statsOtherRestDays,
-          value: grams(afterDay.second),
-          fraction: fraction(afterDay.second),
+          value: grams(afterDay),
+          fraction: fraction(afterDay),
           color: AppColors.progressHalf,
         ),
-      ],
       if (stats.goalShareByWorkout case final shares?)
         StatsValueRow(
           label: l10n.statsGoalByWorkout,

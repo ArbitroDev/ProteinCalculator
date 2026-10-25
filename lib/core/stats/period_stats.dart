@@ -243,9 +243,9 @@ class CrossStats {
   /// Share of the days reaching their goal: workout days, then rest days.
   final StatsComparison? goalShareByWorkout;
 
-  /// Protein grams per day: rest days following a workout day, then the
-  /// other rest days.
-  final StatsComparison? proteinAfterWorkoutDay;
+  /// Protein grams per day of the rest days following a workout day; null
+  /// with fewer than [minCompareDays] of them.
+  final double? proteinAfterWorkoutDay;
 
   /// Protein grams taken within [postWorkoutWindow] after a workout, on
   /// average, and how many of the [sessions] were followed by
@@ -493,9 +493,6 @@ CrossStats _cross({
   final afterWorkout = restDays
       .where((dayKey) => workoutDays.contains(previousDayKey(dayKey)))
       .toList();
-  final otherRest = restDays
-      .whereNot((dayKey) => workoutDays.contains(previousDayKey(dayKey)))
-      .toList();
   double reachedShare(int dayKey) => reachedDays.contains(dayKey) ? 1 : 0;
   double takenShare(int dayKey) => takenDays.contains(dayKey) ? 1 : 0;
 
@@ -619,8 +616,8 @@ CrossStats _cross({
     goalShareByWorkout: hevy
         ? _compare(trainingDays, restDays, reachedShare)
         : null,
-    proteinAfterWorkoutDay: hevy
-        ? _compare(afterWorkout, otherRest, gramsOf)
+    proteinAfterWorkoutDay: hevy && afterWorkout.length >= minCompareDays
+        ? average(afterWorkout)
         : null,
     postWorkout: postWorkout,
     creatineByWorkout: hevy

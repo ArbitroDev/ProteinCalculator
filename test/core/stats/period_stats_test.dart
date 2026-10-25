@@ -284,10 +284,8 @@ void main() {
         expect(stats.proteinByWorkout!.second, closeTo(490 / 7, 1e-9));
         expect(stats.goalShareByWorkout!.first, 1);
         expect(stats.goalShareByWorkout!.second, closeTo(4 / 7, 1e-9));
-        // The 3rd, 6th and 10th follow a workout; the 1st, 4th, 7th and 8th
-        // do not.
-        expect(stats.proteinAfterWorkoutDay!.first, closeTo(190 / 3, 1e-9));
-        expect(stats.proteinAfterWorkoutDay!.second, 75);
+        // The 3rd, 6th and 10th follow a workout.
+        expect(stats.proteinAfterWorkoutDay, closeTo(190 / 3, 1e-9));
       });
 
       test('sums the protein taken in the hours after a workout', () {
