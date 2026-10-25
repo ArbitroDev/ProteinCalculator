@@ -77,6 +77,20 @@ void main() {
     ]);
   });
 
+  test('keeps the titles without spaces around, cut if too long', () async {
+    final workouts = await parseHevyCsv(
+      [
+        _header,
+        _set('  Push ', '23 oct. 2026, 11:48', '23 oct. 2026, 12:12'),
+        _set('x' * 120, '25 oct. 2026, 18:00', '25 oct. 2026, 19:05'),
+      ].join('\n'),
+    );
+
+    expect(workouts.first.title, 'Push');
+    expect(workouts.last.title, 'x' * maxWorkoutTitleLength);
+    expect(workouts.every((w) => isValidWorkoutTitle(w.title)), isTrue);
+  });
+
   test('reads a header-only export as no workouts', () async {
     expect(await parseHevyCsv(_header), isEmpty);
     expect(await parseHevyCsv('$_header\n'), isEmpty);
