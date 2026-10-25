@@ -17,6 +17,7 @@ import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/quantity_unit.dart';
+import 'package:protein_calculator/core/hevy/hevy_csv.dart';
 
 /// Identifies Protein Calculator backup files.
 const backupFormat = 'protein-calculator';
@@ -358,8 +359,12 @@ GoalChangesCompanion _goalChange(Map<String, dynamic> g) {
 HevySessionsCompanion _hevySession(Map<String, dynamic> s) {
   final dayKey = s['dayKey'] as int;
   if (!isValidDayKey(dayKey)) throw const InvalidBackupException('invalid day');
+  final title = s['title'] as String;
+  if (!isValidWorkoutTitle(title)) {
+    throw const InvalidBackupException('invalid workout title');
+  }
   return HevySessionsCompanion.insert(
-    title: s['title'] as String,
+    title: title,
     startedAt: DateTime.parse(s['startedAt'] as String).toLocal(),
     endedAt: Value(_optionalDate(s['endedAt'])),
     dayKey: dayKey,

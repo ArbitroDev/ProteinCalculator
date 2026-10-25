@@ -6,6 +6,7 @@ library;
 
 import 'dart:ui';
 
+import 'package:characters/characters.dart';
 import 'package:csv/csv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
@@ -46,6 +47,21 @@ class HevyWorkout {
   /// How long the workout lasted, see [workoutDuration].
   Duration? get duration => workoutDuration(start, end);
 }
+
+/// Longest name of a workout kept, in characters as the user sees them.
+const maxWorkoutTitleLength = 100;
+
+/// Name kept of a workout named [title] in the file: without spaces around
+/// it, cut to [maxWorkoutTitleLength].
+String workoutTitle(String title) {
+  final trimmed = title.trim().characters;
+  return trimmed.length <= maxWorkoutTitleLength
+      ? trimmed.string
+      : trimmed.take(maxWorkoutTitleLength).string.trimRight();
+}
+
+/// Whether [title] can name a workout, as [workoutTitle] keeps them.
+bool isValidWorkoutTitle(String title) => workoutTitle(title) == title;
 
 /// How long a workout from [start] to [end] lasted; null when the end is
 /// missing or not after the start.
@@ -90,7 +106,7 @@ Future<List<HevyWorkout>> parseHevyCsv(String content) async {
   return [
     for (final (title, start, end) in sessions)
       HevyWorkout(
-        title: title,
+        title: workoutTitle(title),
         // A start that cannot be read refuses the file, but without a
         // readable end the workout still counts for its day.
         start:

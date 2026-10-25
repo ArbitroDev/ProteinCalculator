@@ -345,6 +345,18 @@ void main() {
       );
     });
 
+    test('backup rejects an invalid workout title', () async {
+      for (final title in [' Push', 'x' * 101]) {
+        final json = jsonDecode(await export()) as Map<String, dynamic>;
+        rows(json, 'hevySessions').first['title'] = title;
+
+        expect(
+          () => parseBackup(jsonEncode(json)),
+          throwsA(isA<InvalidBackupException>()),
+        );
+      }
+    });
+
     test('backup rejects workouts without an import date', () async {
       final json = jsonDecode(await export()) as Map<String, dynamic>;
       (json['settings'] as Map<String, dynamic>)['hevyImportedAt'] = null;
