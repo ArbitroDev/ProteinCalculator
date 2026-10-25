@@ -7,7 +7,7 @@ import 'package:protein_calculator/core/widgets/shaker_icon.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// Tab bar scaffold shared by the four main tabs.
+/// Tab bar scaffold shared by the five main tabs.
 class HomeShell extends StatelessWidget {
   const HomeShell({super.key, required this.navigationShell});
 
@@ -32,8 +32,9 @@ class HomeShell extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final tabs = [
       (const ShakerIcon(), l10n.tabToday),
-      (const Icon(LucideIcons.history), l10n.tabHistory),
       (const Icon(LucideIcons.shoppingBasket), l10n.tabProducts),
+      (const Icon(LucideIcons.history), l10n.tabHistory),
+      (const Icon(LucideIcons.chartColumn), l10n.tabStats),
       (const Icon(LucideIcons.menu), l10n.tabMenu),
     ];
     final bar = _TabBar(
@@ -87,19 +88,44 @@ class _TabBar extends StatelessWidget {
   /// Thickness of the pill and size of the add button.
   static const _thickness = 60.0;
 
-  /// Length of a tab in the vertical pill.
+  /// Length of a tab in the vertical pill, shortened down to
+  /// [_minTabLength] on a screen too low for all the tabs.
   static const _tabLength = 46.0;
+  static const _minTabLength = 40.0;
   static const _gap = 4.0;
 
   @override
   Widget build(BuildContext context) {
+    if (!vertical) return _build(context, _tabLength);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Room left for the tabs once the system bars, the padding, the add
+        // button, the space before it and the padding of the pill are set
+        // aside.
+        final room =
+            constraints.maxHeight -
+            MediaQuery.paddingOf(context).vertical -
+            24 -
+            _thickness -
+            12 -
+            12 +
+            _gap;
+        return _build(
+          context,
+          (room / tabs.length - _gap).clamp(_minTabLength, _tabLength),
+        );
+      },
+    );
+  }
+
+  Widget _build(BuildContext context, double tabLength) {
     final colors = AppColors.of(context);
     final direction = vertical ? Axis.vertical : Axis.horizontal;
 
     final pill = Container(
       width: vertical ? _thickness : null,
       height: vertical
-          ? tabs.length * (_tabLength + _gap) - _gap + 12
+          ? tabs.length * (tabLength + _gap) - _gap + 12
           : _thickness,
       padding: const EdgeInsets.all(6),
       decoration: ShapeDecoration(

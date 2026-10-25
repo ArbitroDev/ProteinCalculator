@@ -63,4 +63,17 @@ void main() {
     expect(await dao.watchImportedAt().first, equals(null));
     expect(await dao.getLastSessionStart(), equals(null));
   });
+
+  test('reads the workouts of a range of days', () async {
+    await dao.replaceSessions([
+      session('Legs', DateTime(2026, 10, 25, 18)),
+      session('Push', DateTime(2026, 10, 20, 18), minutes: 60),
+      session('Pull', DateTime(2026, 10, 22, 7), minutes: 60),
+      session('Arms', DateTime(2026, 10, 22, 18), minutes: 45),
+    ], importedAt: importedAt);
+
+    final sessions = await dao.watchSessionsBetween(20261020, 20261022).first;
+
+    expect(sessions.map((s) => s.title), ['Push', 'Pull', 'Arms']);
+  });
 }

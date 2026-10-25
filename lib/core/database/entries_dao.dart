@@ -98,6 +98,18 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     return query.watch();
   }
 
+  /// Entries of the app days from [fromKey] to [toKey] included, in the
+  /// order they were added.
+  Stream<List<Entry>> watchEntriesBetween(int fromKey, int toKey) {
+    final query = select(entries)
+      ..where((e) => e.dayKey.isBetweenValues(fromKey, toKey))
+      ..orderBy([
+        (e) => OrderingTerm.asc(e.createdAt),
+        (e) => OrderingTerm.asc(e.id),
+      ]);
+    return query.watch();
+  }
+
   /// Parts of the days from [dayKey] onwards having at least one entry of
   /// protein, as `(dayKey, slot)`: creatine taken on its own does not fill
   /// them.
