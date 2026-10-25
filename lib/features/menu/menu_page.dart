@@ -178,6 +178,30 @@ Future<void> _editCreatineDose(BuildContext context, double grams) =>
 Future<void> _showHevy(BuildContext context) =>
     _showSheet(context, const _HevySheet());
 
+/// Lets the user pick a Hevy export, then imports it, from the card of the
+/// menu or its sheet.
+Future<void> _importHevyFile(BuildContext context, WidgetRef ref) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final l10n = AppLocalizations.of(context);
+  final clock = ref.read(clockProvider);
+  final content = await runUserAction(
+    messenger,
+    l10n,
+    () => pickHevyFile(messenger, l10n),
+  );
+  if (content == null || !context.mounted) return;
+  await runHevyImport(
+    context: context,
+    db: ref.read(databaseProvider),
+    messenger: messenger,
+    l10n: l10n,
+    firstDayKey: ref.read(firstAppDayKeyProvider),
+    todayKey: ref.read(currentDayKeyProvider).value ?? dayKeyOf(clock()),
+    content: content,
+    clock: clock,
+  );
+}
+
 /// Shows [sheet] at the bottom of the screen, over the tab bar, which would
 /// otherwise stay around it and take taps, and as tall as its content,
 /// which scrolls on short screens.
@@ -378,19 +402,39 @@ class _CreatineDoseSheetState extends ConsumerState<_CreatineDoseSheet> {
   }
 }
 
-/// Card opening the Hevy sheet, with what was imported once something was.
-/// Always there, even while nothing is imported: it is the way in.
-class _HevyCard extends ConsumerWidget {
+/// Card opening the Hevy sheet, with what was imported once something was,
+/// and importing a file at once from its button. Always there, even while
+/// nothing is imported: it is the way in.
+class _HevyCard extends ConsumerStatefulWidget {
   const _HevyCard();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_HevyCard> createState() => _HevyCardState();
+}
+
+class _HevyCardState extends ConsumerState<_HevyCard> {
+  /// Whether a file is being chosen or imported: the button waits.
+  bool _busy = false;
+
+  Future<void> _import() async {
+    setState(() => _busy = true);
+    try {
+      await _importHevyFile(context, ref);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     final importedAt = ref.watch(hevyImportedAtProvider).value;
     final days = ref.watch(shownHevyDaysProvider).length;
 
+    // A tap anywhere shows what is imported; the import button, set apart by
+    // a line, picks a file at once.
     return Material(
       color: colors.surface,
       borderRadius: BorderRadius.circular(14),
@@ -419,14 +463,21 @@ class _HevyCard extends ConsumerWidget {
                 ),
           style: textTheme.bodySmall!.copyWith(color: colors.textSecondary),
         ),
-        trailing: TextButton(
-          onPressed: () => _showHevy(context),
-          // As wide as its text, close to the edge of the card.
-          style: TextButton.styleFrom(
-            minimumSize: const Size(0, 40),
-            padding: const EdgeInsets.only(left: 12, right: 4),
-          ),
-          child: Text(l10n.menuHevyImport),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 1, height: 28, color: colors.divider),
+            const SizedBox(width: 6),
+            TextButton(
+              onPressed: _busy ? null : _import,
+              // As wide as its text, close to the edge of the card.
+              style: TextButton.styleFrom(
+                minimumSize: const Size(0, 40),
+                padding: const EdgeInsets.only(left: 12, right: 4),
+              ),
+              child: Text(l10n.menuHevyImport),
+            ),
+          ],
         ),
       ),
     );
@@ -453,27 +504,9 @@ class _HevySheetState extends ConsumerState<_HevySheet> {
   bool _busy = false;
 
   Future<void> _pickFile() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    final clock = ref.read(clockProvider);
     setState(() => _busy = true);
     try {
-      final content = await runUserAction(
-        messenger,
-        l10n,
-        () => pickHevyFile(messenger, l10n),
-      );
-      if (content == null || !mounted) return;
-      await runHevyImport(
-        context: context,
-        db: ref.read(databaseProvider),
-        messenger: messenger,
-        l10n: l10n,
-        firstDayKey: ref.read(firstAppDayKeyProvider),
-        todayKey: ref.read(currentDayKeyProvider).value ?? dayKeyOf(clock()),
-        content: content,
-        clock: clock,
-      );
+      await _importHevyFile(context, ref);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
