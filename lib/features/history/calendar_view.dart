@@ -26,7 +26,9 @@ import 'package:protein_calculator/l10n/app_localizations.dart';
 /// screen, shows fully; the others are dimmed. Tap a day with entries or a
 /// Hevy workout to see them. Those who track creatine, or imported their Hevy
 /// workouts, can color the days by creatine taken or by workout instead, with
-/// the filter above the legend.
+/// the filter above the legend. In landscape, as the details of a day, the
+/// month being read, the filter and the legend go on the left, the days on
+/// the right.
 class CalendarView extends ConsumerStatefulWidget {
   const CalendarView({super.key});
 
@@ -44,7 +46,13 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   List<double> _heights = const [];
 
   /// Height of the legend laid over the bottom of the list.
-  double _bottomInset = 0;
+  double _legendHeight = 0;
+
+  /// Whether the screen is in landscape, the legend then beside the list.
+  bool _landscape = false;
+
+  /// What the legend hides of the bottom of the list: nothing in landscape.
+  double get _bottomInset => _landscape ? 0 : _legendHeight;
 
   /// Whether the legend was measured: until then, the list would place the
   /// current month behind it, then jump up, and stays hidden.
@@ -146,13 +154,29 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     DateTime monthAt(int index) => DateTime(today.year, today.month - index);
 
     final background = AppColors.of(context).background;
-    return Column(
+    _landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
+    final filter = filtered
+        ? _ModeFilter(
+            options: options,
+            selected: mode,
+            onChanged: (value) => setState(() => _mode = value),
+          )
+        : null;
+    final legend = AbsorbPointer(
+      child: _Legend(
+        mode: mode,
+        creatine: creatineShown,
+        hevy: hevyShown,
+        oneColumn: _landscape,
+      ),
+    );
+    final calendar = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Above the list rather than over it: the oldest month, once
-        // reached, stops right under it.
+        // reached, stops right under it, a little apart.
         const Padding(
-          padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 2),
           child: _WeekdayRow(),
         ),
         Expanded(
@@ -160,7 +184,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             children: [
               Positioned.fill(
                 child: Opacity(
-                  opacity: _measured ? 1 : 0,
+                  opacity: _measured || _landscape ? 1 : 0,
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final cell =
@@ -172,6 +196,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                             monthAt(index),
                             firstWeekday,
                             cell,
+                            titled: !_landscape,
                           ),
                       ];
                       // The months not filling the screen stay right under the
@@ -217,6 +242,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                               hevyDays: hevyDays,
                               goals: goals,
                               mode: mode,
+                              titled: !_landscape,
                             ),
                           ),
                         ),
@@ -244,67 +270,99 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               // The filter and the legend over the bottom of the list: the
               // days pass behind them, and show around the top corners of
               // the first rather than being cut straight.
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _Measured(
-                  onHeight: (height) {
-                    if (mounted) {
-                      setState(() {
-                        _bottomInset = height;
-                        _measured = true;
-                      });
-                    }
-                  },
-                  child: Stack(
-                    children: [
-                      // The page background from the middle of the card
-                      // down, so its bottom corners and the space under it
-                      // stay clear. The filter floats above it, over the
-                      // days.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: filtered ? 24 + _ModeFilter.height + 8 : 24,
-                        bottom: 0,
-                        child: AbsorbPointer(
-                          child: ColoredBox(color: background),
+              if (!_landscape)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _Measured(
+                    onHeight: (height) {
+                      if (mounted) {
+                        setState(() {
+                          _legendHeight = height;
+                          _measured = true;
+                        });
+                      }
+                    },
+                    child: Stack(
+                      children: [
+                        // The page background from the middle of the card
+                        // down, so its bottom corners and the space under it
+                        // stay clear. The filter floats above it, over the
+                        // days.
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: filtered ? 24 + _ModeFilter.height + 8 : 24,
+                          bottom: 0,
+                          child: AbsorbPointer(
+                            child: ColoredBox(color: background),
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          spacing: 8,
-                          children: [
-                            if (filtered)
-                              Align(
-                                alignment: AlignmentDirectional.centerEnd,
-                                child: _ModeFilter(
-                                  options: options,
-                                  selected: mode,
-                                  onChanged: (value) =>
-                                      setState(() => _mode = value),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            spacing: 8,
+                            children: [
+                              if (filter != null)
+                                Align(
+                                  alignment: AlignmentDirectional.centerEnd,
+                                  child: filter,
                                 ),
-                              ),
-                            AbsorbPointer(
-                              child: _Legend(
-                                mode: mode,
-                                creatine: creatineShown,
-                                hevy: hevyShown,
-                              ),
-                            ),
-                          ],
+                              legend,
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+    if (!_landscape) return calendar;
+
+    // The month being read, the filter and the legend on the left; the
+    // days on the right, as wide as the rest of the screen leaves them.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 0, 12),
+              child: ConstrainedBox(
+                // The legend at the bottom, when there is room for it.
+                constraints: BoxConstraints(
+                  minHeight: max(0, constraints.maxHeight - 20),
+                ),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 8,
+                    children: [
+                      Semantics(
+                        header: true,
+                        child: Text(
+                          formatMonth(monthAt(_focused), context.localeName),
+                          style: Theme.of(context).textTheme.headlineSmall!
+                              .copyWith(fontSize: 22),
                         ),
                       ),
+                      const Spacer(),
+                      ?filter,
+                      legend,
                     ],
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
+        Expanded(child: calendar),
       ],
     );
   }
@@ -503,7 +561,8 @@ class _WeekdayRow extends StatelessWidget {
   }
 }
 
-/// Title and weeks of [month].
+/// Title and weeks of [month]; its weeks only when not [titled], the month
+/// being read then told beside the list.
 class _MonthSection extends StatelessWidget {
   const _MonthSection({
     required this.month,
@@ -513,6 +572,7 @@ class _MonthSection extends StatelessWidget {
     required this.hevyDays,
     required this.goals,
     required this.mode,
+    this.titled = true,
   });
 
   final DateTime month;
@@ -528,6 +588,7 @@ class _MonthSection extends StatelessWidget {
   final Set<int> hevyDays;
   final List<({int dayKey, double grams})> goals;
   final CalendarMode mode;
+  final bool titled;
 
   /// Height of the title above the weeks.
   static const _titleHeight = 46.0;
@@ -542,10 +603,15 @@ class _MonthSection extends StatelessWidget {
       (month.weekday % 7 - firstWeekday + 7) % 7;
 
   /// Height of the section of [month] with days [cell] wide.
-  static double heightOf(DateTime month, int firstWeekday, double cell) {
+  static double heightOf(
+    DateTime month,
+    int firstWeekday,
+    double cell, {
+    bool titled = true,
+  }) {
     final length = DateTime(month.year, month.month + 1, 0).day;
     final weeks = (_blanks(month, firstWeekday) + length + 6) ~/ 7;
-    return _titleHeight +
+    return (titled ? _titleHeight : 0) +
         weeks * (cell + _marksHeight) +
         (weeks - 1) * _weekGap +
         _bottomSpace;
@@ -564,20 +630,21 @@ class _MonthSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          height: _titleHeight,
-          child: Container(
-            alignment: Alignment.bottomLeft,
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Semantics(
-              header: true,
-              child: Text(
-                formatMonth(month, context.localeName),
-                style: textTheme.headlineSmall!.copyWith(fontSize: 22),
+        if (titled)
+          SizedBox(
+            height: _titleHeight,
+            child: Container(
+              alignment: Alignment.bottomLeft,
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Semantics(
+                header: true,
+                child: Text(
+                  formatMonth(month, context.localeName),
+                  style: textTheme.headlineSmall!.copyWith(fontSize: 22),
+                ),
               ),
             ),
           ),
-        ),
         LayoutBuilder(
           builder: (context, constraints) {
             final cell = (constraints.maxWidth - _gap * 6) / 7;
@@ -798,6 +865,7 @@ class _Legend extends StatelessWidget {
     required this.mode,
     required this.creatine,
     required this.hevy,
+    this.oneColumn = false,
   });
 
   /// What colors the days, which the legend tells.
@@ -810,6 +878,10 @@ class _Legend extends StatelessWidget {
   /// Whether Hevy workouts are imported: the legend tells the mark of the
   /// days holding one, and the colors of the Hevy filter.
   final bool hevy;
+
+  /// Whether the legend tells one thing a line, beside the days in
+  /// landscape, rather than two.
+  final bool oneColumn;
 
   @override
   Widget build(BuildContext context) {
@@ -939,12 +1011,18 @@ class _Legend extends StatelessWidget {
               Column(
                 spacing: 6,
                 children: [
-                  for (final row in rowsOf(value))
+                  for (final row in [
+                    for (final row in rowsOf(value))
+                      if (oneColumn) ...[
+                        for (final cell in row) [cell],
+                      ] else
+                        row,
+                  ])
                     Row(
                       spacing: 12,
                       children: [
                         for (final cell in row) Expanded(child: cell),
-                        if (row.length == 1) const Spacer(),
+                        if (row.length == 1 && !oneColumn) const Spacer(),
                       ],
                     ),
                 ],
