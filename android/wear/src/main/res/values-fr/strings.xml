@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="tile_label">Objectif du jour</string>
     <string name="tile_title">Objectif du jour</string>
     <string name="complication_label">Protéines du jour</string>
@@ -39,12 +39,14 @@
     <string name="open_phone">Ouvre Protein Calculator sur ton téléphone.</string>
     <string name="update_watch">Mets à jour Protein Calculator sur ta montre.</string>
     <string name="update_phone">Mets à jour Protein Calculator sur ton téléphone.</string>
-    <plurals name="creatine_doses">
+    <!-- Read by screen readers over the marks of the day, shown from one dose
+         or one workout: never for 0, which "one" also covers in French. -->
+    <plurals name="creatine_doses" tools:ignore="ImpliedQuantity">
         <item quantity="one">Créatine prise</item>
         <item quantity="many">%d doses de créatine</item>
         <item quantity="other">%d doses de créatine</item>
     </plurals>
-    <plurals name="hevy_workouts">
+    <plurals name="hevy_workouts" tools:ignore="ImpliedQuantity">
         <item quantity="one">Séance Hevy</item>
         <item quantity="many">%d séances Hevy</item>
         <item quantity="other">%d séances Hevy</item>
