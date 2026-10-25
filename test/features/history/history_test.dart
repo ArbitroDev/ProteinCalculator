@@ -15,6 +15,14 @@ import '../../helpers.dart';
 void main() {
   late AppDatabase db;
 
+  /// A phone held upright: the filter and the legend over the bottom of the
+  /// calendar, rather than beside it as in landscape.
+  void holdUpright(WidgetTester tester) {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+  }
+
   setUp(() async {
     db = openTestDatabase();
     await db.settingsDao.setDailyGoal(140);
@@ -91,6 +99,31 @@ void main() {
       );
       await disposeApp(tester, db);
     });
+
+    testWidgets(
+      'in landscape, tells the month and the legend beside the days',
+      (tester) async {
+        tester.view.physicalSize = const Size(2340, 1080);
+        tester.view.devicePixelRatio = 3;
+        addTearDown(tester.view.reset);
+        await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
+        await openCalendar(tester);
+
+        // The month being read once, on the left; the days on the right.
+        expect(find.text('October 2026'), findsOneWidget);
+        final month = tester.getRect(find.text('October 2026'));
+        final legend = tester.getRect(find.text('Goal reached'));
+        final firstDay = tester.getRect(find.text('1'));
+        expect(month.right, lessThan(firstDay.left));
+        expect(legend.right, lessThan(firstDay.left));
+        // The legend tells one thing a line.
+        expect(
+          tester.getTopLeft(find.text('None taken')).dy,
+          lessThan(tester.getTopLeft(find.text('Under 50%')).dy),
+        );
+        await disposeApp(tester, db);
+      },
+    );
 
     testWidgets('shows the current month in place from the first frame', (
       tester,
@@ -226,6 +259,7 @@ void main() {
     testWidgets('the calendar colors the days by creatine taken on demand', (
       tester,
     ) async {
+      holdUpright(tester);
       // Reaches the goal and takes creatine on October 1.
       await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 1, 9));
       await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
@@ -438,6 +472,7 @@ void main() {
     });
 
     testWidgets('the Hevy filter colors workout days', (tester) async {
+      holdUpright(tester);
       await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 1, 9));
       await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
       await importWorkouts([DateTime(2026, 9, 29, 18)]);
