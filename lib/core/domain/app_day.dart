@@ -23,12 +23,16 @@ int appDayStartHour = defaultAppDayStartHour;
 ///
 /// Uses calendar fields rather than duration arithmetic, so daylight saving
 /// changes never move an entry to the wrong day.
-int dayKeyOf(DateTime time) {
-  final day = time.hour < appDayStartHour
+int dayKeyOf(DateTime time) => dayKeyOfDate(
+  time.hour < appDayStartHour
       ? DateTime(time.year, time.month, time.day - 1)
-      : time;
-  return day.year * 10000 + day.month * 100 + day.day;
-}
+      : time,
+);
+
+/// Key of the app day starting on the calendar date of [date], whatever its
+/// time.
+int dayKeyOfDate(DateTime date) =>
+    date.year * 10000 + date.month * 100 + date.day;
 
 /// Calendar date (at midnight) of the app day identified by [dayKey].
 DateTime dateOfDayKey(int dayKey) =>
@@ -39,7 +43,7 @@ DateTime dateOfDayKey(int dayKey) =>
 bool isValidDayKey(int dayKey) {
   if (dayKey < 10101 || dayKey > 99991231) return false;
   final date = dateOfDayKey(dayKey);
-  return date.year * 10000 + date.month * 100 + date.day == dayKey;
+  return dayKeyOfDate(date) == dayKey;
 }
 
 /// First app day of the app, where the calendar starts: the day of the first

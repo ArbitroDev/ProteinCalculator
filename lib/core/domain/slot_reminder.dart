@@ -60,13 +60,9 @@ List<int> slotReminderDayKeys(DateTime now) {
   final today = dateOfDayKey(dayKeyOf(now));
   return [
     for (var day = -1; day < slotReminderDays; day++)
-      _dayKeyOfDate(DateTime(today.year, today.month, today.day + day)),
+      dayKeyOfDate(DateTime(today.year, today.month, today.day + day)),
   ];
 }
-
-/// Key of the app day starting on the calendar date of [date].
-int _dayKeyOfDate(DateTime date) =>
-    date.year * 10000 + date.month * 100 + date.day;
 
 /// The reminders of the app days of [slotReminderDayKeys]: those to plan
 /// ([planned]), after [now], and those that may show but must not
