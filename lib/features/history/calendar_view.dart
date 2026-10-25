@@ -155,6 +155,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
 
     final background = AppColors.of(context).background;
     _landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
+    final gap = _landscape ? _landscapeGap : _gap;
     final filter = filtered
         ? _ModeFilter(
             options: options,
@@ -175,9 +176,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
       children: [
         // Above the list rather than over it: the oldest month, once
         // reached, stops right under it, a little apart.
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 8, 16, 2),
-          child: _WeekdayRow(),
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, 8, 16, _landscape ? 6 : 2),
+          child: _WeekdayRow(gap: gap),
         ),
         Expanded(
           child: Stack(
@@ -188,7 +189,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final cell =
-                          (constraints.maxWidth - _sidePadding * 2 - _gap * 6) /
+                          (constraints.maxWidth - _sidePadding * 2 - gap * 6) /
                           7;
                       _heights = [
                         for (var index = 0; index < count; index++)
@@ -243,6 +244,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                               goals: goals,
                               mode: mode,
                               titled: !_landscape,
+                              gap: gap,
                             ),
                           ),
                         ),
@@ -326,11 +328,12 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     if (!_landscape) return calendar;
 
     // The month being read, the filter and the legend on the left; the
-    // days on the right, as wide as the rest of the screen leaves them.
+    // days on the right, a little wider, for the room between them.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
+          flex: 2,
           child: LayoutBuilder(
             builder: (context, constraints) => SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 8, 0, 12),
@@ -354,7 +357,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                       ),
                       const Spacer(),
                       ?filter,
-                      legend,
+                      // As wide as what it tells, not as the column.
+                      IntrinsicWidth(child: legend),
                     ],
                   ),
                 ),
@@ -362,7 +366,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             ),
           ),
         ),
-        Expanded(child: calendar),
+        Expanded(flex: 3, child: calendar),
       ],
     );
   }
@@ -522,8 +526,12 @@ List<CalendarMode> _modesOf({required bool creatine, required bool hevy}) => [
   if (hevy) CalendarMode.hevy,
 ];
 
-/// Space between two columns of days, and between two weeks.
+/// Space between two columns of days.
 const _gap = 6.0;
+
+/// Space between two columns of days in landscape, where the days are no
+/// taller than the screen leaves them: they stand apart all the more.
+const _landscapeGap = 14.0;
 
 /// Height under each bubble for its marks, three side by side at most.
 const _marksHeight = 16.0;
@@ -534,7 +542,10 @@ const _weekGap = 4.0;
 /// Initials of the days of the week, starting on the first day of the week
 /// of the user's language, each above its column.
 class _WeekdayRow extends StatelessWidget {
-  const _WeekdayRow();
+  const _WeekdayRow({required this.gap});
+
+  /// Space between two columns of days.
+  final double gap;
 
   @override
   Widget build(BuildContext context) {
@@ -545,7 +556,7 @@ class _WeekdayRow extends StatelessWidget {
     );
     return ExcludeSemantics(
       child: Row(
-        spacing: _gap,
+        spacing: gap,
         children: [
           for (var i = 0; i < 7; i++)
             Expanded(
@@ -573,6 +584,7 @@ class _MonthSection extends StatelessWidget {
     required this.goals,
     required this.mode,
     this.titled = true,
+    this.gap = _gap,
   });
 
   final DateTime month;
@@ -589,6 +601,9 @@ class _MonthSection extends StatelessWidget {
   final List<({int dayKey, double grams})> goals;
   final CalendarMode mode;
   final bool titled;
+
+  /// Space between two columns of days.
+  final double gap;
 
   /// Height of the title above the weeks.
   static const _titleHeight = 46.0;
@@ -647,14 +662,14 @@ class _MonthSection extends StatelessWidget {
           ),
         LayoutBuilder(
           builder: (context, constraints) {
-            final cell = (constraints.maxWidth - _gap * 6) / 7;
+            final cell = (constraints.maxWidth - gap * 6) / 7;
             return GridView(
               shrinkWrap: true,
               padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 7,
-                crossAxisSpacing: _gap,
+                crossAxisSpacing: gap,
                 mainAxisSpacing: _weekGap,
                 mainAxisExtent: cell + _marksHeight,
               ),
