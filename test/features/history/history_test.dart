@@ -8,6 +8,7 @@ import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 
 import '../../helpers.dart';
@@ -336,7 +337,8 @@ void main() {
 
       // 3 × 3.3 g, whatever the rounding of the sum.
       expect(find.text('3 doses of creatine · 9.9 g'), findsOneWidget);
-      expect(find.text('3.3 g'), findsNWidgets(3));
+      // The grams of a dose would read as protein next to the entries.
+      expect(find.text('3.3 g'), findsNothing);
       await disposeApp(tester, db);
     });
 
@@ -349,9 +351,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('2 doses of creatine · 10 g'), findsOneWidget);
-      // Creatine taken on its own shows its own grams, under its name.
+      // Creatine taken on its own is named so, with the mark of creatine,
+      // and without grams, which would read as protein.
       expect(find.textContaining('Creatine', findRichText: true), findsWidgets);
-      expect(find.text('5 g'), findsNWidgets(2));
+      expect(find.byType(CreatineMark), findsNWidgets(2));
+      expect(find.text('5 g'), findsNothing);
       await disposeApp(tester, db);
     });
   });

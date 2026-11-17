@@ -436,22 +436,6 @@ class _DismissibleEntry extends StatelessWidget {
                             )
                           : textTheme.bodyMedium!.copyWith(color: ink),
                       children: [
-                        // The blue dot of creatine taken on its own.
-                        if (creatineOnly) ...[
-                          WidgetSpan(
-                            alignment: PlaceholderAlignment.middle,
-                            child: Container(
-                              width: 9,
-                              height: 9,
-                              decoration: BoxDecoration(
-                                color: AppColors.creatine,
-                                borderRadius: BorderRadius.circular(3),
-                                border: Border.all(color: faded),
-                              ),
-                            ),
-                          ),
-                          const TextSpan(text: ' '),
-                        ],
                         TextSpan(text: name ?? l10n.unnamedEntry),
                         TextSpan(
                           text: '  $time',
@@ -469,7 +453,9 @@ class _DismissibleEntry extends StatelessWidget {
                             ),
                           ),
                         ],
-                        if (entry.creatineDoses > 0 && !creatineOnly) ...[
+                        // Creatine taken on its own too: named so, it only
+                        // shows its mark, like the products holding some.
+                        if (entry.creatineDoses > 0) ...[
                           const TextSpan(text: ' '),
                           WidgetSpan(
                             alignment: PlaceholderAlignment.middle,
@@ -484,13 +470,16 @@ class _DismissibleEntry extends StatelessWidget {
                     ),
                   ),
                 ),
-                EntryGrams(
-                  entry: entry,
-                  style: textTheme.bodyMedium!.copyWith(
-                    color: ink,
-                    fontWeight: FontWeight.w600,
+                // Grams of protein only: those of creatine taken on its own
+                // would read as protein.
+                if (!creatineOnly)
+                  EntryGrams(
+                    entry: entry,
+                    style: textTheme.bodyMedium!.copyWith(
+                      color: ink,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
