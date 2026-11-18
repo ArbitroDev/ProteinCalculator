@@ -306,6 +306,45 @@ void main() {
         expect(stats.creatineByWorkout, isNull);
       });
 
+      test('tells when the workouts start', () {
+        final time = cross().workoutTime!;
+
+        // 18:00, 18:00 and 7:00, on average 14:20, to the quarter.
+        expect(time.startMinutes, 14 * 60 + 15);
+        expect(time.counts, {
+          DaySlot.morning: 1,
+          DaySlot.afternoon: 0,
+          DaySlot.evening: 2,
+        });
+        expect(time.afterGrams, isEmpty);
+      });
+
+      test('sums the protein after the workouts of each part of the day', () {
+        final time = computeStats(
+          _month,
+          _input(
+            hevyImported: true,
+            workoutDays: {...workoutDays, 20261007},
+            sessions: [
+              ...sessions,
+              _session(DateTime(2026, 10, 7, 18), minutes: 60),
+            ],
+            entries: [
+              ...entries,
+              _entry(DateTime(2026, 10, 7, 19, 30), 40, name: 'Whey'),
+            ],
+          ),
+        ).cross.workoutTime!;
+
+        // The evening has 3 workouts, the morning only one.
+        expect(time.afterGrams.keys, [DaySlot.evening]);
+        expect(time.afterGrams[DaySlot.evening], closeTo(25, 1e-9));
+      });
+
+      test('no workout time without an import', () {
+        expect(cross(hevy: false).workoutTime, isNull);
+      });
+
       test('a comparison needs 3 days on each side', () {
         final stats = computeStats(
           _month,
@@ -318,6 +357,7 @@ void main() {
 
         expect(stats.proteinByWorkout, isNull);
         expect(stats.postWorkout, isNull);
+        expect(stats.workoutTime, isNull);
       });
     });
   });
@@ -380,6 +420,77 @@ void main() {
         (name: 'Eggs', uses: 3, grams: 60.0),
         (name: 'Chicken', uses: 1, grams: 40.0),
       ]);
+    });
+
+    test('a shortfall needs 3 missed days', () {
+      // Only the 3rd misses its goal: the 4th has no entry, today is not
+      // over.
+      expect(computeStats(_month, _input()).cross.shortfall, isNull);
+    });
+
+    test('averages what the missed days lack, without empty days', () {
+      final stats = computeStats(
+        _month,
+        _input(goals: const [(dayKey: 20261001, grams: 115)]),
+      );
+
+      // All the days with entries but the 2nd and today.
+      expect(stats.cross.shortfall!.days, 7);
+      expect(stats.cross.shortfall!.grams, closeTo(145 / 7, 1e-9));
+    });
+
+    test('tells when the goal is reached, late after 21:00', () {
+      final stats = computeStats(
+        _month,
+        _input(
+          entries: [
+            _entry(DateTime(2026, 10, 1, 8), 60),
+            _entry(DateTime(2026, 10, 1, 12), 50),
+            _entry(DateTime(2026, 10, 2, 9), 120),
+            _entry(DateTime(2026, 10, 5, 20), 40),
+            _entry(DateTime(2026, 10, 5, 22), 60),
+            _entry(DateTime(2026, 10, 6, 23), 50),
+            // After midnight, still the 6th.
+            _entry(DateTime(2026, 10, 7, 1), 60),
+          ],
+        ),
+      );
+
+      // 12:00, 9:00, 22:00 and 25:00, on average 17:00.
+      expect(stats.cross.goalTime, (minutes: 17 * 60, late: 2, days: 4));
+    });
+
+    test('no goal time with fewer than 3 days', () {
+      final stats = computeStats(
+        _month,
+        _input(entries: [_entry(DateTime(2026, 10, 2, 9), 120)]),
+      );
+
+      expect(stats.cross.goalTime, isNull);
+    });
+
+    test('tells how regular the days are, without today and empty days', () {
+      final regularity = computeStats(_month, _input()).cross.regularity!;
+
+      expect(regularity.deviation, closeTo(19.2, 0.01));
+      expect(regularity.lowest, (dayKey: 20261003, grams: 50.0));
+      expect(regularity.highest, (dayKey: 20261002, grams: 120.0));
+    });
+
+    test('the earliest of tied days is shown', () {
+      final regularity = computeStats(
+        _month,
+        _input(
+          days: {
+            for (final day in [1, 2, 3])
+              20261000 + day: _day(20261000 + day, 80),
+          },
+        ),
+      ).cross.regularity!;
+
+      expect(regularity.deviation, 0);
+      expect(regularity.lowest.dayKey, 20261001);
+      expect(regularity.highest.dayKey, 20261001);
     });
 
     test('full days need the goal and creatine', () {

@@ -83,6 +83,25 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  testWidgets('tells when the goal is reached and how regular the days are', (
+    tester,
+  ) async {
+    holdUpright(tester);
+    await addOctober();
+    await openStats(tester);
+
+    await tester.scrollUntilVisible(find.text('Goal reached around'), 200);
+    // Reached at 9:00 from the 5th to the 9th; today is not over.
+    expect(find.textContaining('Never after'), findsOneWidget);
+    expect(find.textContaining('over 5 days'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('usual spread'), 200);
+    expect(find.text('Regularity'), findsOneWidget);
+    expect(find.textContaining('lowest · '), findsOneWidget);
+    // No day missed its goal but today.
+    expect(find.text('Average gap on missed days'), findsNothing);
+    await disposeApp(tester, db);
+  });
+
   testWidgets('goes to the previous period and back', (tester) async {
     holdUpright(tester);
     await addOctober();

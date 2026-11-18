@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:protein_calculator/core/database/app_database.dart';
@@ -25,6 +27,10 @@ const postWorkoutGrams = 20.0;
 
 /// Length assumed for a workout without an end, to know when it was over.
 const assumedWorkoutLength = Duration(hours: 1);
+
+/// Time of day, in minutes after midnight, from which a goal reached counts
+/// as reached late.
+const lateGoalMinutes = 21 * 60;
 
 /// Everything the statistics of a period are computed from.
 @immutable
@@ -235,6 +241,10 @@ class CrossStats {
     this.slotShares,
     this.rhythm,
     this.topProducts = const [],
+    this.shortfall,
+    this.goalTime,
+    this.regularity,
+    this.workoutTime,
   });
 
   /// Protein grams per day: workout days, then rest days.
@@ -275,6 +285,38 @@ class CrossStats {
   /// used first; three at most.
   final List<({String name, int uses, double grams})> topProducts;
 
+  /// Protein grams missing on average on the past days with entries missing
+  /// their goal, and how many of them; null with fewer than
+  /// [minCompareDays] of them.
+  final ({double grams, int days})? shortfall;
+
+  /// Average time the goal was reached, in minutes after midnight, of the
+  /// days whose entries reach it; how many of them reached it from
+  /// [lateGoalMinutes]; and how many there are. Null with fewer than
+  /// [minCompareDays] of them.
+  final ({int minutes, int late, int days})? goalTime;
+
+  /// Standard deviation of the protein grams of the past days with entries,
+  /// with the lowest and the highest of them, the earliest when tied; null
+  /// with fewer than [minCompareDays] of them.
+  final ({
+    double deviation,
+    ({int dayKey, double grams}) lowest,
+    ({int dayKey, double grams}) highest,
+  })?
+  regularity;
+
+  /// Average start time of the workouts, in minutes after midnight; how many
+  /// started in each part of the day; and the protein grams taken after
+  /// them, within [postWorkoutWindow], for the parts of the day with
+  /// [minCompareDays] workouts at least. Null with fewer workouts.
+  final ({
+    int startMinutes,
+    Map<DaySlot, int> counts,
+    Map<DaySlot, double> afterGrams,
+  })?
+  workoutTime;
+
   bool get isEmpty =>
       proteinByWorkout == null &&
       goalShareByWorkout == null &&
@@ -285,7 +327,11 @@ class CrossStats {
       weekdayAverages == null &&
       slotShares == null &&
       rhythm == null &&
-      topProducts.isEmpty;
+      topProducts.isEmpty &&
+      shortfall == null &&
+      goalTime == null &&
+      regularity == null &&
+      workoutTime == null;
 }
 
 /// Statistics of [period] from [input].
@@ -423,6 +469,7 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
       creatineCounted: creatine == null ? const [] : creatineCounted,
       sessions: sessions,
       gramsOf: gramsOf,
+      goalOf: goalOf,
       reachedDays: reachedDays,
       takenDays: takenDays,
       average: average,
@@ -480,6 +527,7 @@ CrossStats _cross({
   required List<int> creatineCounted,
   required List<HevySession> sessions,
   required double Function(int) gramsOf,
+  required double? Function(int) goalOf,
   required Set<int> reachedDays,
   required Set<int> takenDays,
   required double Function(Iterable<int>) average,
@@ -502,30 +550,108 @@ CrossStats _cross({
       if (entry.proteinGrams > 0) entry,
   ];
 
+  // Protein grams taken within [postWorkoutWindow] after a workout.
+  double takenAfter(HevySession session) {
+    final over = workoutDuration(session.startedAt, session.endedAt) == null
+        ? session.startedAt.add(assumedWorkoutLength)
+        : session.endedAt!;
+    final until = over.add(postWorkoutWindow);
+    return proteinEntries
+        .where(
+          (entry) =>
+              !entry.createdAt.isBefore(over) &&
+              entry.createdAt.isBefore(until),
+        )
+        .map((entry) => entry.proteinGrams)
+        .sum;
+  }
+
   ({double grams, int followed, int sessions})? postWorkout;
+  ({
+    int startMinutes,
+    Map<DaySlot, int> counts,
+    Map<DaySlot, double> afterGrams,
+  })?
+  workoutTime;
   if (hevy && sessions.length >= minCompareDays) {
-    var grams = 0.0;
-    var followed = 0;
-    for (final session in sessions) {
-      final over = workoutDuration(session.startedAt, session.endedAt) == null
-          ? session.startedAt.add(assumedWorkoutLength)
-          : session.endedAt!;
-      final until = over.add(postWorkoutWindow);
-      final taken = proteinEntries
-          .where(
-            (entry) =>
-                !entry.createdAt.isBefore(over) &&
-                entry.createdAt.isBefore(until),
-          )
-          .map((entry) => entry.proteinGrams)
-          .sum;
-      grams += taken;
-      if (taken >= postWorkoutGrams) followed++;
-    }
+    final taken = [for (final session in sessions) takenAfter(session)];
     postWorkout = (
-      grams: grams / sessions.length,
-      followed: followed,
+      grams: taken.sum / sessions.length,
+      followed: taken.where((grams) => grams >= postWorkoutGrams).length,
       sessions: sessions.length,
+    );
+
+    final bySlot = {for (final slot in DaySlot.values) slot: <double>[]};
+    for (final (index, session) in sessions.indexed) {
+      bySlot[DaySlot.of(session.startedAt)]!.add(taken[index]);
+    }
+    workoutTime = (
+      startMinutes: _averageQuarter([
+        for (final session in sessions)
+          _minutesOfDay(session.startedAt, session.dayKey),
+      ]),
+      counts: {
+        for (final MapEntry(key: slot, value: grams) in bySlot.entries)
+          slot: grams.length,
+      },
+      afterGrams: {
+        for (final MapEntry(key: slot, value: grams) in bySlot.entries)
+          if (grams.length >= minCompareDays) slot: grams.sum / grams.length,
+      },
+    );
+  }
+
+  // The goal: past days with protein, today is not over.
+  final pastDays = [
+    for (final dayKey in counted)
+      if (dayKey != input.todayKey && gramsOf(dayKey) > 0) dayKey,
+  ];
+  final missing = [
+    for (final dayKey in pastDays)
+      if (goalOf(dayKey) case final goal? when !reachedDays.contains(dayKey))
+        goal - gramsOf(dayKey),
+  ];
+
+  // When the entries of each day reaching its goal reach it.
+  final entriesOf = <int, List<Entry>>{};
+  for (final entry in input.entries) {
+    if (countedSet.contains(entry.dayKey)) {
+      (entriesOf[entry.dayKey] ??= []).add(entry);
+    }
+  }
+  final reachedAt = <int>[];
+  for (final MapEntry(key: dayKey, value: entries) in entriesOf.entries) {
+    final goal = goalOf(dayKey);
+    if (goal == null || !reachedDays.contains(dayKey)) continue;
+    var total = 0.0;
+    for (final entry in entries) {
+      total += entry.proteinGrams;
+      if (total >= goal) {
+        reachedAt.add(_minutesOfDay(entry.createdAt, dayKey));
+        break;
+      }
+    }
+  }
+
+  // Regularity.
+  ({
+    double deviation,
+    ({int dayKey, double grams}) lowest,
+    ({int dayKey, double grams}) highest,
+  })?
+  regularity;
+  if (pastDays.length >= minCompareDays) {
+    final mean = average(pastDays);
+    final variance =
+        pastDays.map((k) => math.pow(gramsOf(k) - mean, 2)).sum /
+        pastDays.length;
+    // [pastDays] runs in order: the first of tied days stays.
+    final lowest = pastDays.reduce((a, b) => gramsOf(b) < gramsOf(a) ? b : a);
+    final highest = pastDays.reduce((a, b) => gramsOf(b) > gramsOf(a) ? b : a);
+    regularity = (
+      deviation: math.sqrt(variance),
+      lowest: (dayKey: lowest, grams: gramsOf(lowest)),
+      highest: (dayKey: highest, grams: gramsOf(highest)),
     );
   }
 
@@ -572,18 +698,14 @@ CrossStats _cross({
     }
     final minutes = [
       for (final MapEntry(key: dayKey, value: time) in firstOfDay.entries)
-        // After midnight, an entry still belonging to the day before.
-        time.hour * 60 +
-            time.minute +
-            (dayKeyOfDate(time) == dayKey ? 0 : 24 * 60),
+        _minutesOfDay(time, dayKey),
     ];
-    final quarters = (minutes.sum / minutes.length / 15).round();
     rhythm = (
       entriesPerDay: periodEntries.length / counted.length,
       gramsPerEntry:
           periodEntries.map((entry) => entry.proteinGrams).sum /
           periodEntries.length,
-      firstEntryMinutes: quarters * 15 % (24 * 60),
+      firstEntryMinutes: _averageQuarter(minutes),
     );
   }
 
@@ -635,5 +757,26 @@ CrossStats _cross({
           },
     rhythm: rhythm,
     topProducts: topProducts.take(3).toList(),
+    shortfall: missing.length < minCompareDays
+        ? null
+        : (grams: missing.sum / missing.length, days: missing.length),
+    goalTime: reachedAt.length < minCompareDays
+        ? null
+        : (
+            minutes: _averageQuarter(reachedAt),
+            late: reachedAt.where((m) => m >= lateGoalMinutes).length,
+            days: reachedAt.length,
+          ),
+    regularity: regularity,
+    workoutTime: workoutTime,
   );
 }
+
+/// Minutes after midnight of [time] in the day of [dayKey]: past 24 hours
+/// after midnight, for a time still belonging to the day before.
+int _minutesOfDay(DateTime time, int dayKey) =>
+    time.hour * 60 + time.minute + (dayKeyOfDate(time) == dayKey ? 0 : 24 * 60);
+
+/// Average of [minutes], rounded to the quarter, as a time of day.
+int _averageQuarter(List<int> minutes) =>
+    (minutes.sum / minutes.length / 15).round() * 15 % (24 * 60);

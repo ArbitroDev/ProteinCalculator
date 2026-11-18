@@ -1524,6 +1524,81 @@
       }
     }
   },
+  "statsGoalSection": "Objectif",
+  "@statsGoalSection": {
+    "description": "Section of the insights card: how the goal is reached or missed."
+  },
+  "statsShortfall": "Manque moyen les jours ratés",
+  "@statsShortfall": {
+    "description": "Label of the protein grams missing on average on the days missing their goal."
+  },
+  "statsShortfallDays": "{count, plural, =1{sur 1 jour raté} other{sur {count} jours ratés}}",
+  "@statsShortfallDays": {
+    "description": "Under the average shortfall: the days missing their goal, without today and the days without entries.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsGoalTime": "Objectif atteint vers",
+  "@statsGoalTime": {
+    "description": "Label of the average time the goal is reached."
+  },
+  "statsGoalTimeLate": "{late, plural, =0{Jamais après {time}, sur {days} jours} =1{1 jour sur {days} après {time}} other{{late} jours sur {days} après {time}}}",
+  "@statsGoalTimeLate": {
+    "description": "Under the average time the goal is reached: the days it was reached late; time already formatted (\"21:00\").",
+    "placeholders": {
+      "late": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "statsRegularity": "Régularité",
+  "@statsRegularity": {
+    "description": "Section of the insights card: how much the protein of the days varies."
+  },
+  "statsDeviation": "écart habituel",
+  "@statsDeviation": {
+    "description": "Under the standard deviation of the protein of the days."
+  },
+  "statsLowestDay": "plus bas · {date}",
+  "@statsLowestDay": {
+    "description": "Under the protein of the lowest day; date already formatted.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statsHighestDay": "plus haut · {date}",
+  "@statsHighestDay": {
+    "description": "Under the protein of the highest day; date already formatted.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statsWorkoutStart": "Début habituel des séances",
+  "@statsWorkoutStart": {
+    "description": "Label of the average start time of the workouts, above their count by part of the day."
+  },
+  "statsAfterWorkoutBySlot": "Dans les {hours} h après une séance, selon l'heure",
+  "@statsAfterWorkoutBySlot": {
+    "description": "Above the protein taken after the workouts of each part of the day.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "statsMarks": "{count} jours sur {total}",
   "@statsMarks": {
     "description": "Screen reader summary of a row of days: those marked among those counted.",

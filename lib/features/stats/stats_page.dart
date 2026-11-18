@@ -838,8 +838,59 @@ class _InsightsCard extends StatelessWidget {
     final locale = context.localeName;
     String grams(double value) => _grams(value, locale, l10n);
     String percent(double value) => _percent(value, locale);
+    String time(int minutes) =>
+        formatTime(DateTime(2000, 1, 1, minutes ~/ 60, minutes % 60), locale);
+    String slotName(DaySlot slot) => switch (slot) {
+      DaySlot.morning => l10n.slotMorning,
+      DaySlot.afternoon => l10n.slotAfternoon,
+      DaySlot.evening => l10n.slotEvening,
+    };
 
     final sections = <(String, List<Widget>)>[];
+
+    // The goal.
+    final goalRows = <Widget>[
+      if (stats.shortfall case final shortfall?)
+        StatsValueRow(
+          label: l10n.statsShortfall,
+          value: grams(shortfall.grams),
+          detail: l10n.statsShortfallDays(shortfall.days),
+        ),
+      if (stats.goalTime case final goalTime?)
+        StatsValueRow(
+          label: l10n.statsGoalTime,
+          value: time(goalTime.minutes),
+          detail: l10n.statsGoalTimeLate(
+            goalTime.late,
+            goalTime.days,
+            time(lateGoalMinutes),
+          ),
+        ),
+    ];
+    if (goalRows.isNotEmpty) sections.add((l10n.statsGoalSection, goalRows));
+
+    if (stats.regularity case final regularity?) {
+      String day(int dayKey) => formatShortDate(dateOfDayKey(dayKey), locale);
+      sections.add((
+        l10n.statsRegularity,
+        [
+          StatTiles([
+            StatTile(
+              value: '± ${grams(regularity.deviation)}',
+              label: l10n.statsDeviation,
+            ),
+            StatTile(
+              value: grams(regularity.lowest.grams),
+              label: l10n.statsLowestDay(day(regularity.lowest.dayKey)),
+            ),
+            StatTile(
+              value: grams(regularity.highest.grams),
+              label: l10n.statsHighestDay(day(regularity.highest.dayKey)),
+            ),
+          ]),
+        ],
+      ));
+    }
 
     // Protein and workouts.
     final byWorkout = stats.proteinByWorkout;
@@ -887,6 +938,39 @@ class _InsightsCard extends StatelessWidget {
             l10n.grams(formatGrams(postWorkoutGrams, locale)),
           ),
         ),
+      if (stats.workoutTime case final workoutTime?) ...[
+        StatsValueRow(
+          label: l10n.statsWorkoutStart,
+          value: time(workoutTime.startMinutes),
+          detail: [
+            for (final MapEntry(key: slot, value: count)
+                in workoutTime.counts.entries)
+              if (count > 0) '${slotName(slot)} $count',
+          ].join(' · '),
+        ),
+        // A comparison needs two parts of the day.
+        if (workoutTime.afterGrams.length >= 2) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 2),
+            child: Text(
+              l10n.statsAfterWorkoutBySlot(postWorkoutWindow.inHours),
+              style: Theme.of(context).textTheme.bodyMedium!
+                  .copyWith(color: AppColors.of(context).textSecondary),
+            ),
+          ),
+          for (final MapEntry(key: slot, value: after)
+              in workoutTime.afterGrams.entries)
+            CompareBar(
+              label: slotName(slot),
+              value: grams(after),
+              fraction: () {
+                final top = workoutTime.afterGrams.values.max;
+                return top <= 0 ? 0.0 : after / top;
+              }(),
+              color: AppColors.slot(slot),
+            ),
+        ],
+      ],
     ];
     if (workoutRows.isNotEmpty) {
       sections.add((l10n.statsProteinAndWorkouts, workoutRows));
