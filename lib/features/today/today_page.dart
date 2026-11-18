@@ -126,7 +126,9 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
       return Scaffold(
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 14, 16, 12),
+            // The top of the date at the height of the top of the titles of
+            // the other tabs, as upright.
+            padding: const EdgeInsets.fromLTRB(8, 15.1, 16, 12),
             child: _ShakerWithLabels(
               shakerKey: _shakerKey,
               entries: entries,
@@ -153,8 +155,10 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          // Lined up with the tab bar.
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+          // Lined up with the tab bar; the top of the date at the height of
+          // the top of the titles of the other tabs, centered in their app
+          // bar, though the date is larger.
+          padding: const EdgeInsets.fromLTRB(16, 14.6, 16, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
