@@ -12,6 +12,7 @@ import 'package:protein_calculator/core/stats/stats_period.dart';
 import 'package:protein_calculator/core/stats/streaks.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
+import 'package:protein_calculator/features/history/calendar_view.dart';
 import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/features/share/share_tiles.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -42,7 +43,12 @@ class ShareButton extends StatelessWidget {
         fixedSize: const Size.square(40),
         minimumSize: const Size.square(40),
       ),
-      icon: const Icon(LucideIcons.share2, size: 20),
+      // Two of its three dots are on the right: centered by its box, its
+      // weight falls 1.5 dp right of the middle of the circle, moved back.
+      icon: Transform.translate(
+        offset: const Offset(-1.5, 0),
+        child: const Icon(LucideIcons.share2, size: 20),
+      ),
     );
   }
 }
@@ -99,7 +105,7 @@ List<ShareChoice> dayShareChoices(
 }
 
 /// Tiles of the statistics shown: the current streak when long enough,
-/// then the period.
+/// the period, then its creatine and its Hevy workouts when it has some.
 List<ShareChoice> statsShareChoices(
   BuildContext context,
   PeriodStats stats,
@@ -127,6 +133,18 @@ List<ShareChoice> statsShareChoices(
           ? YearTile(stats: stats)
           : PeriodTile(stats: stats, today: today),
     ),
+    if (stats.creatine case final creatine? when creatine.countedDays > 0)
+      ShareChoice(
+        label: l10n.creatine,
+        fileName: 'creatine-${span.name}-${period.firstKey}',
+        build: (_) => CreatineTile(stats: stats, today: today),
+      ),
+    if (stats.workouts case final workouts? when workouts.sessions > 0)
+      ShareChoice(
+        label: 'Hevy',
+        fileName: 'hevy-${span.name}-${period.firstKey}',
+        build: (_) => WorkoutTile(stats: stats, today: today),
+      ),
   ];
 }
 
@@ -151,10 +169,31 @@ List<ShareChoice> historyShareChoices(
   DateTime monthAt(int offset) => DateTime(today.year, today.month + offset);
   final firstWeekday = MaterialLocalizations.of(context).firstDayOfWeekIndex;
   final byKey = {for (final day in days) day.dayKey: day};
+  final creatineDays = {
+    for (final day in days)
+      if (day.creatineDoses > 0) day.dayKey,
+  };
+  final hevyDays = ref.read(shownHevyDaysProvider);
+  // The ways the calendar colors its days, as its filter offers them.
+  final modes = [
+    CalendarMode.protein,
+    if ((ref.read(creatineSettingsProvider).value?.everEnabled ?? false) ||
+        creatineDays.isNotEmpty)
+      CalendarMode.creatine,
+    if (ref.read(hevyImportedAtProvider).value != null) CalendarMode.hevy,
+  ];
 
   final month = ShareChoice(
     label: l10n.statsMonth,
     fileName: 'protein-calendar',
+    variants: [
+      for (final mode in modes)
+        switch (mode) {
+          CalendarMode.protein => l10n.formProtein,
+          CalendarMode.creatine => l10n.creatine,
+          CalendarMode.hevy => l10n.hevyFilter,
+        },
+    ],
     browse: (
       name: (offset) => formatMonth(monthAt(offset), locale),
       oldest: (first.year - today.year) * 12 + first.month - today.month,
@@ -167,6 +206,9 @@ List<ShareChoice> historyShareChoices(
         todayKey: todayKey,
         firstAppDayKey: firstKey,
         firstWeekday: firstWeekday,
+        creatineDays: creatineDays,
+        hevyDays: hevyDays,
+        mode: modes[options.variant],
       ),
     ),
   );
@@ -185,6 +227,8 @@ List<ShareChoice> historyShareChoices(
               dayKey: dayKey,
               bySlot: byKey[dayKey]?.bySlot ?? const {},
               goal: goalOf(dayKey) ?? 0,
+              creatine: creatineDays.contains(dayKey),
+              hevy: hevyDays.contains(dayKey),
             );
           }(),
       ],

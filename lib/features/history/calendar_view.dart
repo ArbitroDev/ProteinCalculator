@@ -713,7 +713,7 @@ class _MonthSection extends StatelessWidget {
 }
 
 /// Fill and text colors of a day for its [DayProgress].
-({Color fill, Color text}) _progressColors(
+({Color fill, Color text}) calendarProgressColors(
   DayProgress progress,
   AppColors colors,
 ) => switch (progress) {
@@ -731,17 +731,21 @@ class _MonthSection extends StatelessWidget {
 
 /// Fill and text colors of a day in the creatine mode: blue if creatine was
 /// [taken], as a day without protein otherwise.
-({Color fill, Color text}) _creatineColors(bool taken, AppColors colors) =>
-    taken
+({Color fill, Color text}) calendarCreatineColors(
+  bool taken,
+  AppColors colors,
+) => taken
     ? (fill: AppColors.creatine, text: AppColors.onAccent)
-    : _progressColors(DayProgress.none, colors);
+    : calendarProgressColors(DayProgress.none, colors);
 
 /// Fill and text colors of a day in the Hevy mode: black or white, by the
 /// theme, if it [workedOut], as a day without protein otherwise.
-({Color fill, Color text}) _hevyColors(bool workedOut, AppColors colors) =>
-    workedOut
+({Color fill, Color text}) calendarHevyColors(
+  bool workedOut,
+  AppColors colors,
+) => workedOut
     ? (fill: colors.hevy, text: colors.onHevy)
-    : _progressColors(DayProgress.none, colors);
+    : calendarProgressColors(DayProgress.none, colors);
 
 /// A day: a bubble with its number in the middle, colored by its progress,
 /// and under it the marks of the day, three side by side at most.
@@ -785,9 +789,12 @@ class _DayCell extends StatelessWidget {
             text: colors.textSecondary.withValues(alpha: isFuture ? 0.5 : 1),
           )
         : switch (mode) {
-            CalendarMode.protein => _progressColors(progress, colors),
-            CalendarMode.creatine => _creatineColors(creatineTaken, colors),
-            CalendarMode.hevy => _hevyColors(workedOut, colors),
+            CalendarMode.protein => calendarProgressColors(progress, colors),
+            CalendarMode.creatine => calendarCreatineColors(
+              creatineTaken,
+              colors,
+            ),
+            CalendarMode.hevy => calendarHevyColors(workedOut, colors),
           };
     // The days standing out in the colors of the mode.
     final highlighted = switch (mode) {
@@ -811,7 +818,7 @@ class _DayCell extends StatelessWidget {
     return Semantics(
       label: [
         formatLongDate(dateOfDayKey(dayKey), context.localeName),
-        if (progress != null) _progressLabel(l10n, progress),
+        if (progress != null) calendarProgressLabel(l10n, progress),
         if (creatineTaken) l10n.creatineTaken,
         if (workedOut) l10n.hevyWorkout,
       ].join(', '),
@@ -867,7 +874,7 @@ class _DayCell extends StatelessWidget {
   }
 }
 
-String _progressLabel(AppLocalizations l10n, DayProgress progress) =>
+String calendarProgressLabel(AppLocalizations l10n, DayProgress progress) =>
     switch (progress) {
       DayProgress.none => l10n.calendarNone,
       DayProgress.low => l10n.calendarLow,
@@ -953,8 +960,8 @@ class _Legend extends StatelessWidget {
         ...[
           for (final progress in DayProgress.values)
             item(
-              _progressLabel(l10n, progress),
-              fill: _progressColors(progress, colors),
+              calendarProgressLabel(l10n, progress),
+              fill: calendarProgressColors(progress, colors),
               bordered: progress == DayProgress.none,
               mark: progress == DayProgress.reached ? goalMark : null,
             ),
@@ -970,12 +977,12 @@ class _Legend extends StatelessWidget {
         [
           item(
             l10n.calendarNone,
-            fill: _creatineColors(false, colors),
+            fill: calendarCreatineColors(false, colors),
             bordered: true,
           ),
           item(
             l10n.calendarCreatine,
-            fill: _creatineColors(true, colors),
+            fill: calendarCreatineColors(true, colors),
             mark: creatineMark,
           ),
         ],
@@ -989,12 +996,12 @@ class _Legend extends StatelessWidget {
         [
           item(
             l10n.calendarNoHevy,
-            fill: _hevyColors(false, colors),
+            fill: calendarHevyColors(false, colors),
             bordered: true,
           ),
           item(
             l10n.calendarHevy,
-            fill: _hevyColors(true, colors),
+            fill: calendarHevyColors(true, colors),
             bordered: true,
             mark: hevyMark,
           ),

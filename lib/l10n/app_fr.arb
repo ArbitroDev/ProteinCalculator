@@ -1702,11 +1702,7 @@
   },
   "shareGoalReached": "Objectif atteint",
   "@shareGoalReached": {
-    "description": "Chip of a day reaching its goal, and legend of the calendar tile."
-  },
-  "shareHalfGoal": "La moitié ou plus",
-  "@shareHalfGoal": {
-    "description": "Legend of the calendar tile: days at half their goal or more."
+    "description": "Chip of a day reaching its goal."
   },
   "shareStreak": "Série de {count} jours",
   "@shareStreak": {
@@ -1838,6 +1834,33 @@
       "count": {
         "type": "int"
       },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "shareMonthCreatine": "{count, plural, =0{Aucun jour de créatine} =1{1 jour de créatine} other{{count} jours de créatine}}",
+  "@shareMonthCreatine": {
+    "description": "Calendar tile colored by creatine: the days of the month creatine was taken.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareMonthHevy": "{count, plural, =0{Aucune séance} =1{1 jour avec séance} other{{count} jours avec séance}}",
+  "@shareMonthHevy": {
+    "description": "Calendar tile colored by Hevy workouts: the days of the month with one.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareCreatineDays": "{total, plural, =1{jour de créatine sur 1} other{jours de créatine sur {total}}}",
+  "@shareCreatineDays": {
+    "description": "Creatine tile of the statistics, after the number of days creatine was taken: out of the days counted.",
+    "placeholders": {
       "total": {
         "type": "int"
       }

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/day_progress.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/hevy/hevy_csv.dart';
@@ -17,6 +18,7 @@ import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/core/widgets/shaker_icon.dart';
+import 'package:protein_calculator/features/history/calendar_view.dart';
 import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/features/stats/stats_widgets.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -190,10 +192,9 @@ List<Widget> _dayChips(DayShare day, BuildContext context) {
         ].join(' · '),
         background: _colors.hevy,
         foreground: _colors.onHevy,
-        leading: const IconTheme(
-          data: IconThemeData(color: Colors.white),
-          child: HevyMark(size: 13),
-        ),
+        // The dumbbell of the Hevy days, in the color of the text of the
+        // chip: in its own color, it would not show on it.
+        leading: Icon(hevyIcon, size: 13, color: _colors.onHevy),
       ),
   ];
 }
@@ -217,13 +218,16 @@ class DayShakerTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            formatLongDate(dateOfDayKey(day.dayKey), locale),
-            style: _body(14.5),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatLongDate(dateOfDayKey(day.dayKey), locale),
+              style: _display(26, weight: FontWeight.w700),
+              maxLines: 1,
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Expanded(
             child: Row(
               children: [
@@ -242,60 +246,75 @@ class DayShakerTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 22),
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: _Grams(total, size: 88),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.shareOfGoal(formatGrams(goal, locale), percent),
-                        style: _body(14.5),
-                      ),
-                      if (day.reached) ...[
-                        if (total > goal)
-                          Text(
-                            l10n.shareOverGoal(
-                              formatGrams(total - goal, locale),
+                  // A full day may be taller than the shaker: it then shrinks to
+                  // fit, its width kept.
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        width: constraints.maxWidth,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: _Grams(total, size: 88),
                             ),
-                            style: _body(14.5),
-                          ),
-                        const SizedBox(height: 10),
-                        _Chip(
-                          label: l10n.shareGoalReached,
-                          background: AppColors.accent,
-                          foreground: AppColors.onAccent,
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.shareOfGoal(
+                                formatGrams(goal, locale),
+                                percent,
+                              ),
+                              style: _body(14.5),
+                            ),
+                            if (day.reached) ...[
+                              if (total > goal)
+                                Text(
+                                  l10n.shareOverGoal(
+                                    formatGrams(total - goal, locale),
+                                  ),
+                                  style: _body(14.5),
+                                ),
+                              const SizedBox(height: 10),
+                              _Chip(
+                                label: l10n.shareGoalReached,
+                                background: AppColors.accent,
+                                foreground: AppColors.onAccent,
+                              ),
+                              if (day.streak >= 3) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  l10n.shareStreak(day.streak),
+                                  style: _body(14.5),
+                                ),
+                              ],
+                            ] else if (day.isToday)
+                              Text(
+                                l10n.todayRemaining(
+                                  formatGrams(max(0, goal - total), locale),
+                                ),
+                                style: _body(14.5),
+                              )
+                            else
+                              Text(
+                                l10n.shareShort(
+                                  formatGrams(max(0, goal - total), locale),
+                                ),
+                                style: _body(14.5),
+                              ),
+                            if (chips.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Wrap(spacing: 6, runSpacing: 6, children: chips),
+                            ],
+                          ],
                         ),
-                        if (day.streak >= 3) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.shareStreak(day.streak),
-                            style: _body(14.5),
-                          ),
-                        ],
-                      ] else if (day.isToday)
-                        Text(
-                          l10n.todayRemaining(
-                            formatGrams(max(0, goal - total), locale),
-                          ),
-                          style: _body(14.5),
-                        )
-                      else
-                        Text(
-                          l10n.shareShort(
-                            formatGrams(max(0, goal - total), locale),
-                          ),
-                          style: _body(14.5),
-                        ),
-                      if (chips.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Wrap(spacing: 6, runSpacing: 6, children: chips),
-                      ],
-                    ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -560,6 +579,9 @@ class _TimelineLine extends StatelessWidget {
   }
 }
 
+/// Width on the right of the bars holding the value of the goal.
+const _goalGutter = 40.0;
+
 /// Bars of grams with the goal as a dashed line; null values leave a gap.
 class _TileBars extends StatelessWidget {
   const _TileBars({
@@ -584,9 +606,13 @@ class _TileBars extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final locale = context.localeName;
-    final goal = this.goal;
-    final top = max(values.nonNulls.maxOrNull ?? 0, goal ?? 0) * 1.12;
+    final goal = this.goal ?? 0;
+    final shown = goal > 0;
+    final top = max(values.nonNulls.maxOrNull ?? 0, goal) * 1.12;
     final labels = this.labels;
+    // The goal is written on the right of the bars, in a gutter of its own,
+    // where it hides none of them.
+    final gutter = shown ? _goalGutter : 0.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -594,75 +620,101 @@ class _TileBars extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final height = constraints.maxHeight;
+              final line = shown && top > 0 ? height * goal / top : null;
               return Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      for (final (index, value) in values.indexed)
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: gap / 2),
-                            child: value == null
-                                ? const SizedBox.shrink()
-                                : Container(
-                                    height: top <= 0
-                                        ? 2
-                                        : max(2, height * value / top),
-                                    decoration: BoxDecoration(
-                                      color: progressColor(
-                                        value,
-                                        goals[index],
-                                        _colors,
-                                      ),
-                                      borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(3),
+                  // The bars stand on the bottom of the chart.
+                  Positioned.fill(
+                    right: gutter,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        for (final (index, value) in values.indexed)
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: gap / 2,
+                              ),
+                              child: value == null
+                                  ? const SizedBox.shrink()
+                                  : Container(
+                                      height: top <= 0
+                                          ? 2
+                                          : max(2, height * value / top),
+                                      decoration: BoxDecoration(
+                                        color: progressColor(
+                                          value,
+                                          goals[index],
+                                          _colors,
+                                        ),
+                                        borderRadius:
+                                            const BorderRadius.vertical(
+                                              top: Radius.circular(3),
+                                            ),
                                       ),
                                     ),
-                                  ),
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                  if (goal != null && goal > 0 && top > 0)
+                  if (line != null) ...[
                     Positioned(
                       left: 0,
-                      right: 0,
-                      bottom: height * goal / top,
+                      right: gutter - 4,
+                      bottom: line - 0.75,
                       child: CustomPaint(
                         size: const Size.fromHeight(1.5),
                         painter: _Dashes(_colors.textSecondary),
                       ),
                     ),
-                  if (goal != null && goal > 0 && top > 0)
+                    // Centered on the line.
                     Positioned(
                       right: 0,
-                      bottom: height * goal / top + 3,
-                      child: Text(
-                        l10n.grams(formatGrams(goal, locale)),
-                        style: _body(10.5, weight: FontWeight.w600),
+                      width: gutter - 6,
+                      bottom: line - 7,
+                      height: 14,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          l10n.grams(formatGrams(goal, locale)),
+                          style: _body(
+                            10.5,
+                            color: _colors.text,
+                            weight: FontWeight.w700,
+                          ).copyWith(height: 1),
+                        ),
                       ),
                     ),
+                  ],
                 ],
               );
             },
           ),
         ),
-        Container(height: 1, color: _colors.divider),
+        Padding(
+          padding: EdgeInsets.only(right: gutter),
+          child: Container(height: 1, color: _colors.divider),
+        ),
         if (labels != null) ...[
           const SizedBox(height: 4),
-          Row(
-            children: [
-              for (final label in labels)
-                Expanded(
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: _body(10.5, weight: FontWeight.w600),
+          Padding(
+            padding: EdgeInsets.only(right: gutter),
+            child: Row(
+              children: [
+                for (final label in labels)
+                  Expanded(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      style: _body(10.5, weight: FontWeight.w600),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ],
       ],
@@ -979,6 +1031,9 @@ class MonthShare {
     required this.todayKey,
     required this.firstAppDayKey,
     required this.firstWeekday,
+    this.creatineDays = const {},
+    this.hevyDays = const {},
+    this.mode = CalendarMode.protein,
   });
 
   /// First day of the month.
@@ -992,9 +1047,19 @@ class MonthShare {
 
   /// First day of the week, 0 for Sunday.
   final int firstWeekday;
+
+  /// Days creatine was taken.
+  final Set<int> creatineDays;
+
+  /// Days with a Hevy workout.
+  final Set<int> hevyDays;
+
+  /// What colors the days, as in the calendar.
+  final CalendarMode mode;
 }
 
-/// A month of the calendar, each day colored by its progress.
+/// A month of the calendar, each day colored as the calendar colors it: by
+/// its progress, by the creatine taken or by the Hevy workouts.
 class CalendarMonthTile extends StatelessWidget {
   const CalendarMonthTile({super.key, required this.data});
 
@@ -1006,53 +1071,103 @@ class CalendarMonthTile extends StatelessWidget {
     final locale = context.localeName;
     final material = MaterialLocalizations.of(context);
     final month = data.month;
+    final mode = data.mode;
     final days = DateTime(month.year, month.month + 1, 0).day;
     final lead = (month.weekday % 7 - data.firstWeekday + 7) % 7;
-    var reached = 0;
+    var marked = 0;
     final cells = <Widget>[
       for (var i = 0; i < lead; i++) const SizedBox.shrink(),
     ];
     for (var day = 1; day <= days; day++) {
       final dayKey = dayKeyOfDate(DateTime(month.year, month.month, day));
-      final counted = dayKey >= data.firstAppDayKey && dayKey <= data.todayKey;
-      final grams = data.grams[dayKey] ?? 0;
       final goal = data.goalOf(dayKey);
-      final full = counted && goal != null && goal > 0 && grams >= goal;
-      final half = counted && !full && goal != null && grams >= goal / 2;
-      if (full) reached++;
+      // As in the calendar: the days from the first one of the app to
+      // today, those without entries as days of 0 g.
+      final tracked =
+          goal != null &&
+          dayKey >= data.firstAppDayKey &&
+          dayKey <= data.todayKey;
+      final progress = tracked
+          ? DayProgress.of(data.grams[dayKey] ?? 0, goal)
+          : null;
+      final creatine = data.creatineDays.contains(dayKey);
+      final hevy = data.hevyDays.contains(dayKey);
+      final highlighted = switch (mode) {
+        CalendarMode.protein => progress == DayProgress.reached,
+        CalendarMode.creatine => progress != null && creatine,
+        CalendarMode.hevy => progress != null && hevy,
+      };
+      if (highlighted) marked++;
+      final style = progress == null
+          ? (fill: Colors.transparent, text: _colors.divider)
+          : switch (mode) {
+              CalendarMode.protein => calendarProgressColors(progress, _colors),
+              CalendarMode.creatine => calendarCreatineColors(
+                creatine,
+                _colors,
+              ),
+              CalendarMode.hevy => calendarHevyColors(hevy, _colors),
+            };
+      final isToday = dayKey == data.todayKey;
       cells.add(
-        Container(
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: !counted
-                ? null
-                : full
-                ? AppColors.accent
-                : half
-                ? AppColors.progressHalf
-                : _colors.surface,
-            borderRadius: BorderRadius.circular(7),
-            border: dayKey > data.todayKey
-                ? Border.all(color: _colors.divider, width: 1.2)
-                : dayKey == data.todayKey
-                ? Border.all(color: _colors.text, width: 2)
-                : null,
-          ),
-          child: Text(
-            '$day',
-            style: _body(
-              12.5,
-              weight: FontWeight.w600,
-              color: !counted
-                  ? _colors.divider
-                  : full || half
-                  ? AppColors.onAccent
-                  : _colors.textSecondary,
+        Center(
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: style.fill,
+                shape: BoxShape.circle,
+                border: isToday
+                    ? Border.all(color: _colors.structure, width: 2)
+                    : null,
+              ),
+              child: Center(
+                child: Text(
+                  '$day',
+                  style: _body(
+                    12.5,
+                    color: style.text,
+                    weight: highlighted || isToday
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                  ).copyWith(height: 1),
+                ),
+              ),
             ),
           ),
         ),
       );
     }
+
+    final none = calendarProgressColors(DayProgress.none, _colors);
+    final legend = switch (mode) {
+      CalendarMode.protein => [
+        for (final progress in DayProgress.values)
+          _LegendItem(
+            label: calendarProgressLabel(l10n, progress),
+            fill: calendarProgressColors(progress, _colors).fill,
+            bordered: progress == DayProgress.none,
+          ),
+      ],
+      CalendarMode.creatine => [
+        _LegendItem(label: l10n.calendarNone, fill: none.fill, bordered: true),
+        _LegendItem(
+          label: l10n.calendarCreatine,
+          fill: calendarCreatineColors(true, _colors).fill,
+        ),
+      ],
+      CalendarMode.hevy => [
+        _LegendItem(
+          label: l10n.calendarNoHevy,
+          fill: none.fill,
+          bordered: true,
+        ),
+        _LegendItem(
+          label: l10n.calendarHevy,
+          fill: calendarHevyColors(true, _colors).fill,
+        ),
+      ],
+    };
 
     return ShareTileFrame(
       child: Column(
@@ -1063,17 +1178,26 @@ class CalendarMonthTile extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Expanded(
-                child: Text(
-                  toBeginningOfSentenceCase(
-                    DateFormat.MMMM(locale).format(month),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    toBeginningOfSentenceCase(
+                      DateFormat.MMMM(locale).format(month),
+                    ),
+                    style: _display(38),
                   ),
-                  style: _display(38),
                 ),
               ),
-              Text(l10n.shareMonthReached(reached), style: _body(13.5)),
+              const SizedBox(width: 10),
+              Text(switch (mode) {
+                CalendarMode.protein => l10n.shareMonthReached(marked),
+                CalendarMode.creatine => l10n.shareMonthCreatine(marked),
+                CalendarMode.hevy => l10n.shareMonthHevy(marked),
+              }, style: _body(13.5)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: [
               for (var i = 0; i < 7; i++)
@@ -1086,17 +1210,15 @@ class CalendarMonthTile extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final rows = ((lead + days) / 7).ceil();
-                const gap = 5.0;
+                const gap = 4.0;
                 final width = (constraints.maxWidth - gap * 6) / 7;
-                final height = min(
-                  width,
-                  (constraints.maxHeight - gap * (rows - 1)) / rows,
-                );
+                final height =
+                    (constraints.maxHeight - gap * (rows - 1)) / rows;
                 return GridView.count(
                   crossAxisCount: 7,
                   mainAxisSpacing: gap,
@@ -1109,38 +1231,69 @@ class CalendarMonthTile extends StatelessWidget {
               },
             ),
           ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              _Dot(AppColors.accent),
-              Text(l10n.shareGoalReached, style: _body(11)),
-              const SizedBox(width: 14),
-              _Dot(AppColors.progressHalf),
-              Text(l10n.shareHalfGoal, style: _body(11)),
-            ],
-          ),
+          const SizedBox(height: 8),
+          // Two by two, as in the calendar.
+          for (final (index, row) in legend.slices(2).indexed) ...[
+            if (index > 0) const SizedBox(height: 4),
+            Row(
+              children: [
+                for (final item in row) Expanded(child: item),
+                if (row.length == 1) const Spacer(),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _Dot extends StatelessWidget {
-  const _Dot(this.color);
+/// A color of the calendar tile and what it tells.
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({
+    required this.label,
+    required this.fill,
+    this.bordered = false,
+  });
 
-  final Color color;
+  final String label;
+  final Color fill;
+  final bool bordered;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 9,
-    height: 9,
-    margin: const EdgeInsets.only(right: 5),
-    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 11,
+        height: 11,
+        decoration: BoxDecoration(
+          color: fill,
+          shape: BoxShape.circle,
+          border: bordered ? Border.all(color: _colors.divider) : null,
+        ),
+      ),
+      const SizedBox(width: 6),
+      Flexible(
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: _body(11.5),
+        ),
+      ),
+    ],
   );
 }
 
-/// A day of the week tile.
-typedef WeekDayShare = ({int dayKey, Map<DaySlot, double> bySlot, double goal});
+/// A day of the week tile: its protein by part of the day, its goal, and
+/// whether creatine was taken and a Hevy workout done.
+typedef WeekDayShare = ({
+  int dayKey,
+  Map<DaySlot, double> bySlot,
+  double goal,
+  bool creatine,
+  bool hevy,
+});
 
 /// The last 7 days, each as a shaker filled to its level.
 class WeekTile extends StatelessWidget {
@@ -1160,6 +1313,7 @@ class WeekTile extends StatelessWidget {
         .length;
     final first = dateOfDayKey(days.first.dayKey);
     final last = dateOfDayKey(days.last.dayKey);
+    final marked = days.any((day) => day.creatine || day.hevy);
 
     return ShareTileFrame(
       child: Column(
@@ -1215,6 +1369,21 @@ class WeekTile extends StatelessWidget {
                         DateFormat.E(locale).format(dateOfDayKey(day.dayKey)),
                         style: _body(11, weight: FontWeight.w600),
                       ),
+                      // The marks of the calendar, the same height for all.
+                      if (marked) ...[
+                        const SizedBox(height: 5),
+                        SizedBox(
+                          height: 12,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            spacing: 2,
+                            children: [
+                              if (day.creatine) const CreatineCheck(size: 12),
+                              if (day.hevy) const HevyMark(size: 12),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1225,4 +1394,335 @@ class WeekTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The creatine of a period: the days it was taken among those counted,
+/// each day marked in blue, or for a year the share of each month.
+class CreatineTile extends StatelessWidget {
+  const CreatineTile({super.key, required this.stats, required this.today});
+
+  final PeriodStats stats;
+  final DateTime today;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final creatine = stats.creatine!;
+    final streak = creatine.currentStreak;
+    return _MarksTile(
+      period: stats.period,
+      today: today,
+      value: creatine.takenDays,
+      label: l10n.shareCreatineDays(creatine.countedDays),
+      marks: creatine.marks,
+      monthShares: creatine.monthShares,
+      fill: AppColors.creatine,
+      onFill: AppColors.onAccent,
+      stats: [
+        _Stat(
+          value: '${creatine.doses}',
+          label: l10n.statsDosesLabel(creatine.doses),
+        ),
+        if (streak != null && streak > 0)
+          _Stat(
+            value: l10n.statsDayCount(streak),
+            label: l10n.statsCurrentStreak,
+          ),
+      ],
+    );
+  }
+}
+
+/// The Hevy workouts of a period: their number, each day with one marked,
+/// or for a year the share of each month.
+class WorkoutTile extends StatelessWidget {
+  const WorkoutTile({super.key, required this.stats, required this.today});
+
+  final PeriodStats stats;
+  final DateTime today;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final locale = context.localeName;
+    final workouts = stats.workouts!;
+    final week = stats.period.span == StatsSpan.week;
+    final average = workouts.averageDuration;
+    return _MarksTile(
+      period: stats.period,
+      today: today,
+      value: workouts.sessions,
+      label: l10n.shareHevyWorkouts(workouts.sessions),
+      marks: workouts.marks,
+      monthShares: workouts.monthShares,
+      fill: _colors.hevy,
+      onFill: _colors.onHevy,
+      stats: [
+        if (week)
+          _Stat(
+            value: '${workouts.days}',
+            label: l10n.statsWorkoutDaysLabel(workouts.days),
+          )
+        else
+          _Stat(
+            value: NumberFormat('#,##0.0', locale).format(workouts.perWeek),
+            label: l10n.statsPerWeek,
+          ),
+        if (average != null)
+          _Stat(
+            value: formatDuration(average, l10n),
+            label: l10n.statsAverageLength,
+          ),
+      ],
+    );
+  }
+}
+
+/// A period told by a number, its days marked in [fill], or for a year
+/// the share of each month, and [stats] under them.
+class _MarksTile extends StatelessWidget {
+  const _MarksTile({
+    required this.period,
+    required this.today,
+    required this.value,
+    required this.label,
+    required this.marks,
+    required this.monthShares,
+    required this.fill,
+    required this.onFill,
+    required this.stats,
+  });
+
+  final StatsPeriod period;
+  final DateTime today;
+  final int value;
+  final String label;
+
+  /// Each day of a week or a month, null when not counted.
+  final List<bool?> marks;
+
+  /// Each month of a year, null without counted day.
+  final List<double?> monthShares;
+  final Color fill;
+  final Color onFill;
+  final List<Widget> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final locale = context.localeName;
+    final year = period.span == StatsSpan.year;
+    return ShareTileFrame(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            year
+                ? l10n.shareYear(period.start.year)
+                : sharePeriodName(period, l10n, locale, today),
+            style: _body(14.5),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                NumberFormat.decimalPattern(locale).format(value),
+                style: _display(70),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(label, style: _body(13), maxLines: 2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: year
+                ? _monthBars(locale)
+                : period.span == StatsSpan.week
+                ? _weekDays(locale)
+                : _monthDays(context),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              for (final (index, stat) in stats.indexed) ...[
+                if (index > 0) const SizedBox(width: 28),
+                stat,
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A day: filled when marked, empty when not, outlined when not counted.
+  Widget _dot(bool? mark, String text) => AspectRatio(
+    aspectRatio: 1,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: switch (mark) {
+          true => fill,
+          false => _colors.surface,
+          null => null,
+        },
+        border: mark == true ? null : Border.all(color: _colors.divider),
+      ),
+      child: Center(
+        child: Text(
+          text,
+          style: _body(
+            12.5,
+            color: switch (mark) {
+              true => onFill,
+              false => _colors.textSecondary,
+              null => _colors.divider,
+            },
+            weight: mark == true ? FontWeight.w700 : FontWeight.w500,
+          ).copyWith(height: 1),
+        ),
+      ),
+    ),
+  );
+
+  Widget _weekDays(String locale) => Center(
+    child: Row(
+      children: [
+        for (final (index, mark) in marks.indexed)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _dot(
+                    mark,
+                    '${DateTime(period.start.year, period.start.month, period.start.day + index).day}',
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    DateFormat.E(locale).format(
+                      DateTime(
+                        period.start.year,
+                        period.start.month,
+                        period.start.day + index,
+                      ),
+                    ),
+                    style: _body(11, weight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+
+  Widget _monthDays(BuildContext context) {
+    final material = MaterialLocalizations.of(context);
+    final firstWeekday = material.firstDayOfWeekIndex;
+    final lead = (period.start.weekday % 7 - firstWeekday + 7) % 7;
+    final grid = LayoutBuilder(
+      builder: (context, constraints) {
+        final rows = ((lead + marks.length) / 7).ceil();
+        const gap = 4.0;
+        final width = (constraints.maxWidth - gap * 6) / 7;
+        final height = (constraints.maxHeight - gap * (rows - 1)) / rows;
+        return GridView.count(
+          crossAxisCount: 7,
+          mainAxisSpacing: gap,
+          crossAxisSpacing: gap,
+          childAspectRatio: width / height,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          children: [
+            for (var i = 0; i < lead; i++) const SizedBox.shrink(),
+            for (final (index, mark) in marks.indexed)
+              Center(child: _dot(mark, '${index + 1}')),
+          ],
+        );
+      },
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            for (var i = 0; i < 7; i++)
+              Expanded(
+                child: Text(
+                  material.narrowWeekdays[(firstWeekday + i) % 7],
+                  textAlign: TextAlign.center,
+                  style: _body(11, weight: FontWeight.w600),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        Expanded(child: grid),
+      ],
+    );
+  }
+
+  Widget _monthBars(String locale) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Expanded(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final share in monthShares)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2.5),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: share == null ? null : _colors.surface,
+                      border: share == null
+                          ? Border.all(color: _colors.divider)
+                          : null,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: share == null || share == 0
+                        ? null
+                        : Align(
+                            alignment: Alignment.bottomCenter,
+                            child: FractionallySizedBox(
+                              heightFactor: share,
+                              widthFactor: 1,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: fill,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 4),
+      Row(
+        children: [
+          for (var month = 1; month <= 12; month++)
+            Expanded(
+              child: Text(
+                DateFormat('MMMMM', locale).format(DateTime(2026, month)),
+                textAlign: TextAlign.center,
+                style: _body(10.5, weight: FontWeight.w600),
+              ),
+            ),
+        ],
+      ),
+    ],
+  );
 }

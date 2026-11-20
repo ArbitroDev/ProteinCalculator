@@ -41,7 +41,11 @@ final shareImageProvider = Provider<ShareImage>(
 /// What a tile shows that the sheet lets change.
 @immutable
 class ShareOptions {
-  const ShareOptions({this.showProducts = false, this.offset = 0});
+  const ShareOptions({
+    this.showProducts = false,
+    this.offset = 0,
+    this.variant = 0,
+  });
 
   /// Whether the names of the products show, on the timeline of a day.
   final bool showProducts;
@@ -49,10 +53,15 @@ class ShareOptions {
   /// Steps back from the period first shown, such as months of a calendar.
   final int offset;
 
-  ShareOptions copyWith({bool? showProducts, int? offset}) => ShareOptions(
-    showProducts: showProducts ?? this.showProducts,
-    offset: offset ?? this.offset,
-  );
+  /// Index of the variant chosen, of [ShareChoice.variants].
+  final int variant;
+
+  ShareOptions copyWith({bool? showProducts, int? offset, int? variant}) =>
+      ShareOptions(
+        showProducts: showProducts ?? this.showProducts,
+        offset: offset ?? this.offset,
+        variant: variant ?? this.variant,
+      );
 }
 
 /// One tile offered in the share sheet.
@@ -64,6 +73,7 @@ class ShareChoice {
     required this.build,
     this.productsSwitch = false,
     this.browse,
+    this.variants,
   });
 
   /// Name of the tile in the choice, when the sheet offers several.
@@ -79,6 +89,10 @@ class ShareChoice {
   /// Lets the sheet go back from the period first shown: the name of the
   /// period at an offset, and the furthest offset back.
   final ({String Function(int offset) name, int oldest})? browse;
+
+  /// Names of the ways the tile can be drawn, such as what colors the days
+  /// of a calendar, the first one shown; null for a single way.
+  final List<String>? variants;
 }
 
 /// Opens the sheet previewing the tiles of [choices], the first one shown,
@@ -91,7 +105,10 @@ Future<void> showShareSheet(BuildContext context, List<ShareChoice> choices) =>
       isScrollControlled: true,
       showDragHandle: true,
       useSafeArea: true,
-      builder: (context) => _ShareSheet(choices: choices),
+      // Its content keeps clear of the Android navigation bar, the sheet
+      // itself going under it.
+      builder: (context) =>
+          SafeArea(top: false, child: _ShareSheet(choices: choices)),
     );
 
 class _ShareSheet extends ConsumerStatefulWidget {
@@ -136,6 +153,7 @@ class _ShareSheetState extends ConsumerState<_ShareSheet> {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
     final browse = _choice.browse;
+    final variants = _choice.variants;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -161,6 +179,18 @@ class _ShareSheetState extends ConsumerState<_ShareSheet> {
                   }),
                 ),
                 const SizedBox(height: 14),
+              ],
+              if (variants != null && variants.length > 1) ...[
+                PillTabs<int>(
+                  labels: {
+                    for (final (index, label) in variants.indexed) index: label,
+                  },
+                  selected: _options.variant,
+                  onChanged: (index) => setState(
+                    () => _options = _options.copyWith(variant: index),
+                  ),
+                ),
+                const SizedBox(height: 8),
               ],
               if (browse != null) ...[
                 Row(

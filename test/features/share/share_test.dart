@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/shaker_icon.dart';
 import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/features/share/share_tiles.dart';
@@ -185,6 +186,104 @@ void main() {
       ),
     );
     expect(previous.onPressed, isNull);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('the month of the history is colored by creatine on demand', (
+    tester,
+  ) async {
+    holdUpright(tester);
+    await addEntry(100, DateTime(2026, 10, 2, 9));
+    await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 3, 9));
+    await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 5, 9));
+    await open(tester);
+    await tester.tap(find.byTooltip('History'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Month').last);
+    await tester.pumpAndSettle();
+    // The legend of the calendar, from no protein to the goal.
+    for (final label in [
+      'None taken',
+      'Under 50%',
+      '50% or more',
+      'Goal reached',
+    ]) {
+      expect(find.text(label), findsOneWidget, reason: label);
+    }
+
+    await tester.tap(find.text('Creatine'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 creatine days'), findsOneWidget);
+    expect(find.text('Creatine taken'), findsOneWidget);
+    expect(find.text('Under 50%'), findsNothing);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('the statistics share their creatine', (tester) async {
+    holdUpright(tester);
+    for (var day = 5; day <= 7; day++) {
+      await db.entriesDao.insertEntry(
+        amount: const DirectAmount(40),
+        createdAt: DateTime(2026, 10, day, 9),
+        creatineDoses: 1,
+      );
+    }
+    await open(tester);
+    await tester.tap(find.byTooltip('Statistics'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Creatine').last);
+    await tester.pumpAndSettle();
+    expect(find.byType(CreatineTile), findsOneWidget);
+    // From the first dose, Monday, to today, Saturday.
+    expect(find.text('creatine days out of 6'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('the bars of a period stand on the bottom of the chart', (
+    tester,
+  ) async {
+    holdUpright(tester);
+    await addEntry(30, DateTime(2026, 10, 5, 9));
+    await addEntry(100, DateTime(2026, 10, 6, 9));
+    await addEntry(60, DateTime(2026, 10, 7, 9));
+    await open(tester);
+    await tester.tap(find.byTooltip('Statistics'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+
+    final bars = find.descendant(
+      of: find.byType(PeriodTile),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Container &&
+            widget.decoration is BoxDecoration &&
+            (widget.decoration! as BoxDecoration).borderRadius ==
+                const BorderRadius.vertical(top: Radius.circular(3)),
+      ),
+    );
+    final bottoms = {
+      for (final element in bars.evaluate())
+        tester.getBottomLeft(find.byWidget(element.widget)).dy.round(),
+    };
+    // The line under the bars.
+    final baseline = find.descendant(
+      of: find.byType(PeriodTile),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Container &&
+            widget.color == AppColors.light.divider &&
+            widget.constraints?.maxHeight == 1,
+      ),
+    );
+    expect(bars, findsAtLeast(3));
+    expect(bottoms, {tester.getTopLeft(baseline).dy.round()});
     await disposeApp(tester, db);
   });
 
