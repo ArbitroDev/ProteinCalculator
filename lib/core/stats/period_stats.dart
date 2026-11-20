@@ -70,8 +70,8 @@ class StatsInput {
   /// Days having a Hevy workout, all of them.
   final Set<int> workoutDays;
 
-  /// Entries of the period and of the day after it, in the order they were
-  /// added: protein taken after a workout of the last day may fall on it.
+  /// Entries of the period and of the day after it, by their time: protein
+  /// taken after a workout of the last day may fall on it.
   final List<Entry> entries;
 
   /// Hevy workouts of the period, in the order they started.
@@ -139,7 +139,8 @@ class ProteinStats {
     required this.deltaGrams,
   });
 
-  /// Protein grams per counted day, days without entries counting for 0 g.
+  /// Protein grams per counted day, days without entries counting for 0 g,
+  /// today only once its goal is reached.
   final double averageGrams;
 
   /// Average goal of the counted days; null without a goal.
@@ -362,6 +363,16 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
       if (day.creatineDoses > 0) dayKey,
   };
 
+  // Today counts in the averages once its goal is reached: before, it is
+  // not over and would pull them down. Alone in the period, it counts all the
+  // same, there being nothing else to show.
+  final finished = [
+    for (final dayKey in counted)
+      if (dayKey != input.todayKey || reachedDays.contains(dayKey)) dayKey,
+  ];
+  final onlyToday = finished.isEmpty && counted.isNotEmpty;
+  final averaged = onlyToday ? counted : finished;
+
   double average(Iterable<int> dayKeys) =>
       dayKeys.isEmpty ? 0 : dayKeys.map(gramsOf).sum / dayKeys.length;
   double? averageGoal(Iterable<int> dayKeys) {
@@ -375,10 +386,10 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
     firstAppDayKey: input.firstAppDayKey,
     todayKey: input.todayKey,
   );
-  final averageGrams = average(counted);
+  final averageGrams = average(averaged);
   final protein = ProteinStats(
     averageGrams: averageGrams,
-    averageGoal: averageGoal(counted),
+    averageGoal: averageGoal(averaged),
     goalDays: counted.where(reachedDays.contains).length,
     currentStreak: holdsToday
         ? currentStreak(reachedDays, input.todayKey)
@@ -388,7 +399,7 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
         ? [
             for (final month in period.months)
               () {
-                final days = counted.where(month.contains).toList();
+                final days = averaged.where(month.contains).toList();
                 return StatsBar(
                   date: month.start,
                   grams: days.isEmpty ? null : average(days),
@@ -405,7 +416,7 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
                 goal: goalOf(dayKey),
               ),
           ],
-    deltaGrams: previous.isEmpty
+    deltaGrams: previous.isEmpty || onlyToday
         ? null
         : (averageGrams - average(previous)).round(),
   );
@@ -465,6 +476,7 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
       period: period,
       input: input,
       counted: counted,
+      averaged: averaged,
       countedSet: countedSet,
       creatineCounted: creatine == null ? const [] : creatineCounted,
       sessions: sessions,
@@ -523,6 +535,7 @@ CrossStats _cross({
   required StatsPeriod period,
   required StatsInput input,
   required List<int> counted,
+  required List<int> averaged,
   required Set<int> countedSet,
   required List<int> creatineCounted,
   required List<HevySession> sessions,
@@ -536,8 +549,8 @@ CrossStats _cross({
   final hevy = input.hevyImported;
 
   // Protein and workouts.
-  final trainingDays = counted.where(workoutDays.contains).toList();
-  final restDays = counted.whereNot(workoutDays.contains).toList();
+  final trainingDays = averaged.where(workoutDays.contains).toList();
+  final restDays = averaged.whereNot(workoutDays.contains).toList();
   final afterWorkout = restDays
       .where((dayKey) => workoutDays.contains(previousDayKey(dayKey)))
       .toList();
@@ -667,7 +680,7 @@ CrossStats _cross({
       for (var i = 0; i < 7; i++)
         () {
           final weekday = (input.firstWeekday + i) % 7;
-          final days = counted
+          final days = averaged
               .where((k) => dateOfDayKey(k).weekday % 7 == weekday)
               .toList();
           return days.length < minWeekdayDays ? null : average(days);
@@ -700,8 +713,11 @@ CrossStats _cross({
       for (final MapEntry(key: dayKey, value: time) in firstOfDay.entries)
         _minutesOfDay(time, dayKey),
     ];
+    final averagedSet = averaged.toSet();
     rhythm = (
-      entriesPerDay: periodEntries.length / counted.length,
+      entriesPerDay:
+          periodEntries.where((e) => averagedSet.contains(e.dayKey)).length /
+          averaged.length,
       gramsPerEntry:
           periodEntries.map((entry) => entry.proteinGrams).sum /
           periodEntries.length,

@@ -1532,7 +1532,7 @@
   "@statsShortfall": {
     "description": "Label of the protein grams missing on average on the days missing their goal."
   },
-  "statsShortfallDays": "{count, plural, =1{sur 1 jour raté} other{sur {count} jours ratés}}",
+  "statsShortfallDays": "{count, plural, =1{sur 1 jour raté avec des entrées} other{sur {count} jours ratés avec des entrées}}",
   "@statsShortfallDays": {
     "description": "Under the average shortfall: the days missing their goal, without today and the days without entries.",
     "placeholders": {
@@ -1560,7 +1560,7 @@
       }
     }
   },
-  "statsRegularity": "Régularité",
+  "statsRegularity": "Régularité des jours avec entrées",
   "@statsRegularity": {
     "description": "Section of the insights card: how much the protein of the days varies."
   },
@@ -1599,7 +1599,7 @@
       }
     }
   },
-  "statsMarks": "{count} jours sur {total}",
+  "statsMarks": "{count, plural, =0{0 jour sur {total}} =1{1 jour sur {total}} other{{count} jours sur {total}}}",
   "@statsMarks": {
     "description": "Screen reader summary of a row of days: those marked among those counted.",
     "placeholders": {
@@ -1607,6 +1607,18 @@
         "type": "int"
       },
       "total": {
+        "type": "int"
+      }
+    }
+  },
+  "statsSlotCount": "{slot} {count}",
+  "@statsSlotCount": {
+    "description": "Workouts started in a part of the day, in the line under the usual start time; slot already named (\"Soirée\").",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      },
+      "count": {
         "type": "int"
       }
     }

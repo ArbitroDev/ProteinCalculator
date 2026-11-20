@@ -63,6 +63,7 @@ StatsInput _input({
     (dayKey: 20261001, grams: 100),
   ],
   int firstAppDayKey = 20261001,
+  int todayKey = _today,
   bool creatineTracked = false,
   bool hevyImported = false,
   Set<int> workoutDays = const {},
@@ -78,7 +79,7 @@ StatsInput _input({
   goals: goals,
   currentGoal: goals.last.grams,
   firstAppDayKey: firstAppDayKey,
-  todayKey: _today,
+  todayKey: todayKey,
   firstWeekday: 1,
   creatineTracked: creatineTracked,
   hevyImported: hevyImported,
@@ -99,9 +100,40 @@ void main() {
 
       expect(stats.countedDays, 10);
       expect(stats.hasEntries, isTrue);
-      expect(stats.protein.averageGrams, 81);
+      // Today is not over: 780 g over the 9 days before it.
+      expect(stats.protein.averageGrams, closeTo(780 / 9, 1e-9));
       expect(stats.protein.averageGoal, 100);
       expect(stats.protein.goalDays, 7);
+      expect(stats.protein.deltaGrams, isNull);
+    });
+
+    test('today counts in the averages once its goal is reached', () {
+      final days = _input().days;
+      final stats = computeStats(
+        _month,
+        _input(
+          days: {...days, 20261010: _day(20261010, 120)},
+          hevyImported: true,
+          workoutDays: {20261002, 20261005, 20261009},
+        ),
+      );
+
+      expect(stats.protein.averageGrams, 90);
+      // The 3rd, 6th and today follow a workout.
+      expect(stats.cross.proteinAfterWorkoutDay, closeTo(280 / 3, 1e-9));
+    });
+
+    test('today alone counts all the same, without a difference', () {
+      final stats = computeStats(
+        _month,
+        _input(
+          days: {20261001: _day(20261001, 30), 20260915: _day(20260915, 300)},
+          firstAppDayKey: 20260901,
+          todayKey: 20261001,
+        ),
+      );
+
+      expect(stats.protein.averageGrams, 30);
       expect(stats.protein.deltaGrams, isNull);
     });
 
@@ -138,7 +170,8 @@ void main() {
       );
 
       expect(stats.protein.goalDays, 3);
-      expect(stats.protein.averageGoal, 150);
+      // 5 days at 100 g and 4 at 200 g; today is not over.
+      expect(stats.protein.averageGoal, closeTo(1300 / 9, 1e-9));
     });
 
     test('tells the difference with the previous period', () {
@@ -151,8 +184,9 @@ void main() {
         ),
       );
 
-      // 810 g over 10 days, against 300 g over the 30 days of September.
-      expect(stats.protein.deltaGrams, 71);
+      // 780 g over the 9 days before today, against 300 g over the 30 days
+      // of September.
+      expect(stats.protein.deltaGrams, 77);
     });
 
     test('draws a bar per day, none for the days not counted', () {
@@ -169,7 +203,7 @@ void main() {
       final bars = computeStats(_period(StatsSpan.year), _input()).protein.bars;
 
       expect(bars, hasLength(12));
-      expect(bars[9].grams, 81);
+      expect(bars[9].grams, closeTo(780 / 9, 1e-9));
       expect(bars[9].dayKey, isNull);
       expect(bars[8].grams, isNull);
     });
@@ -281,11 +315,13 @@ void main() {
         final stats = cross();
 
         expect(stats.proteinByWorkout!.first, closeTo(320 / 3, 1e-9));
-        expect(stats.proteinByWorkout!.second, closeTo(490 / 7, 1e-9));
+        // Today is not over: the rest days are the 1st, 3rd, 4th, 6th, 7th
+        // and 8th.
+        expect(stats.proteinByWorkout!.second, closeTo(460 / 6, 1e-9));
         expect(stats.goalShareByWorkout!.first, 1);
-        expect(stats.goalShareByWorkout!.second, closeTo(4 / 7, 1e-9));
-        // The 3rd, 6th and 10th follow a workout.
-        expect(stats.proteinAfterWorkoutDay, closeTo(190 / 3, 1e-9));
+        expect(stats.goalShareByWorkout!.second, closeTo(4 / 6, 1e-9));
+        // Only the 3rd and 6th follow a workout, today not being over.
+        expect(stats.proteinAfterWorkoutDay, isNull);
       });
 
       test('sums the protein taken in the hours after a workout', () {
@@ -366,8 +402,9 @@ void main() {
     test('averages each weekday counted on 2 days at least', () {
       final averages = computeStats(_month, _input()).cross.weekdayAverages!;
 
-      // From Monday: only Thursday, Friday and Saturday come twice.
-      expect(averages, [null, null, null, 100, 110, 40, null]);
+      // From Monday: only Thursday and Friday come twice, today, a Saturday,
+      // not being over.
+      expect(averages, [null, null, null, 100, 110, null, null]);
     });
 
     test('no weekdays for a week', () {
@@ -412,7 +449,8 @@ void main() {
       );
       final rhythm = stats.cross.rhythm!;
 
-      expect(rhythm.entriesPerDay, 0.4);
+      // 4 entries over the 9 days before today.
+      expect(rhythm.entriesPerDay, closeTo(4 / 9, 1e-9));
       expect(rhythm.gramsPerEntry, 25);
       // 8:00 and 9:20, on average 8:40, to the quarter.
       expect(rhythm.firstEntryMinutes, 8 * 60 + 45);

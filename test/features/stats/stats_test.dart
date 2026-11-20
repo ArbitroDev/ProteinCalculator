@@ -71,11 +71,11 @@ void main() {
     await addOctober();
     await openStats(tester);
     expect(find.text('October 2026'), findsOneWidget);
-    // 530 g over the 10 days since the goal was set.
-    expect(find.textContaining('53'), findsWidgets);
+    // 500 g over the 9 days since the goal was set, today not being over.
+    expect(find.textContaining('56'), findsWidgets);
     expect(find.text('5 / 10'), findsOneWidget);
     expect(find.text('goal reached · 50%'), findsOneWidget);
-    expect(find.text('5 d'), findsNWidgets(2));
+    expect(find.text('5 days'), findsNWidgets(2));
     // Neither creatine nor Hevy is used.
     expect(find.text('Creatine'), findsNothing);
     expect(find.textContaining('Workouts'), findsNothing);
@@ -95,7 +95,7 @@ void main() {
     expect(find.textContaining('Never after'), findsOneWidget);
     expect(find.textContaining('over 5 days'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('usual spread'), 200);
-    expect(find.text('Regularity'), findsOneWidget);
+    expect(find.text('Regularity of the days with entries'), findsOneWidget);
     expect(find.textContaining('lowest · '), findsOneWidget);
     // No day missed its goal but today.
     expect(find.text('Average gap on missed days'), findsNothing);

@@ -569,7 +569,7 @@ class _ProteinCard extends StatelessWidget {
 
   final PeriodStats stats;
 
-  /// Current goal, drawn over the bars.
+  /// Current goal, for a period without goal of its own.
   final double? goal;
   final bool Function(int dayKey) canOpen;
 
@@ -619,6 +619,7 @@ class _ProteinCard extends StatelessWidget {
     }
 
     final averageGoal = protein.averageGoal;
+    final chartGoal = averageGoal?.roundToDouble() ?? goal;
     return StatsCard(
       title: l10n.statsProtein,
       children: [
@@ -681,8 +682,10 @@ class _ProteinCard extends StatelessWidget {
         StatsBarChart(
           bars: protein.bars,
           span: period.span,
-          goal: goal,
-          goalLabel: l10n.grams(formatGrams(goal ?? 0, locale)),
+          // The goal of the days of the period, coloring their bars, rather
+          // than the current one, which may have changed since.
+          goal: chartGoal,
+          goalLabel: l10n.grams(formatGrams(chartGoal ?? 0, locale)),
           describe: describe,
           canOpen: (bar) => bar.dayKey != null && canOpen(bar.dayKey!),
           onOpen: (bar) => context.go(AppRoutes.historyDay(bar.dayKey!)),
@@ -945,7 +948,7 @@ class _InsightsCard extends StatelessWidget {
           detail: [
             for (final MapEntry(key: slot, value: count)
                 in workoutTime.counts.entries)
-              if (count > 0) '${slotName(slot)} $count',
+              if (count > 0) l10n.statsSlotCount(slotName(slot), count),
           ].join(' · '),
         ),
         // A comparison needs two parts of the day.
