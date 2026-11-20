@@ -44,7 +44,7 @@ class HistoryPage extends ConsumerWidget {
                 historyShareChoices(ref, context, view),
               ),
             ),
-          const SizedBox(width: 10),
+          const SizedBox(width: shareButtonEndGap),
         ],
       ),
       body: ContentWidth(

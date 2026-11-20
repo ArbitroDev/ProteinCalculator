@@ -169,7 +169,7 @@ class _StatsPageState extends ConsumerState<StatsPage> {
         title: Text(l10n.tabStats),
         actions: [
           if (share != null) ShareButton(onPressed: share),
-          const SizedBox(width: 10),
+          const SizedBox(width: shareButtonEndGap),
         ],
       ),
       // In landscape, the two columns take the width of the screen.

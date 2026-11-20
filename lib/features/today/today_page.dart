@@ -27,6 +27,12 @@ import 'package:protein_calculator/l10n/app_localizations.dart';
 /// Main tab: the summary of the current app day, then the shaker with one
 /// label per entry next to it, swiped to the left to delete the entry. In
 /// landscape, the shaker stands on the left and the summary tops the labels.
+
+/// Space above the date: the tops of its capitals meet those of the titles
+/// of the other tabs, measured on a device, upright and in landscape.
+const _topUpright = 12.8;
+const _topLandscape = 12.9;
+
 class TodayPage extends ConsumerStatefulWidget {
   const TodayPage({super.key});
 
@@ -131,7 +137,7 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
           child: Padding(
             // The top of the date at the height of the top of the titles of
             // the other tabs, as upright.
-            padding: const EdgeInsets.fromLTRB(8, 12.9, 16, 12),
+            padding: const EdgeInsets.fromLTRB(8, _topLandscape, 16, 12),
             child: _ShakerWithLabels(
               shakerKey: _shakerKey,
               entries: entries,
@@ -151,6 +157,7 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
                   context,
                   dayShareChoices(context, share, timelineFirst: false),
                 ),
+                top: _topLandscape,
                 compact: true,
               ),
             ),
@@ -165,7 +172,7 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
           // Lined up with the tab bar; the top of the date at the height of
           // the top of the titles of the other tabs, centered in their app
           // bar, though the date is larger.
-          padding: const EdgeInsets.fromLTRB(16, 12.8, 16, 14),
+          padding: const EdgeInsets.fromLTRB(16, _topUpright, 16, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -181,6 +188,7 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
                   context,
                   dayShareChoices(context, share, timelineFirst: false),
                 ),
+                top: _topUpright,
               ),
               // Keeps the shaker at its size, the labels at their width: the
               // room the summary gave up stays above the shaker.
@@ -216,6 +224,7 @@ class _Summary extends StatelessWidget {
     required this.onQuickAdd,
     required this.onAddCreatine,
     required this.onShare,
+    required this.top,
     this.compact = false,
   });
 
@@ -231,6 +240,9 @@ class _Summary extends StatelessWidget {
 
   /// Opens the share sheet of the day.
   final VoidCallback onShare;
+
+  /// Space above the summary, under the status bar.
+  final double top;
 
   /// Smaller, without the add button, for landscape.
   final bool compact;
@@ -293,7 +305,18 @@ class _Summary extends StatelessWidget {
               height: dateStyle.fontSize! * dateStyle.height!,
               child: OverflowBox(
                 maxHeight: 40,
-                child: ShareButton(onPressed: onShare),
+                // Centered where the app bars of the other tabs center
+                // theirs, rather than on the line of the date, a little
+                // higher.
+                child: Transform.translate(
+                  offset: Offset(
+                    0,
+                    kToolbarHeight / 2 -
+                        top -
+                        dateStyle.fontSize! * dateStyle.height! / 2,
+                  ),
+                  child: ShareButton(onPressed: onShare),
+                ),
               ),
             ),
           ],

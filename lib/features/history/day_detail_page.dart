@@ -195,7 +195,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
               dayShareChoices(context, share, timelineFirst: true),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: shareButtonEndGap),
         ],
       ),
       body: landscape

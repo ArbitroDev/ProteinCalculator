@@ -19,6 +19,11 @@ import 'package:protein_calculator/l10n/app_localizations.dart';
 /// Shortest current streak offered as its own tile.
 const shareMinStreak = 3;
 
+/// Space after the share button of an app bar: around its 40 dp circle,
+/// the button keeps 4 dp to be touched, so the circle ends 16 dp from the
+/// edge, as on Today, where nothing frames it.
+const shareButtonEndGap = 12.0;
+
 /// Round share button of the top right of a page.
 class ShareButton extends StatelessWidget {
   const ShareButton({super.key, required this.onPressed});
