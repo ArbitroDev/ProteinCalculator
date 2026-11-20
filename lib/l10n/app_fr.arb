@@ -1857,11 +1857,11 @@
       }
     }
   },
-  "shareCreatineDays": "{total, plural, =1{jour de créatine sur 1} other{jours de créatine sur {total}}}",
-  "@shareCreatineDays": {
-    "description": "Creatine tile of the statistics, after the number of days creatine was taken: out of the days counted.",
+  "shareCreatineDaysLabel": "{count, plural, =1{jour avec créatine} other{jours avec créatine}}",
+  "@shareCreatineDaysLabel": {
+    "description": "Creatine tile of the statistics, under the days creatine was taken out of those counted.",
     "placeholders": {
-      "total": {
+      "count": {
         "type": "int"
       }
     }

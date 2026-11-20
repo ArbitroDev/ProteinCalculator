@@ -338,5 +338,5 @@
   "shareWeekRange": "{from} to {to} · {count} of {total} at the goal",
   "shareMonthCreatine": "{count, plural, =0{No creatine day} =1{1 creatine day} other{{count} creatine days}}",
   "shareMonthHevy": "{count, plural, =0{No workout} =1{1 workout day} other{{count} workout days}}",
-  "shareCreatineDays": "{total, plural, =1{creatine days out of 1} other{creatine days out of {total}}}"
+  "shareCreatineDaysLabel": "{count, plural, =1{day with creatine} other{days with creatine}}"
 }

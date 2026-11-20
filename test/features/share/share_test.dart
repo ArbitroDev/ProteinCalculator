@@ -240,8 +240,13 @@ void main() {
     await tester.tap(find.text('Creatine').last);
     await tester.pumpAndSettle();
     expect(find.byType(CreatineTile), findsOneWidget);
-    // From the first dose, Monday, to today, Saturday.
-    expect(find.text('creatine days out of 6'), findsOneWidget);
+    // 3 days out of those from the first dose, Monday, to today, Saturday.
+    Finder inTile(String text) => find.descendant(
+      of: find.byType(CreatineTile),
+      matching: find.text(text),
+    );
+    expect(inTile('3 / 6'), findsOneWidget);
+    expect(inTile('50%'), findsOneWidget);
     await disposeApp(tester, db);
   });
 

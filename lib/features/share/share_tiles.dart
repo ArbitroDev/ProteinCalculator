@@ -1396,8 +1396,8 @@ class WeekTile extends StatelessWidget {
   }
 }
 
-/// The creatine of a period: the days it was taken among those counted,
-/// each day marked in blue, or for a year the share of each month.
+/// The creatine of a period: how regularly it was taken, as a ring, with
+/// its streak and doses, and its days in a thin strip.
 class CreatineTile extends StatelessWidget {
   const CreatineTile({super.key, required this.stats, required this.today});
 
@@ -1407,34 +1407,104 @@ class CreatineTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final locale = context.localeName;
     final creatine = stats.creatine!;
     final streak = creatine.currentStreak;
-    return _MarksTile(
-      period: stats.period,
-      today: today,
-      value: creatine.takenDays,
-      label: l10n.shareCreatineDays(creatine.countedDays),
-      marks: creatine.marks,
-      monthShares: creatine.monthShares,
-      fill: AppColors.creatine,
-      onFill: AppColors.onAccent,
-      stats: [
-        _Stat(
-          value: '${creatine.doses}',
-          label: l10n.statsDosesLabel(creatine.doses),
-        ),
-        if (streak != null && streak > 0)
-          _Stat(
-            value: l10n.statsDayCount(streak),
-            label: l10n.statsCurrentStreak,
+    final share = creatine.countedDays == 0
+        ? 0.0
+        : creatine.takenDays / creatine.countedDays;
+    final complete = stats.cross.completeDays;
+
+    return ShareTileFrame(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _PeriodKicker(
+            title: l10n.creatine,
+            period: stats.period,
+            today: today,
           ),
-      ],
+          const SizedBox(height: 14),
+          Expanded(
+            child: Row(
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: CustomPaint(
+                    painter: _Ring(
+                      share: share,
+                      color: AppColors.creatine,
+                      track: _colors.surface,
+                    ),
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Padding(
+                          padding: const EdgeInsets.all(26),
+                          child: Text(
+                            NumberFormat.percentPattern(locale).format(share),
+                            style: _display(44),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 22),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '${creatine.takenDays} / ${creatine.countedDays}',
+                          style: _display(34, weight: FontWeight.w700),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.shareCreatineDaysLabel(creatine.takenDays),
+                        style: _body(12.5),
+                      ),
+                      const SizedBox(height: 12),
+                      _Stat(
+                        value: '${creatine.doses}',
+                        label: l10n.statsDosesLabel(creatine.doses),
+                      ),
+                      if (streak != null && streak > 0) ...[
+                        const SizedBox(height: 10),
+                        _Stat(
+                          value: l10n.statsDayCount(streak),
+                          label: l10n.statsCurrentStreak,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (complete != null) ...[
+            const SizedBox(height: 14),
+            _TileRow(label: l10n.statsCompleteDays, value: '${complete.days}'),
+          ],
+          const SizedBox(height: 12),
+          _MarksStrip(
+            marks: creatine.marks,
+            monthShares: creatine.monthShares,
+            color: AppColors.creatine,
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// The Hevy workouts of a period: their number, each day with one marked,
-/// or for a year the share of each month.
+/// The Hevy workouts of a period: their number and length, then the
+/// protein of the workout days against the rest days, and after a workout.
 class WorkoutTile extends StatelessWidget {
   const WorkoutTile({super.key, required this.stats, required this.today});
 
@@ -1448,281 +1518,332 @@ class WorkoutTile extends StatelessWidget {
     final workouts = stats.workouts!;
     final week = stats.period.span == StatsSpan.week;
     final average = workouts.averageDuration;
-    return _MarksTile(
-      period: stats.period,
-      today: today,
-      value: workouts.sessions,
-      label: l10n.shareHevyWorkouts(workouts.sessions),
-      marks: workouts.marks,
-      monthShares: workouts.monthShares,
-      fill: _colors.hevy,
-      onFill: _colors.onHevy,
-      stats: [
-        if (week)
-          _Stat(
-            value: '${workouts.days}',
-            label: l10n.statsWorkoutDaysLabel(workouts.days),
-          )
-        else
-          _Stat(
-            value: NumberFormat('#,##0.0', locale).format(workouts.perWeek),
-            label: l10n.statsPerWeek,
-          ),
-        if (average != null)
-          _Stat(
-            value: formatDuration(average, l10n),
-            label: l10n.statsAverageLength,
-          ),
-      ],
-    );
-  }
-}
+    final cross = stats.cross;
+    final byWorkout = cross.proteinByWorkout;
+    final after = cross.postWorkout;
+    String grams(double value) => l10n.grams(formatGrams(value, locale));
+    final top = max(byWorkout?.first ?? 0, byWorkout?.second ?? 0);
 
-/// A period told by a number, its days marked in [fill], or for a year
-/// the share of each month, and [stats] under them.
-class _MarksTile extends StatelessWidget {
-  const _MarksTile({
-    required this.period,
-    required this.today,
-    required this.value,
-    required this.label,
-    required this.marks,
-    required this.monthShares,
-    required this.fill,
-    required this.onFill,
-    required this.stats,
-  });
-
-  final StatsPeriod period;
-  final DateTime today;
-  final int value;
-  final String label;
-
-  /// Each day of a week or a month, null when not counted.
-  final List<bool?> marks;
-
-  /// Each month of a year, null without counted day.
-  final List<double?> monthShares;
-  final Color fill;
-  final Color onFill;
-  final List<Widget> stats;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final locale = context.localeName;
-    final year = period.span == StatsSpan.year;
     return ShareTileFrame(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            year
-                ? l10n.shareYear(period.start.year)
-                : sharePeriodName(period, l10n, locale, today),
-            style: _body(14.5),
+          _PeriodKicker(
+            title: l10n.statsWorkouts,
+            period: stats.period,
+            today: today,
           ),
           const SizedBox(height: 6),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                NumberFormat.decimalPattern(locale).format(value),
+                NumberFormat.decimalPattern(locale).format(workouts.sessions),
                 style: _display(70),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(label, style: _body(13), maxLines: 2),
+                  child: Text(
+                    [
+                      l10n.shareHevyWorkouts(workouts.sessions),
+                      if (week)
+                        l10n.statsWorkoutDays(workouts.days)
+                      else
+                        '${NumberFormat('#,##0.0', locale).format(workouts.perWeek)} ${l10n.statsPerWeek}',
+                      if (average != null)
+                        '${formatDuration(average, l10n)} · ${l10n.statsAverageLength}',
+                    ].join('\n'),
+                    style: _body(12.5),
+                    maxLines: 3,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Expanded(
-            child: year
-                ? _monthBars(locale)
-                : period.span == StatsSpan.week
-                ? _weekDays(locale)
-                : _monthDays(context),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              for (final (index, stat) in stats.indexed) ...[
-                if (index > 0) const SizedBox(width: 28),
-                stat,
-              ],
-            ],
+          const Spacer(),
+          if (cross.workoutTime case final workoutTime?) ...[
+            _TileRow(
+              label: l10n.statsWorkoutStart,
+              value: formatTime(
+                DateTime(
+                  2000,
+                  1,
+                  1,
+                  workoutTime.startMinutes ~/ 60,
+                  workoutTime.startMinutes % 60,
+                ),
+                locale,
+              ),
+            ),
+            const Spacer(),
+          ],
+          if (byWorkout != null) ...[
+            Text(
+              l10n.formProtein,
+              style: _body(12.5, color: _colors.text, weight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            _TileCompareBar(
+              label: l10n.statsOnWorkoutDays,
+              value: grams(byWorkout.first),
+              fraction: top <= 0 ? 0 : byWorkout.first / top,
+              color: AppColors.accent,
+            ),
+            const SizedBox(height: 8),
+            _TileCompareBar(
+              label: l10n.statsOnRestDays,
+              value: grams(byWorkout.second),
+              fraction: top <= 0 ? 0 : byWorkout.second / top,
+              color: AppColors.progressHalf,
+            ),
+          ],
+          if (after != null) ...[
+            const SizedBox(height: 12),
+            _TileRow(
+              label: l10n.statsAfterWorkout(postWorkoutWindow.inHours),
+              value: grams(after.grams),
+            ),
+          ],
+          const Spacer(),
+          _MarksStrip(
+            marks: workouts.marks,
+            monthShares: workouts.monthShares,
+            color: _colors.hevy,
           ),
         ],
       ),
     );
   }
+}
 
-  /// A day: filled when marked, empty when not, outlined when not counted.
-  Widget _dot(bool? mark, String text) => AspectRatio(
-    aspectRatio: 1,
-    child: DecoratedBox(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: switch (mark) {
-          true => fill,
-          false => _colors.surface,
-          null => null,
-        },
-        border: mark == true ? null : Border.all(color: _colors.divider),
+/// What a tile tells, and over which period: "Creatine · November 2026".
+class _PeriodKicker extends StatelessWidget {
+  const _PeriodKicker({
+    required this.title,
+    required this.period,
+    required this.today,
+  });
+
+  final String title;
+  final StatsPeriod period;
+  final DateTime today;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final name = period.span == StatsSpan.year
+        ? '${period.start.year}'
+        : sharePeriodName(period, l10n, context.localeName, today);
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: title,
+            style: _display(26, weight: FontWeight.w700),
+          ),
+          TextSpan(text: '  $name', style: _body(14.5)),
+        ],
       ),
-      child: Center(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+/// A label and its value on one line.
+class _TileRow extends StatelessWidget {
+  const _TileRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.baseline,
+    textBaseline: TextBaseline.alphabetic,
+    children: [
+      Expanded(
         child: Text(
-          text,
-          style: _body(
-            12.5,
-            color: switch (mark) {
-              true => onFill,
-              false => _colors.textSecondary,
-              null => _colors.divider,
-            },
-            weight: mark == true ? FontWeight.w700 : FontWeight.w500,
-          ).copyWith(height: 1),
+          label,
+          style: _body(12.5),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
-    ),
+      const SizedBox(width: 10),
+      Text(value, style: _display(20, weight: FontWeight.w700)),
+    ],
   );
+}
 
-  Widget _weekDays(String locale) => Center(
-    child: Row(
-      children: [
-        for (final (index, mark) in marks.indexed)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _dot(
-                    mark,
-                    '${DateTime(period.start.year, period.start.month, period.start.day + index).day}',
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    DateFormat.E(locale).format(
-                      DateTime(
-                        period.start.year,
-                        period.start.month,
-                        period.start.day + index,
-                      ),
-                    ),
-                    style: _body(11, weight: FontWeight.w600),
-                  ),
-                ],
+/// A label over a bar filled by [fraction], its value on the right.
+class _TileCompareBar extends StatelessWidget {
+  const _TileCompareBar({
+    required this.label,
+    required this.value,
+    required this.fraction,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final double fraction;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      SizedBox(
+        width: 118,
+        child: Text(
+          label,
+          style: _body(12.5),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      Expanded(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(5),
+          child: SizedBox(
+            height: 12,
+            child: ColoredBox(
+              color: _colors.surface,
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: fraction.clamp(0, 1),
+                child: ColoredBox(color: color),
               ),
             ),
           ),
-      ],
-    ),
-  );
-
-  Widget _monthDays(BuildContext context) {
-    final material = MaterialLocalizations.of(context);
-    final firstWeekday = material.firstDayOfWeekIndex;
-    final lead = (period.start.weekday % 7 - firstWeekday + 7) % 7;
-    final grid = LayoutBuilder(
-      builder: (context, constraints) {
-        final rows = ((lead + marks.length) / 7).ceil();
-        const gap = 4.0;
-        final width = (constraints.maxWidth - gap * 6) / 7;
-        final height = (constraints.maxHeight - gap * (rows - 1)) / rows;
-        return GridView.count(
-          crossAxisCount: 7,
-          mainAxisSpacing: gap,
-          crossAxisSpacing: gap,
-          childAspectRatio: width / height,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.zero,
-          children: [
-            for (var i = 0; i < lead; i++) const SizedBox.shrink(),
-            for (final (index, mark) in marks.indexed)
-              Center(child: _dot(mark, '${index + 1}')),
-          ],
-        );
-      },
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            for (var i = 0; i < 7; i++)
-              Expanded(
-                child: Text(
-                  material.narrowWeekdays[(firstWeekday + i) % 7],
-                  textAlign: TextAlign.center,
-                  style: _body(11, weight: FontWeight.w600),
-                ),
-              ),
-          ],
         ),
-        const SizedBox(height: 5),
-        Expanded(child: grid),
-      ],
-    );
-  }
+      ),
+      const SizedBox(width: 10),
+      Text(value, style: _display(18, weight: FontWeight.w700)),
+    ],
+  );
+}
 
-  Widget _monthBars(String locale) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Expanded(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final share in monthShares)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2.5),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: share == null ? null : _colors.surface,
-                      border: share == null
-                          ? Border.all(color: _colors.divider)
-                          : null,
-                      borderRadius: BorderRadius.circular(4),
+/// The days of a week or a month as a thin row of dots, filled in [color]
+/// when marked; for a year, the share of each month in small bars.
+class _MarksStrip extends StatelessWidget {
+  const _MarksStrip({
+    required this.marks,
+    required this.monthShares,
+    required this.color,
+  });
+
+  final List<bool?> marks;
+  final List<double?> monthShares;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    if (marks.isNotEmpty) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final size = min(14.0, constraints.maxWidth / marks.length - 2.5);
+          return Row(
+            children: [
+              for (final mark in marks)
+                Expanded(
+                  child: Center(
+                    child: Container(
+                      width: size,
+                      height: size,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: switch (mark) {
+                          true => color,
+                          false => _colors.surface,
+                          null => null,
+                        },
+                        border: mark == true
+                            ? null
+                            : Border.all(color: _colors.divider),
+                      ),
                     ),
-                    child: share == null || share == 0
-                        ? null
-                        : Align(
-                            alignment: Alignment.bottomCenter,
-                            child: FractionallySizedBox(
-                              heightFactor: share,
-                              widthFactor: 1,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: fill,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
+                  ),
+                ),
+            ],
+          );
+        },
+      );
+    }
+    return SizedBox(
+      height: 22,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final share in monthShares)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: share == null ? null : _colors.surface,
+                    border: share == null
+                        ? Border.all(color: _colors.divider)
+                        : null,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: share == null || share == 0
+                      ? null
+                      : Align(
+                          alignment: Alignment.bottomCenter,
+                          child: FractionallySizedBox(
+                            heightFactor: share,
+                            widthFactor: 1,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(3),
                               ),
                             ),
                           ),
-                  ),
+                        ),
                 ),
-              ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 4),
-      Row(
-        children: [
-          for (var month = 1; month <= 12; month++)
-            Expanded(
-              child: Text(
-                DateFormat('MMMMM', locale).format(DateTime(2026, month)),
-                textAlign: TextAlign.center,
-                style: _body(10.5, weight: FontWeight.w600),
               ),
             ),
         ],
       ),
-    ],
-  );
+    );
+  }
+}
+
+/// A ring filled by [share], from the top, clockwise.
+class _Ring extends CustomPainter {
+  const _Ring({required this.share, required this.color, required this.track});
+
+  final double share;
+  final Color color;
+  final Color track;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 16.0;
+    final rect = (Offset.zero & size).deflate(stroke / 2);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(rect, 0, 2 * pi, false, paint..color = track);
+    if (share > 0) {
+      canvas.drawArc(
+        rect,
+        -pi / 2,
+        2 * pi * share.clamp(0, 1),
+        false,
+        paint..color = color,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Ring oldDelegate) =>
+      oldDelegate.share != share ||
+      oldDelegate.color != color ||
+      oldDelegate.track != track;
 }
