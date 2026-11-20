@@ -33,6 +33,7 @@ dependencies:
   path_provider: ^2.1.6
   sensors_plus: ^7.1.1
   sentry_flutter: 9.30.1
+  share_plus: ^13.3.1
   timezone: ^0.11.1
   url_launcher: ^6.3.3
   # Link with the Wear OS watch app.
@@ -52,6 +53,8 @@ flutter:
 
   assets:
     - LICENSE.md
+    # The logo signing the shared tiles.
+    - assets/branding/logo.svg
     - assets/fonts/OFL-Outfit.txt
     - assets/fonts/OFL-SairaSemiCondensed.txt
     - assets/licenses/LICENSE-Octicons.txt

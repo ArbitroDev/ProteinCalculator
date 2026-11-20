@@ -19,6 +19,8 @@ import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
+import 'package:protein_calculator/features/share/share_choices.dart';
+import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/features/today/quick_add.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
@@ -118,6 +120,7 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
         if (!isDeleted(entry.id)) entry,
     ];
     final locale = context.localeName;
+    final share = ref.watch(dayShareProvider(dayKey));
     final favorite = ref.watch(favoriteProductProvider);
     final creatine =
         ref.watch(creatineSettingsProvider).value?.enabled ?? false;
@@ -144,6 +147,10 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
                 favorite: favorite,
                 onQuickAdd: _quickAdd,
                 onAddCreatine: creatine ? _addCreatine : null,
+                onShare: () => showShareSheet(
+                  context,
+                  dayShareChoices(context, share, timelineFirst: false),
+                ),
                 compact: true,
               ),
             ),
@@ -170,6 +177,10 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
                 favorite: favorite,
                 onQuickAdd: _quickAdd,
                 onAddCreatine: creatine ? _addCreatine : null,
+                onShare: () => showShareSheet(
+                  context,
+                  dayShareChoices(context, share, timelineFirst: false),
+                ),
               ),
               // Keeps the shaker at its size, the labels at their width: the
               // room the summary gave up stays above the shaker.
@@ -204,6 +215,7 @@ class _Summary extends StatelessWidget {
     required this.favorite,
     required this.onQuickAdd,
     required this.onAddCreatine,
+    required this.onShare,
     this.compact = false,
   });
 
@@ -217,6 +229,9 @@ class _Summary extends StatelessWidget {
   /// Null while creatine is not tracked.
   final ValueChanged<Offset>? onAddCreatine;
 
+  /// Opens the share sheet of the day.
+  final VoidCallback onShare;
+
   /// Smaller, without the add button, for landscape.
   final bool compact;
 
@@ -229,6 +244,9 @@ class _Summary extends StatelessWidget {
 
     final total = entries.proteinGrams;
     final reached = total >= goal;
+    final dateStyle = textTheme.headlineSmall!.copyWith(
+      fontSize: compact ? 21 : 26,
+    );
     final status = textTheme.bodyLarge!.copyWith(
       fontSize: 14,
       color: colors.textSecondary,
@@ -259,9 +277,26 @@ class _Summary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          formatLongDate(dateOfDayKey(dayKey), locale),
-          style: textTheme.headlineSmall!.copyWith(fontSize: compact ? 21 : 26),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                formatLongDate(dateOfDayKey(dayKey), locale),
+                style: dateStyle,
+              ),
+            ),
+            // Centered on the line of the date without changing its height,
+            // which lines it up with the titles of the other tabs.
+            SizedBox(
+              width: 40,
+              height: dateStyle.fontSize! * dateStyle.height!,
+              child: OverflowBox(
+                maxHeight: 40,
+                child: ShareButton(onPressed: onShare),
+              ),
+            ),
+          ],
         ),
         SizedBox(height: compact ? 4 : 10),
         ExcludeSemantics(

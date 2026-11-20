@@ -1646,5 +1646,201 @@
   "statsPickMonth": "Choisis le mois",
   "@statsPickMonth": {
     "description": "Title of the choice of the month shown by the statistics tab."
+  },
+  "shareButton": "Partager",
+  "@shareButton": {
+    "description": "Tooltip of the share button at the top right of a page."
+  },
+  "shareTitle": "Partager",
+  "@shareTitle": {
+    "description": "Title of the sheet previewing the image to share."
+  },
+  "shareImage": "Partager l’image",
+  "@shareImage": {
+    "description": "Button of the share sheet opening the system share sheet."
+  },
+  "shareShowProducts": "Afficher les produits",
+  "@shareShowProducts": {
+    "description": "Switch of the share sheet showing the names of the products on the day tile."
+  },
+  "shareChoiceShaker": "Shaker",
+  "@shareChoiceShaker": {
+    "description": "Choice of the share sheet: the shaker of the day."
+  },
+  "shareChoiceDay": "Journée",
+  "@shareChoiceDay": {
+    "description": "Choice of the share sheet: the entries of the day hour by hour."
+  },
+  "shareChoiceStreak": "Série",
+  "@shareChoiceStreak": {
+    "description": "Choice of the share sheet: the current streak."
+  },
+  "shareChoiceLastDays": "7 jours",
+  "@shareChoiceLastDays": {
+    "description": "Choice of the share sheet: the last 7 days."
+  },
+  "shareOfGoal": "sur {goal} g · {percent} %",
+  "@shareOfGoal": {
+    "description": "Under the total of a day on its tile; goal already formatted.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "shareOverGoal": "{grams} g au-delà de l’objectif",
+  "@shareOverGoal": {
+    "description": "Tile of a day past its goal; grams already formatted.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "shareGoalReached": "Objectif atteint",
+  "@shareGoalReached": {
+    "description": "Chip of a day reaching its goal, and legend of the calendar tile."
+  },
+  "shareHalfGoal": "La moitié ou plus",
+  "@shareHalfGoal": {
+    "description": "Legend of the calendar tile: days at half their goal or more."
+  },
+  "shareStreak": "Série de {count} jours",
+  "@shareStreak": {
+    "description": "Tile of a day: the streak it continues, 3 days or more.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareShort": "Il a manqué {grams} g",
+  "@shareShort": {
+    "description": "Tile of a past day missing its goal; grams already formatted.",
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "shareReachedAt": "Objectif de {goal} g atteint à {time}",
+  "@shareReachedAt": {
+    "description": "Timeline tile of a day; goal and time already formatted.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "shareGoalOnly": "Objectif de {goal} g",
+  "@shareGoalOnly": {
+    "description": "Timeline tile of today before its goal; goal already formatted.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "shareGoalMissed": "Objectif de {goal} g · il a manqué {grams} g",
+  "@shareGoalMissed": {
+    "description": "Timeline tile of a past day missing its goal; grams already formatted.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      },
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "shareMoreEntries": "{count, plural, =1{et 1 autre entrée} other{et {count} autres entrées}}",
+  "@shareMoreEntries": {
+    "description": "Timeline tile: entries left out of the list.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareGoalDays": "jours à l’objectif",
+  "@shareGoalDays": {
+    "description": "Under the days reaching their goal on the period tile."
+  },
+  "shareYear": "Mon année {year}",
+  "@shareYear": {
+    "description": "Top of the year tile.",
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "shareYearGoalDays": "{count, plural, =1{jours à l’objectif sur 1} other{jours à l’objectif sur {count}}}",
+  "@shareYearGoalDays": {
+    "description": "Next to the days reaching their goal in a year: the days counted.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareHevyWorkouts": "{count, plural, =1{séance Hevy} other{séances Hevy}}",
+  "@shareHevyWorkouts": {
+    "description": "Under the number of Hevy workouts of a year.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareCurrentStreak": "Série en cours",
+  "@shareCurrentStreak": {
+    "description": "Top of the streak tile."
+  },
+  "shareStreakDays": "{count, plural, =1{jour à l’objectif} other{jours d’affilée à l’objectif}}",
+  "@shareStreakDays": {
+    "description": "Under the number of the streak tile.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareMonthReached": "{count, plural, =0{Aucun jour réussi} =1{1 jour réussi} other{{count} jours réussis}}",
+  "@shareMonthReached": {
+    "description": "Calendar tile: the days of the month reaching their goal.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareMyWeek": "Ma semaine",
+  "@shareMyWeek": {
+    "description": "Title of the tile of the last 7 days."
+  },
+  "shareWeekRange": "Du {from} au {to} · {count} sur {total} à l’objectif",
+  "@shareWeekRange": {
+    "description": "Tile of the last 7 days: their dates, already formatted, and the days reaching their goal.",
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   }
 }

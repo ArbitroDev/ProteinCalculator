@@ -19,6 +19,8 @@ import 'package:protein_calculator/core/widgets/pill_tabs.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/features/history/calendar_view.dart';
+import 'package:protein_calculator/features/share/share_choices.dart';
+import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// History tab: every day with entries, most recent first, or a calendar
@@ -32,7 +34,19 @@ class HistoryPage extends ConsumerWidget {
     final view = ref.watch(historyViewProvider).value ?? HistoryView.list;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.tabHistory)),
+      appBar: AppBar(
+        title: Text(l10n.tabHistory),
+        actions: [
+          if (ref.watch(historyProvider).value?.isNotEmpty ?? false)
+            ShareButton(
+              onPressed: () => showShareSheet(
+                context,
+                historyShareChoices(ref, context, view),
+              ),
+            ),
+          const SizedBox(width: 10),
+        ],
+      ),
       body: ContentWidth(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

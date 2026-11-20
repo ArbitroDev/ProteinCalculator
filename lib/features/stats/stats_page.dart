@@ -17,6 +17,8 @@ import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/empty_state.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/pill_tabs.dart';
+import 'package:protein_calculator/features/share/share_choices.dart';
+import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/features/stats/stats_providers.dart';
 import 'package:protein_calculator/features/stats/stats_widgets.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -92,6 +94,7 @@ class _StatsPageState extends ConsumerState<StatsPage> {
     final firstWeekday = MaterialLocalizations.of(context).firstDayOfWeekIndex;
 
     Widget body;
+    VoidCallback? share;
     if (todayKey == null || firstKey == null || history == null) {
       body = const SizedBox.shrink();
     } else if (history.isEmpty) {
@@ -118,6 +121,10 @@ class _StatsPageState extends ConsumerState<StatsPage> {
           ) ??
           _shown;
       _shown = stats;
+      if (stats != null) {
+        share = () =>
+            showShareSheet(context, statsShareChoices(context, stats, today));
+      }
       final canGoBack = period.firstKey > firstKey;
       final canGoForward = period.lastKey < todayKey;
 
@@ -158,7 +165,13 @@ class _StatsPageState extends ConsumerState<StatsPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.tabStats)),
+      appBar: AppBar(
+        title: Text(l10n.tabStats),
+        actions: [
+          if (share != null) ShareButton(onPressed: share),
+          const SizedBox(width: 10),
+        ],
+      ),
       // In landscape, the two columns take the width of the screen.
       body: ContentWidth(
         maxWidth: MediaQuery.orientationOf(context) == Orientation.landscape

@@ -16,6 +16,8 @@ import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
+import 'package:protein_calculator/features/share/share_choices.dart';
+import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Entries of one day on stacked cards, one per part of the day. Swiping an
@@ -48,6 +50,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
     final textTheme = Theme.of(context).textTheme;
     final locale = context.localeName;
     final goal = ref.watch(dayGoalProvider(widget.dayKey)) ?? 0;
+    final share = ref.watch(dayShareProvider(widget.dayKey));
     final entries = [
       for (final entry
           in ref.watch(dayEntriesProvider(widget.dayKey)).value ?? <Entry>[])
@@ -185,6 +188,15 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
     return Scaffold(
       appBar: AppBar(
         title: Text(formatLongDate(dateOfDayKey(widget.dayKey), locale)),
+        actions: [
+          ShareButton(
+            onPressed: () => showShareSheet(
+              context,
+              dayShareChoices(context, share, timelineFirst: true),
+            ),
+          ),
+          const SizedBox(width: 10),
+        ],
       ),
       body: landscape
           // The summary on the left, the cards on the right.
