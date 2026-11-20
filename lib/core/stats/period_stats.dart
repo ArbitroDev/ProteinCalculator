@@ -292,7 +292,7 @@ class CrossStats {
   final ({double grams, int days})? shortfall;
 
   /// Average time the goal was reached, in minutes after midnight, of the
-  /// days whose entries reach it; how many of them reached it from
+  /// days whose entries reach it; how many of them reached it after
   /// [lateGoalMinutes]; and how many there are. Null with fewer than
   /// [minCompareDays] of them.
   final ({int minutes, int late, int days})? goalTime;
@@ -714,6 +714,9 @@ CrossStats _cross({
         _minutesOfDay(time, dayKey),
     ];
     final averagedSet = averaged.toSet();
+    // Today, not over, would lower the entries per day, as it lowers the
+    // average: left out until its goal is reached. Its entries and its
+    // first one are what they are.
     rhythm = (
       entriesPerDay:
           periodEntries.where((e) => averagedSet.contains(e.dayKey)).length /
@@ -780,7 +783,7 @@ CrossStats _cross({
         ? null
         : (
             minutes: _averageQuarter(reachedAt),
-            late: reachedAt.where((m) => m >= lateGoalMinutes).length,
+            late: reachedAt.where((m) => m > lateGoalMinutes).length,
             days: reachedAt.length,
           ),
     regularity: regularity,

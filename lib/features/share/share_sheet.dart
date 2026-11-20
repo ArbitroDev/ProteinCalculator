@@ -79,8 +79,8 @@ class ShareChoice {
   /// Name of the tile in the choice, when the sheet offers several.
   final String label;
 
-  /// Name of the shared file, without extension.
-  final String fileName;
+  /// Name of the shared file, without extension, for the options chosen.
+  final String Function(ShareOptions options) fileName;
   final Widget Function(ShareOptions options) build;
 
   /// Whether the sheet offers to show the names of the products.
@@ -124,10 +124,14 @@ class _ShareSheetState extends ConsumerState<_ShareSheet> {
   final _tileKey = GlobalKey();
   final _buttonKey = GlobalKey();
   var _index = 0;
-  var _options = const ShareOptions();
+
+  /// Options of each choice, kept when going from one to another.
+  final _optionsOf = <int, ShareOptions>{};
   var _sharing = false;
 
   ShareChoice get _choice => widget.choices[_index];
+  ShareOptions get _options => _optionsOf[_index] ?? const ShareOptions();
+  set _options(ShareOptions options) => _optionsOf[_index] = options;
 
   Future<void> _share() async {
     final l10n = AppLocalizations.of(context);
@@ -141,7 +145,7 @@ class _ShareSheetState extends ConsumerState<_ShareSheet> {
     try {
       await runUserAction(messenger, l10n, () async {
         final png = await captureTile(_tileKey);
-        await share(png, '${_choice.fileName}.png', origin);
+        await share(png, '${_choice.fileName(_options)}.png', origin);
       });
     } finally {
       if (mounted) setState(() => _sharing = false);
@@ -173,10 +177,7 @@ class _ShareSheetState extends ConsumerState<_ShareSheet> {
                       index: choice.label,
                   },
                   selected: _index,
-                  onChanged: (index) => setState(() {
-                    _index = index;
-                    _options = const ShareOptions();
-                  }),
+                  onChanged: (index) => setState(() => _index = index),
                 ),
                 const SizedBox(height: 14),
               ],

@@ -36,25 +36,9 @@ void main() {
     addTearDown(tester.view.reset);
   }
 
-  Future<void> addEntry(double grams, DateTime at, {String? name}) => db
-      .entriesDao
-      .insertEntry(name: name, amount: DirectAmount(grams), createdAt: at);
-
-  Future<void> open(WidgetTester tester) => pumpApp(
-    tester,
-    db,
-    now: _now,
-    overrides: [
-      shareImageProvider.overrideWithValue(
-        (png, fileName, origin) async => shared.add((png, fileName)),
-      ),
-    ],
-  );
-
-  testWidgets('shares the shaker of today as a 1080 px image', (tester) async {
-    holdUpright(tester);
-    // The image is made in real time, where the shaker of today listens to
-    // the accelerometer: there is none in tests.
+  /// An image is made in real time, where the shaker of today listens to
+  /// the accelerometer: there is none in tests.
+  void mockSensors() {
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     const methods = MethodChannel('dev.fluttercommunity.plus/sensors/method');
@@ -72,6 +56,26 @@ void main() {
         ..setMockMethodCallHandler(methods, null)
         ..setMockStreamHandler(events, null);
     });
+  }
+
+  Future<void> addEntry(double grams, DateTime at, {String? name}) => db
+      .entriesDao
+      .insertEntry(name: name, amount: DirectAmount(grams), createdAt: at);
+
+  Future<void> open(WidgetTester tester) => pumpApp(
+    tester,
+    db,
+    now: _now,
+    overrides: [
+      shareImageProvider.overrideWithValue(
+        (png, fileName, origin) async => shared.add((png, fileName)),
+      ),
+    ],
+  );
+
+  testWidgets('shares the shaker of today as a 1080 px image', (tester) async {
+    holdUpright(tester);
+    mockSensors();
     await addEntry(60, DateTime(2026, 10, 10, 8), name: 'Skyr');
     await open(tester);
 
@@ -289,6 +293,60 @@ void main() {
     );
     expect(bars, findsAtLeast(3));
     expect(bottoms, {tester.getTopLeft(baseline).dy.round()});
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('the share button of today takes taps on its whole circle', (
+    tester,
+  ) async {
+    holdUpright(tester);
+    await open(tester);
+
+    final button = tester.getRect(find.byTooltip('Share'));
+    expect(button.size, const Size.square(40));
+    // Its top and bottom edges, outside the line of the date.
+    for (final y in [button.top + 2, button.bottom - 2]) {
+      await tester.tapAt(Offset(button.center.dx, y));
+      await tester.pumpAndSettle();
+      expect(find.text('Share the image'), findsOneWidget);
+      await tester.tapAt(const Offset(200, 20));
+      await tester.pumpAndSettle();
+    }
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('the month browsed stays when coming back to its tile', (
+    tester,
+  ) async {
+    holdUpright(tester);
+    mockSensors();
+    await addEntry(100, DateTime(2026, 8, 2, 9));
+    await open(tester);
+    await tester.tap(find.byTooltip('History'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Month').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Previous period'));
+    await tester.pumpAndSettle();
+    expect(find.text('September 2026'), findsOneWidget);
+    await tester.tap(find.text('7 days'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Month').last);
+    await tester.pumpAndSettle();
+    expect(find.text('September 2026'), findsOneWidget);
+
+    // Named after its month and what colors it.
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Share the image'));
+      for (var i = 0; i < 50 && shared.isEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+    });
+    await tester.pumpAndSettle();
+    expect(shared.single.$2, 'protein-calendar-protein-202609.png');
     await disposeApp(tester, db);
   });
 

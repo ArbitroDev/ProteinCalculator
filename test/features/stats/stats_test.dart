@@ -72,7 +72,7 @@ void main() {
     await openStats(tester);
     expect(find.text('October 2026'), findsOneWidget);
     // 500 g over the 9 days since the goal was set, today not being over.
-    expect(find.textContaining('56'), findsWidgets);
+    expect(find.textContaining(RegExp(r'^56 g')), findsOneWidget);
     expect(find.text('5 / 10'), findsOneWidget);
     expect(find.text('goal reached · 50%'), findsOneWidget);
     expect(find.text('5 days'), findsNWidgets(2));

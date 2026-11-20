@@ -24,15 +24,14 @@ import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/features/today/quick_add.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// Main tab: the summary of the current app day, then the shaker with one
-/// label per entry next to it, swiped to the left to delete the entry. In
-/// landscape, the shaker stands on the left and the summary tops the labels.
-
 /// Space above the date: the tops of its capitals meet those of the titles
 /// of the other tabs, measured on a device, upright and in landscape.
 const _topUpright = 12.8;
 const _topLandscape = 12.9;
 
+/// Main tab: the summary of the current app day, then the shaker with one
+/// label per entry next to it, swiped to the left to delete the entry. In
+/// landscape, the shaker stands on the left and the summary tops the labels.
 class TodayPage extends ConsumerStatefulWidget {
   const TodayPage({super.key});
 
@@ -131,9 +130,15 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
     final creatine =
         ref.watch(creatineSettingsProvider).value?.enabled ?? false;
 
+    void onShare() => showShareSheet(
+      context,
+      dayShareChoices(context, share, timelineFirst: false),
+    );
+
     if (MediaQuery.orientationOf(context) == Orientation.landscape) {
-      return Scaffold(
-        body: SafeArea(
+      return _WithShareButton(
+        onShare: onShare,
+        child: SafeArea(
           child: Padding(
             // The top of the date at the height of the top of the titles of
             // the other tabs, as upright.
@@ -153,11 +158,6 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
                 favorite: favorite,
                 onQuickAdd: _quickAdd,
                 onAddCreatine: creatine ? _addCreatine : null,
-                onShare: () => showShareSheet(
-                  context,
-                  dayShareChoices(context, share, timelineFirst: false),
-                ),
-                top: _topLandscape,
                 compact: true,
               ),
             ),
@@ -166,8 +166,9 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
       );
     }
 
-    return Scaffold(
-      body: SafeArea(
+    return _WithShareButton(
+      onShare: onShare,
+      child: SafeArea(
         child: Padding(
           // Lined up with the tab bar; the top of the date at the height of
           // the top of the titles of the other tabs, centered in their app
@@ -184,11 +185,6 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
                 favorite: favorite,
                 onQuickAdd: _quickAdd,
                 onAddCreatine: creatine ? _addCreatine : null,
-                onShare: () => showShareSheet(
-                  context,
-                  dayShareChoices(context, share, timelineFirst: false),
-                ),
-                top: _topUpright,
               ),
               // Keeps the shaker at its size, the labels at their width: the
               // room the summary gave up stays above the shaker.
@@ -223,8 +219,6 @@ class _Summary extends StatelessWidget {
     required this.favorite,
     required this.onQuickAdd,
     required this.onAddCreatine,
-    required this.onShare,
-    required this.top,
     this.compact = false,
   });
 
@@ -237,12 +231,6 @@ class _Summary extends StatelessWidget {
 
   /// Null while creatine is not tracked.
   final ValueChanged<Offset>? onAddCreatine;
-
-  /// Opens the share sheet of the day.
-  final VoidCallback onShare;
-
-  /// Space above the summary, under the status bar.
-  final double top;
 
   /// Smaller, without the add button, for landscape.
   final bool compact;
@@ -298,27 +286,8 @@ class _Summary extends StatelessWidget {
                 style: dateStyle,
               ),
             ),
-            // Centered on the line of the date without changing its height,
-            // which lines it up with the titles of the other tabs.
-            SizedBox(
-              width: 40,
-              height: dateStyle.fontSize! * dateStyle.height!,
-              child: OverflowBox(
-                maxHeight: 40,
-                // Centered where the app bars of the other tabs center
-                // theirs, rather than on the line of the date, a little
-                // higher.
-                child: Transform.translate(
-                  offset: Offset(
-                    0,
-                    kToolbarHeight / 2 -
-                        top -
-                        dateStyle.fontSize! * dateStyle.height! / 2,
-                  ),
-                  child: ShareButton(onPressed: onShare),
-                ),
-              ),
-            ),
+            // Room for the share button, drawn over the page.
+            const SizedBox(width: shareButtonSize),
           ],
         ),
         SizedBox(height: compact ? 4 : 10),
@@ -666,4 +635,37 @@ class _EntryLabel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// [child] under the share button of the day, at the top right where the
+/// app bars of the other tabs center theirs. Over the page rather than in
+/// the line of the date, lower than it: the whole button takes taps.
+class _WithShareButton extends StatelessWidget {
+  const _WithShareButton({required this.onShare, required this.child});
+
+  final VoidCallback onShare;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Stack(
+      children: [
+        child,
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              // The button keeps 4 dp around its circle to be touched, as
+              // in the app bars: its circle at the same place as there.
+              padding: const EdgeInsets.only(
+                top: (kToolbarHeight - shareButtonSize) / 2 - 4,
+                right: shareButtonEndGap,
+              ),
+              child: ShareButton(onPressed: onShare),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

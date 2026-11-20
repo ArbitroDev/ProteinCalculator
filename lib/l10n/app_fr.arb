@@ -960,7 +960,7 @@
   "@creatineDoseAdded": {
     "description": "Undo banner after one creatine dose was added at once."
   },
-  "creatineDoses": "{count, plural, =1{1 dose} other{{count} doses}}",
+  "creatineDoses": "{count, plural, =1{{count} dose} other{{count} doses}}",
   "@creatineDoses": {
     "description": "Number of creatine doses.",
     "placeholders": {
@@ -1068,7 +1068,7 @@
   "@hevyFilter": {
     "description": "Tooltip of the Hevy option of the calendar filter, coloring the days with a Hevy workout."
   },
-  "hevyWorkoutCount": "{count, plural, =1{1 séance} other{{count} séances}}",
+  "hevyWorkoutCount": "{count, plural, =1{{count} séance} other{{count} séances}}",
   "@hevyWorkoutCount": {
     "description": "Number of Hevy workouts of a day, on the header of the Hevy card of the day details.",
     "placeholders": {
@@ -1382,7 +1382,7 @@
   "@statsAverageLength": {
     "description": "Under the average length of the workouts."
   },
-  "statsWorkoutDays": "{count, plural, =1{1 jour d'entraînement} other{{count} jours d'entraînement}}",
+  "statsWorkoutDays": "{count, plural, =1{{count} jour d'entraînement} other{{count} jours d'entraînement}}",
   "@statsWorkoutDays": {
     "description": "Days with a Hevy workout in the period.",
     "placeholders": {
@@ -1437,7 +1437,7 @@
       }
     }
   },
-  "statsAfterWorkoutFollowed": "{followed, plural, =1{1 séance sur {sessions} suivie d'au moins {grams}} other{{followed} séances sur {sessions} suivies d'au moins {grams}}}",
+  "statsAfterWorkoutFollowed": "{followed, plural, =1{{followed} séance sur {sessions} suivie d'au moins {grams}} other{{followed} séances sur {sessions} suivies d'au moins {grams}}}",
   "@statsAfterWorkoutFollowed": {
     "description": "Workouts followed by enough protein in the hours after them; grams already formatted (\"20 g\").",
     "placeholders": {
@@ -1512,7 +1512,7 @@
   "@statsTopProducts": {
     "description": "Section of the insights card: the names entered most often."
   },
-  "statsProductUses": "{count, plural, =1{1 fois} other{{count} fois}} · {grams}",
+  "statsProductUses": "{count, plural, =1{{count} fois} other{{count} fois}} · {grams}",
   "@statsProductUses": {
     "description": "Uses of a product in the period and their protein, already formatted.",
     "placeholders": {
@@ -1532,7 +1532,7 @@
   "@statsShortfall": {
     "description": "Label of the protein grams missing on average on the days missing their goal."
   },
-  "statsShortfallDays": "{count, plural, =1{sur 1 jour raté avec des entrées} other{sur {count} jours ratés avec des entrées}}",
+  "statsShortfallDays": "{count, plural, =1{sur {count} jour raté avec des entrées} other{sur {count} jours ratés avec des entrées}}",
   "@statsShortfallDays": {
     "description": "Under the average shortfall: the days missing their goal, without today and the days without entries.",
     "placeholders": {
@@ -1755,7 +1755,7 @@
       }
     }
   },
-  "shareMoreEntries": "{count, plural, =1{et 1 autre entrée} other{et {count} autres entrées}}",
+  "shareMoreEntries": "{count, plural, =1{et {count} autre entrée} other{et {count} autres entrées}}",
   "@shareMoreEntries": {
     "description": "Timeline tile: entries left out of the list.",
     "placeholders": {
@@ -1777,11 +1777,14 @@
       }
     }
   },
-  "shareYearGoalDays": "{count, plural, =1{jours à l’objectif sur 1} other{jours à l’objectif sur {count}}}",
+  "shareYearGoalDays": "{count, plural, =1{jour à l’objectif sur {total}} other{jours à l’objectif sur {total}}}",
   "@shareYearGoalDays": {
-    "description": "Next to the days reaching their goal in a year: the days counted.",
+    "description": "Year tile, after the days reaching their goal: out of the days counted.",
     "placeholders": {
       "count": {
+        "type": "int"
+      },
+      "total": {
         "type": "int"
       }
     }

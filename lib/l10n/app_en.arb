@@ -329,7 +329,7 @@
   "shareMoreEntries": "{count, plural, =1{and 1 more entry} other{and {count} more entries}}",
   "shareGoalDays": "days at the goal",
   "shareYear": "My {year}",
-  "shareYearGoalDays": "{count, plural, =1{days at the goal out of 1} other{days at the goal out of {count}}}",
+  "shareYearGoalDays": "{count, plural, =1{day at the goal out of {total}} other{days at the goal out of {total}}}",
   "shareHevyWorkouts": "{count, plural, =1{Hevy workout} other{Hevy workouts}}",
   "shareCurrentStreak": "Current streak",
   "shareStreakDays": "{count, plural, =1{day at the goal} other{days in a row at the goal}}",

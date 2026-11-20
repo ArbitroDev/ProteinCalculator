@@ -121,7 +121,8 @@ class _StatsPageState extends ConsumerState<StatsPage> {
           ) ??
           _shown;
       _shown = stats;
-      if (stats != null) {
+      // Not while the period shown is still the one before.
+      if (stats != null && stats.period == period) {
         share = () =>
             showShareSheet(context, statsShareChoices(context, stats, today));
       }

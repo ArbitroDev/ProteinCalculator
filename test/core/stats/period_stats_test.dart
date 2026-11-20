@@ -498,6 +498,24 @@ void main() {
       expect(stats.cross.goalTime, (minutes: 17 * 60, late: 2, days: 4));
     });
 
+    test('a goal reached at 21:00 sharp is not late', () {
+      final stats = computeStats(
+        _month,
+        _input(
+          days: {
+            for (var day = 1; day <= 3; day++)
+              20261000 + day: _day(20261000 + day, 100),
+          },
+          entries: [
+            for (var day = 1; day <= 3; day++)
+              _entry(DateTime(2026, 10, day, 21), 100),
+          ],
+        ),
+      );
+
+      expect(stats.cross.goalTime, (minutes: 21 * 60, late: 0, days: 3));
+    });
+
     test('no goal time with fewer than 3 days', () {
       final stats = computeStats(
         _month,

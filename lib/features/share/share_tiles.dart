@@ -529,11 +529,14 @@ class _TimelineLine extends StatelessWidget {
           children: [
             SizedBox(
               width: 62,
-              child: Text(
-                formatTime(entry.createdAt, locale),
-                style: _body(12.5),
-                maxLines: 1,
-                overflow: TextOverflow.clip,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  formatTime(entry.createdAt, locale),
+                  style: _body(12.5),
+                  maxLines: 1,
+                ),
               ),
             ),
             Expanded(
@@ -706,11 +709,13 @@ class _TileBars extends StatelessWidget {
               children: [
                 for (final label in labels)
                   Expanded(
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      style: _body(10.5, weight: FontWeight.w600),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        style: _body(10.5, weight: FontWeight.w600),
+                      ),
                     ),
                   ),
               ],
@@ -742,14 +747,17 @@ class _Dashes extends CustomPainter {
 }
 
 class _Stat extends StatelessWidget {
-  const _Stat({required this.value, required this.label});
+  const _Stat({required this.value, required this.label, this.flexible = true});
 
   final String value;
   final String label;
 
+  /// Whether it shares the width of a row with others.
+  final bool flexible;
+
   @override
-  Widget build(BuildContext context) => Flexible(
-    child: Column(
+  Widget build(BuildContext context) {
+    final stat = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -766,8 +774,9 @@ class _Stat extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
       ],
-    ),
-  );
+    );
+    return flexible ? Flexible(child: stat) : stat;
+  }
 }
 
 /// Name of a week or a month of statistics.
@@ -828,21 +837,40 @@ class PeriodTile extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _Grams(protein.averageGrams, size: 70),
+              // A large average shrinks rather than crowd out its label.
+              Flexible(
+                flex: 3,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.bottomLeft,
+                  child: _Grams(protein.averageGrams, size: 70),
+                ),
+              ),
               const SizedBox(width: 10),
               Expanded(
+                flex: 2,
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(
-                    [l10n.statsDailyAverage, ?compared].join('\n'),
+                    l10n.statsDailyAverage,
                     style: _body(13),
                     maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          // Long in French: on a line of its own, the whole width.
+          if (compared != null) ...[
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(compared, style: _body(13), maxLines: 1),
+            ),
+          ],
+          const SizedBox(height: 14),
           Expanded(
             child: _TileBars(
               values: [for (final bar in protein.bars) bar.grams],
@@ -909,7 +937,7 @@ class YearTile extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(
-                    l10n.shareYearGoalDays(stats.countedDays),
+                    l10n.shareYearGoalDays(protein.goalDays, stats.countedDays),
                     style: _body(13),
                   ),
                 ),
@@ -1098,8 +1126,14 @@ class CalendarMonthTile extends StatelessWidget {
         CalendarMode.hevy => progress != null && hevy,
       };
       if (highlighted) marked++;
+      // As in the calendar: days to come lighter.
       final style = progress == null
-          ? (fill: Colors.transparent, text: _colors.divider)
+          ? (
+              fill: Colors.transparent,
+              text: _colors.textSecondary.withValues(
+                alpha: dayKey > data.todayKey ? 0.5 : 1,
+              ),
+            )
           : switch (mode) {
               CalendarMode.protein => calendarProgressColors(progress, _colors),
               CalendarMode.creatine => calendarCreatineColors(
@@ -1330,66 +1364,80 @@ class WeekTile extends StatelessWidget {
             ),
             style: _body(13.5),
           ),
-          const Spacer(),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              for (final day in days)
-                Expanded(
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 118,
-                        width: 118 * Shaker.aspectRatio,
-                        child: Shaker(
-                          layers: [
-                            for (final slot in DaySlot.values)
-                              if ((day.bySlot[slot] ?? 0) > 0)
-                                ShakerLayer(
-                                  grams: day.bySlot[slot]!,
-                                  slot: slot,
+          // The shakers shrink to the room the title leaves them.
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) => Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: SizedBox(
+                    width: constraints.maxWidth,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        for (final day in days)
+                          Expanded(
+                            child: Column(
+                              children: [
+                                SizedBox(
+                                  height: 118,
+                                  width: 118 * Shaker.aspectRatio,
+                                  child: Shaker(
+                                    layers: [
+                                      for (final slot in DaySlot.values)
+                                        if ((day.bySlot[slot] ?? 0) > 0)
+                                          ShakerLayer(
+                                            grams: day.bySlot[slot]!,
+                                            slot: slot,
+                                          ),
+                                    ],
+                                    goal: day.goal,
+                                    showGoalLine: false,
+                                    semanticLabel: l10n.shakerDescription(
+                                      formatGrams(total(day), locale),
+                                      formatGrams(day.goal, locale),
+                                    ),
+                                  ),
                                 ),
-                          ],
-                          goal: day.goal,
-                          showGoalLine: false,
-                          semanticLabel: l10n.shakerDescription(
-                            formatGrams(total(day), locale),
-                            formatGrams(day.goal, locale),
+                                const SizedBox(height: 8),
+                                Text(
+                                  NumberFormat.decimalPattern(locale)
+                                      .format(total(day).round()),
+                                  style: _display(18, weight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  DateFormat.E(locale)
+                                      .format(dateOfDayKey(day.dayKey)),
+                                  style: _body(11, weight: FontWeight.w600),
+                                ),
+                                // The marks of the calendar, the same height for all.
+                                if (marked) ...[
+                                  const SizedBox(height: 5),
+                                  SizedBox(
+                                    height: 12,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      spacing: 2,
+                                      children: [
+                                        if (day.creatine)
+                                          const CreatineCheck(size: 12),
+                                        if (day.hevy) const HevyMark(size: 12),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        NumberFormat.decimalPattern(locale)
-                            .format(total(day).round()),
-                        style: _display(18, weight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        DateFormat.E(locale).format(dateOfDayKey(day.dayKey)),
-                        style: _body(11, weight: FontWeight.w600),
-                      ),
-                      // The marks of the calendar, the same height for all.
-                      if (marked) ...[
-                        const SizedBox(height: 5),
-                        SizedBox(
-                          height: 12,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            spacing: 2,
-                            children: [
-                              if (day.creatine) const CreatineCheck(size: 12),
-                              if (day.hevy) const HevyMark(size: 12),
-                            ],
-                          ),
-                        ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
-            ],
+              ),
+            ),
           ),
-          const Spacer(),
         ],
       ),
     );
@@ -1452,36 +1500,49 @@ class CreatineTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 22),
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '${creatine.takenDays} / ${creatine.countedDays}',
-                          style: _display(34, weight: FontWeight.w700),
+                  // Long words shrink the column rather than overflow it,
+                  // its width kept.
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        width: constraints.maxWidth,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '${creatine.takenDays} / ${creatine.countedDays}',
+                                style: _display(34, weight: FontWeight.w700),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              l10n.shareCreatineDaysLabel(creatine.takenDays),
+                              style: _body(12.5),
+                            ),
+                            const SizedBox(height: 12),
+                            _Stat(
+                              value: '${creatine.doses}',
+                              label: l10n.statsDosesLabel(creatine.doses),
+                              flexible: false,
+                            ),
+                            if (streak != null && streak > 0) ...[
+                              const SizedBox(height: 10),
+                              _Stat(
+                                value: l10n.statsDayCount(streak),
+                                label: l10n.statsCurrentStreak,
+                                flexible: false,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        l10n.shareCreatineDaysLabel(creatine.takenDays),
-                        style: _body(12.5),
-                      ),
-                      const SizedBox(height: 12),
-                      _Stat(
-                        value: '${creatine.doses}',
-                        label: l10n.statsDosesLabel(creatine.doses),
-                      ),
-                      if (streak != null && streak > 0) ...[
-                        const SizedBox(height: 10),
-                        _Stat(
-                          value: l10n.statsDayCount(streak),
-                          label: l10n.statsCurrentStreak,
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -1557,6 +1618,7 @@ class WorkoutTile extends StatelessWidget {
                     ].join('\n'),
                     style: _body(12.5),
                     maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
