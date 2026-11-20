@@ -60,6 +60,7 @@ class Backup {
     this.creatineDoseGrams,
     this.hevySessions = const [],
     this.hevyImportedAt,
+    this.holdsHevy = true,
   });
 
   final List<EntriesCompanion> entries;
@@ -81,6 +82,10 @@ class Backup {
   /// they were kept.
   final List<HevySessionsCompanion> hevySessions;
   final DateTime? hevyImportedAt;
+
+  /// Whether the backup was made once workouts were kept: an older one
+  /// leaves the workouts in place when restored.
+  final bool holdsHevy;
 }
 
 /// File name suggested for a backup made on [date].
@@ -266,6 +271,7 @@ Backup parseBackup(String text) {
       creatineDoseGrams: creatineDoseGrams,
       hevySessions: hevySessions,
       hevyImportedAt: hevyImportedAt,
+      holdsHevy: version >= 9,
     );
   } on InvalidBackupException {
     rethrow;
@@ -291,7 +297,7 @@ Future<void> restoreBackup(
     await db.delete(db.entries).go();
     await db.delete(db.products).go();
     await db.delete(db.goalChanges).go();
-    await db.delete(db.hevySessions).go();
+    if (backup.holdsHevy) await db.delete(db.hevySessions).go();
     await db.batch((batch) {
       batch
         ..insertAll(db.entries, backup.entries)
@@ -320,9 +326,11 @@ Future<void> restoreBackup(
             ),
           );
     }
-    await db.batch(
-      (batch) => batch.insertAll(db.hevySessions, backup.hevySessions),
-    );
+    if (backup.holdsHevy) {
+      await db.batch(
+        (batch) => batch.insertAll(db.hevySessions, backup.hevySessions),
+      );
+    }
     // Uses follow the restored entries, whatever the file says.
     await db.refreshUses();
     // The barcodes of the products replaced make recent scans again.
@@ -339,7 +347,9 @@ Future<void> restoreBackup(
         dayStartHour: Value(backup.dayStartHour),
         creatineEnabled: Value(backup.creatineEnabled),
         creatineDoseGrams: Value(backup.creatineDoseGrams),
-        hevyImportedAt: Value(backup.hevyImportedAt),
+        hevyImportedAt: backup.holdsHevy
+            ? Value(backup.hevyImportedAt)
+            : const Value.absent(),
       ),
     );
   });

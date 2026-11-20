@@ -309,12 +309,13 @@ void main() {
       expect(await target.hevyDao.watchImportedAt().first, importedAt);
     });
 
-    test('backup of version 8 restores without workouts', () async {
+    test('backup of version 8 leaves the workouts in place', () async {
       final json = jsonDecode(await export()) as Map<String, dynamic>;
       json['version'] = 8;
       json.remove('hevySessions');
       (json['settings'] as Map<String, dynamic>).remove('hevyImportedAt');
-      // The target had imported workouts: the restoration replaces them.
+      // The target had imported workouts: the backup, made before they were
+      // kept, knows nothing of them and leaves them.
       final target = openTestDatabase();
       addTearDown(target.close);
       await target.hevyDao.replaceSessions([
@@ -328,10 +329,12 @@ void main() {
       final backup = parseBackup(jsonEncode(json));
       expect(backup.hevySessions, isEmpty);
       expect(backup.hevyImportedAt, isNull);
+      expect(backup.holdsHevy, isFalse);
       await restoreBackup(target, backup);
 
-      expect(await target.select(target.hevySessions).get(), isEmpty);
-      expect(await target.hevyDao.watchImportedAt().first, isNull);
+      final sessions = await target.select(target.hevySessions).get();
+      expect(sessions.map((s) => s.title), ['Legs']);
+      expect(await target.hevyDao.watchImportedAt().first, importedAt);
       expect(await target.select(target.entries).get(), hasLength(2));
     });
 
