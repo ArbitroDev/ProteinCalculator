@@ -45,7 +45,8 @@ jobs:
   watch:
     name: Watch app
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # The lint of the phone app builds the native code of its plugins.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
@@ -68,8 +69,9 @@ jobs:
 
       # The watch app, the messages it exchanges with the phone, and the
       # plugin of the phone app linking them. The release build checks that
-      # the shrunk app still works with its libraries.
-      - name: Lint, test and build the watch app
+      # the shrunk app still works with its libraries. Then the Android code
+      # of the phone app: its widget and the files shared to it.
+      - name: Lint, test and build the watch app, lint the phone app
         working-directory: android
         run: >-
           ./gradlew --no-daemon
@@ -78,3 +80,4 @@ jobs:
           :wear:testReleaseUnitTest
           :wear:assembleRelease
           :watch_link:lintRelease
+          :app:lintDebug

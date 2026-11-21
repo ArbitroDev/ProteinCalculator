@@ -17,6 +17,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import es.antonborri.home_widget.HomeWidgetPlugin
 import java.text.NumberFormat
 import java.time.LocalDateTime
@@ -142,7 +143,7 @@ class GoalWidget : AppWidgetProvider() {
         val dark = context.resources.configuration.uiMode and
             Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         val colors = if (dark) DARK else LIGHT
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
         val s = size.toFloat()
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)

@@ -24,8 +24,9 @@ request.
    template.
 
 Every pull request runs the automated checks (formatting, analysis, tests,
-commit messages, and the lint, tests and build of the watch app). A pull
-request can only be merged once all checks pass.
+commit messages, the lint, tests and build of the watch app, and the lint of
+the Android code of the phone app). A pull request can only be merged once
+all checks pass.
 
 ### Branches and releases
 
