@@ -55,5 +55,5 @@ Left to do by hand, before the pull request of release/$name against develop:
 - store/fr and store/en: the descriptions, if the new features belong there;
 - README.md: the features;
 - a look at the images in store/, then a commit and the pull request.
-Once released, the Store listing workflow sends the listing to Google Play.
+Then run the Release workflow from main: production also sends the listing.
 EOF

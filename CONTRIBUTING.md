@@ -33,14 +33,23 @@ all checks pass.
 - `develop` gathers the accepted pull requests. It is the default branch.
 - `main` holds released versions only. It accepts pull requests from
   `develop` alone, opened by the maintainer when a version is ready.
-- Every merge into `main` runs the release workflow: it runs the automated
-  checks again on the merged commit and, only if they pass, builds the
-  signed app bundles of the phone and of the watch, sends them to their
-  closed testing tracks of Google Play (`alpha` and `wear:alpha`) and tags
-  the version (`v1.2.3`). The version in `pubspec.yaml` must therefore be
-  increased in `develop` before each release; its build number must stay
-  below `wear.versionCodeOffset`, which the version code of the watch app
-  adds to it.
+- A release is published by hand, once merged into `main`: the
+  **Release** workflow, run from `main`, asks where to publish:
+  - `alpha`: the closed testing tracks of Google Play (`alpha` and
+    `wear:alpha`);
+  - `production`: the production tracks (`production` and
+    `wear:production`), then the listing of the `store` folder, as the
+    **Store listing** workflow sends it.
+
+  It runs the automated checks on the commit of `main`, waits for the
+  maintainer's approval, builds the signed app bundles of the phone and of
+  the watch, sends them to the tracks chosen and tags the version
+  (`v1.2.3`). A version goes to one track only: Google Play refuses a
+  bundle whose version code it already has, so a version tested in `alpha`
+  goes to production from the Google Play Console. The version in
+  `pubspec.yaml` must therefore be increased in `develop` before each
+  release; its build number must stay below `wear.versionCodeOffset`,
+  which the version code of the watch app adds to it.
 - The publishing job uses the `release` environment of the repository: its
   secrets (signing key, Google Play service account, Sentry address) are
   stored there only, and each release waits for the maintainer's approval.
@@ -62,8 +71,8 @@ all checks pass.
   `feature-graphic.png`, `screenshots/<n>.png` and `wear/<n>.png`, with
   `icon-512.png` for both. `python tool/store_screenshots/compose.py` writes
   the images, in place of the previous ones. The **Store listing** workflow,
-  run by hand only, sends them to Google Play and replaces the listing shown;
-  its dry run checks it without publishing.
+  run by hand, sends them to Google Play and replaces the listing shown, as a
+  release to production does; its dry run checks it without publishing.
 
 ### Actions used by the workflows
 

@@ -1,12 +1,21 @@
 name: Release
 
-# Publishing flow: every merge into main builds the signed app bundles of
-# the phone and of the watch, sends them to their closed testing tracks of
-# Google Play and tags the version.
+# Publishing flow, run by hand from main once a release is merged into it:
+# builds the signed app bundles of the phone and of the watch, sends them to
+# the track chosen on Google Play, closed testing or production, and tags
+# the version. A release to production also sends the listing of the store
+# folder. A version goes to one track only: Google Play refuses a bundle
+# whose version code it already has.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      track:
+        description: Where to publish on Google Play
+        type: choice
+        options:
+          - alpha
+          - production
+        default: alpha
 
 concurrency:
   group: release
@@ -16,14 +25,30 @@ permissions:
   contents: write
 
 jobs:
+  # Released versions only come from main: said at once, before the checks
+  # and the approval.
+  branch:
+    name: Branch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Check that the release runs from main
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Releases run from main only (got $GITHUB_REF)."
+            exit 1
+          fi
+
   checks:
     name: Checks
+    needs: branch
     uses: ./.github/workflows/checks.yml
 
   release:
-    name: Build and publish
+    name: Build and publish to ${{ inputs.track }}
     # Nothing is published unless formatting, analysis and tests pass on
-    # this very commit.
+    # this very commit; then the release environment waits for the
+    # maintainer's approval.
     needs: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -89,13 +114,13 @@ jobs:
         working-directory: android
         run: ./gradlew --no-daemon :wear:bundleRelease
 
-      - name: Upload to Google Play (closed testing)
+      - name: Upload to Google Play (${{ inputs.track }})
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: arbitro.android.protein_calculator
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          tracks: alpha
+          tracks: ${{ inputs.track }}
           status: completed
           # whatsnew-fr-FR and whatsnew-en-US, written before the release.
           whatsNewDirectory: store/whatsnew
@@ -103,18 +128,19 @@ jobs:
           # shrunk by R8 in release builds.
           mappingFile: build/app/outputs/mapping/release/mapping.txt
 
-      # The dedicated closed testing track of Wear OS, in the same Google
-      # Play app. If this upload fails after the one of the phone, upload the
-      # bundle of the workflow artifacts by hand, then create the tag and the
-      # release by hand, as the steps below do not run: running the workflow
-      # again would send the phone bundle twice, which Google Play refuses.
-      - name: Upload the watch app to Google Play (closed testing, Wear OS)
+      # The dedicated track of Wear OS, wear:alpha or wear:production, in
+      # the same Google Play app. If this upload fails after the one of the
+      # phone, upload the bundle of the workflow artifacts by hand, then
+      # create the tag and the release by hand, as the steps below do not
+      # run: running the workflow again would send the phone bundle twice,
+      # which Google Play refuses.
+      - name: Upload the watch app to Google Play (Wear OS, ${{ inputs.track }})
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: arbitro.android.protein_calculator
           releaseFiles: build/wear/outputs/bundle/release/wear-release.aab
-          tracks: wear:alpha
+          tracks: wear:${{ inputs.track }}
           status: completed
           whatsNewDirectory: store/whatsnew
           mappingFile: build/wear/outputs/mapping/release/mapping.txt
@@ -136,6 +162,14 @@ jobs:
           bash .github/scripts/release_notes.sh "${TAG#v}" > release-notes.md
           gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" \
             --notes-file release-notes.md
+
+      # After the tag: the version is out. Should the listing fail, the
+      # Store listing workflow sends it again by hand.
+      - name: Update the listing on Google Play
+        if: inputs.track == 'production'
+        uses: ./.github/actions/store-listing
+        with:
+          service-account: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
 
       - name: Remove the signing files
         if: always()
