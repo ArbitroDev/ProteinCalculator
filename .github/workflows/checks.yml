@@ -63,6 +63,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # The lint of the phone app compiles its Dart code, which needs the
+      # code drift generates.
+      - name: Generate code
+        run: dart run build_runner build
+
       # Writes the Gradle wrapper and local.properties, without building.
       - name: Set up the Gradle build
         run: flutter build apk --config-only
