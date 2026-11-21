@@ -244,6 +244,21 @@ void main() {
       expect(creatine.monthShares, isEmpty);
     });
 
+    test('today counts once a dose is taken', () {
+      final creatine = computeStats(
+        _month,
+        _input(
+          days: {...days, _today: _day(_today, 30)},
+          creatineTracked: true,
+        ),
+      ).creatine!;
+
+      // From the 3rd to yesterday.
+      expect(creatine.countedDays, 7);
+      expect(creatine.takenDays, 4);
+      expect(creatine.marks[9], isNull);
+    });
+
     test('shares by month for a year', () {
       final creatine = computeStats(
         _period(StatsSpan.year),
@@ -281,11 +296,23 @@ void main() {
 
       expect(workouts.sessions, 3);
       expect(workouts.days, 3);
-      expect(workouts.perWeek, closeTo(2.1, 1e-9));
+      // Over the 9 days to yesterday: today has no workout yet.
+      expect(workouts.perWeek, closeTo(3 * 7 / 9, 1e-9));
       expect(workouts.totalDuration, const Duration(minutes: 150));
       expect(workouts.averageDuration, const Duration(minutes: 75));
       expect(workouts.marks[1], isTrue);
       expect(workouts.marks[2], isFalse);
+    });
+
+    test('today counts once it has a workout', () {
+      WorkoutStats workouts(Set<int> days) => computeStats(
+        _month,
+        _input(hevyImported: true, workoutDays: days, sessions: sessions),
+      ).workouts!;
+
+      // Not yet: today is left out of the days counted.
+      expect(workouts(workoutDays).marks[9], isNull);
+      expect(workouts({...workoutDays, _today}).marks[9], isTrue);
     });
 
     test('nothing without an import', () {
@@ -329,6 +356,32 @@ void main() {
 
         expect(after.grams, closeTo(50 / 3, 1e-9));
         expect(after.followed, 1);
+        expect(after.sessions, 3);
+      });
+
+      test('protein between two workouts close together counts once', () {
+        final after = computeStats(
+          _month,
+          _input(
+            hevyImported: true,
+            workoutDays: {20261002, 20261005},
+            sessions: [
+              _session(DateTime(2026, 10, 2, 18), minutes: 60),
+              _session(DateTime(2026, 10, 5, 17), minutes: 60),
+              // An hour after the one before: what follows both counts
+              // after this one only.
+              _session(DateTime(2026, 10, 5, 19), minutes: 60),
+            ],
+            entries: [
+              _entry(DateTime(2026, 10, 2, 19, 30), 30),
+              _entry(DateTime(2026, 10, 5, 18, 30), 10),
+              _entry(DateTime(2026, 10, 5, 20, 30), 30),
+            ],
+          ),
+        ).cross.postWorkout!;
+
+        expect(after.grams, closeTo(70 / 3, 1e-9));
+        expect(after.followed, 2);
         expect(after.sessions, 3);
       });
 
@@ -566,7 +619,8 @@ void main() {
       );
 
       // Creatine on the 1st, 3rd, 5th, 7th and 9th; the 3rd misses its goal.
-      expect(stats.cross.completeDays, (days: 4, share: 0.4));
+      // Today, without creatine yet, is not over.
+      expect(stats.cross.completeDays, (days: 4, share: 4 / 9));
     });
   });
 }

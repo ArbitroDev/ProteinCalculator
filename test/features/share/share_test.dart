@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -157,7 +158,8 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(BottomSheet),
-        matching: find.text('5 / 10'),
+        // Today, not over, is left out until its goal is reached.
+        matching: find.text('5 / 9'),
       ),
       findsOneWidget,
     );
@@ -244,13 +246,14 @@ void main() {
     await tester.tap(find.text('Creatine').last);
     await tester.pumpAndSettle();
     expect(find.byType(CreatineTile), findsOneWidget);
-    // 3 days out of those from the first dose, Monday, to today, Saturday.
+    // 3 days out of those from the first dose, Monday, to yesterday: today
+    // counts once a dose is taken.
     Finder inTile(String text) => find.descendant(
       of: find.byType(CreatineTile),
       matching: find.text(text),
     );
-    expect(inTile('3 / 6'), findsOneWidget);
-    expect(inTile('50%'), findsOneWidget);
+    expect(inTile('3 / 5'), findsOneWidget);
+    expect(inTile('60%'), findsOneWidget);
     await disposeApp(tester, db);
   });
 
@@ -366,5 +369,40 @@ void main() {
     expect(find.byType(ShakerIcon), findsNWidgets(streakMaxShakers));
     expect(find.text('+70'), findsOneWidget);
     expect(find.text('100'), findsOneWidget);
+  });
+
+  testWidgets('the shaker of a day rounds its total as the goal does', (
+    tester,
+  ) async {
+    await db.entriesDao.insertEntry(
+      amount: const DirectAmount(100),
+      createdAt: DateTime(2026, 10, 5, 9),
+    );
+    await db.entriesDao.insertEntry(
+      amount: const DirectAmount(39.6),
+      createdAt: DateTime(2026, 10, 5, 13),
+    );
+    // A direct query: streams never emit in the fake time of widget tests.
+    final entries = await (db.select(
+      db.entries,
+    )..orderBy([(e) => OrderingTerm.asc(e.createdAt)])).get();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Center(
+          child: DayShakerTile(
+            day: DayShare(dayKey: 20261005, entries: entries, goal: 140),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 139.6 g shows 140 g, all of the goal, and reaches it.
+    expect(find.text('140 g', findRichText: true), findsOneWidget);
+    expect(find.text('of 140 g · 100%'), findsOneWidget);
+    expect(find.text('Goal reached'), findsOneWidget);
+    expect(find.textContaining('short'), findsNothing);
   });
 }

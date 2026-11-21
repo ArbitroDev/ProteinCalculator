@@ -101,7 +101,7 @@ class _DayList extends ConsumerWidget {
         itemBuilder: (context, index) => _DayTile(
           day: days[index],
           // The goal each day had.
-          goal: goalOn(days[index].dayKey, goals) ?? goal ?? 0,
+          goal: goalOfDay(days[index].dayKey, goals, goal) ?? 0,
           workedOut: hevyDays.contains(days[index].dayKey),
         ),
       ),
@@ -129,7 +129,7 @@ class _DayTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final locale = context.localeName;
     final total = day.proteinGrams;
-    final reached = goal > 0 && total >= goal;
+    final reached = goal > 0 && isGoalReached(total, goal);
 
     return InkWell(
       onTap: () => context.go(AppRoutes.historyDay(day.dayKey)),

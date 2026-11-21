@@ -38,7 +38,7 @@ class HomeWidgetDay {
   final int dayKey;
   final int dayStartHour;
 
-  /// Protein grams of the day, exact: the widget truncates them as the app.
+  /// Protein grams of the day, exact: the widget rounds them as the app.
   final double total;
 
   /// Goal of the day; null until the first launch is done.

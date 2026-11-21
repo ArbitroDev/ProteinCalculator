@@ -116,19 +116,17 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   Widget build(BuildContext context) {
     final todayKey = ref.watch(currentDayKeyProvider).value;
     final goals = ref.watch(goalChangesProvider).value;
+    final currentGoal = ref.watch(dailyGoalProvider).value;
     final days = ref.watch(historyProvider).value;
-    if (todayKey == null || goals == null || days == null) {
+    // From the first day the app was used, or the oldest entry, added
+    // afterwards for an earlier day.
+    final firstKey = ref.watch(firstAppDayKeyProvider);
+    if (todayKey == null || goals == null || days == null || firstKey == null) {
       return const SizedBox.shrink();
     }
 
     final today = dateOfDayKey(todayKey);
-    // From the first day the app was used, or the oldest entry, added
-    // afterwards for an earlier day.
-    final firstKey = firstAppDayKey(
-      todayKey: todayKey,
-      firstGoalDayKey: goals.isEmpty ? null : goals.first.dayKey,
-      entryDayKeys: days.map((day) => day.dayKey),
-    );
+    double? goalOf(int dayKey) => goalOfDay(dayKey, goals, currentGoal);
     final first = dateOfDayKey(firstKey);
     final count =
         (today.year - first.year) * 12 + today.month - first.month + 1;
@@ -241,7 +239,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                               totals: totals,
                               creatineDays: creatineDays,
                               hevyDays: hevyDays,
-                              goals: goals,
+                              goalOf: goalOf,
                               mode: mode,
                               titled: !_landscape,
                               gap: gap,
@@ -582,7 +580,7 @@ class _MonthSection extends StatelessWidget {
     required this.totals,
     required this.creatineDays,
     required this.hevyDays,
-    required this.goals,
+    required this.goalOf,
     required this.mode,
     this.titled = true,
     this.gap = _gap,
@@ -603,7 +601,9 @@ class _MonthSection extends StatelessWidget {
 
   /// App days with a Hevy workout, from the first app day to today.
   final Set<int> hevyDays;
-  final List<({int dayKey, double grams})> goals;
+
+  /// Goal of an app day, see `goalOfDay`.
+  final double? Function(int dayKey) goalOf;
   final CalendarMode mode;
   final bool titled;
 
@@ -693,7 +693,7 @@ class _MonthSection extends StatelessWidget {
 
   Widget _dayCell(int dayKey) {
     final total = totals[dayKey];
-    final goal = goalOn(dayKey, goals);
+    final goal = goalOf(dayKey);
     final workedOut = hevyDays.contains(dayKey);
     // Days to come, and those before the app was used, have no color. From
     // the first app day, those without entries count as days of 0 g, as in

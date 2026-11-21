@@ -132,6 +132,7 @@ class ProteinStats {
   const ProteinStats({
     required this.averageGrams,
     required this.averageGoal,
+    required this.countedDays,
     required this.goalDays,
     required this.currentStreak,
     required this.bestStreak,
@@ -146,7 +147,11 @@ class ProteinStats {
   /// Average goal of the counted days; null without a goal.
   final double? averageGoal;
 
-  /// Counted days reaching their goal.
+  /// Days [averageGrams] is computed over: the counted days, today only once
+  /// its goal is reached, see [finishedDayKeys].
+  final int countedDays;
+
+  /// Of the [countedDays], those reaching their goal.
   final int goalDays;
 
   /// Days in a row reaching their goal, up to today; null when the period
@@ -173,7 +178,8 @@ class CreatineStats {
     required this.monthShares,
   });
 
-  /// Counted days from the first dose ever taken.
+  /// Counted days from the first dose ever taken, today only once a dose is
+  /// taken, see [finishedDayKeys].
   final int countedDays;
   final int takenDays;
 
@@ -209,7 +215,8 @@ class WorkoutStats {
   /// Counted days with a workout.
   final int days;
 
-  /// Workouts per week of counted days.
+  /// Workouts per week of counted days, today only once it has a workout,
+  /// see [finishedDayKeys].
   final double perWeek;
 
   /// Of the workouts having a length; null without any.
@@ -347,31 +354,25 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
 
   double gramsOf(int dayKey) => input.days[dayKey]?.proteinGrams ?? 0;
   double? goalOf(int dayKey) =>
-      goalOn(dayKey, input.goals) ?? input.currentGoal;
-  bool reached(int dayKey) {
-    final goal = goalOf(dayKey);
-    return goal != null &&
-        DayProgress.of(gramsOf(dayKey), goal) == DayProgress.reached;
-  }
+      goalOfDay(dayKey, input.goals, input.currentGoal);
 
-  final reachedDays = {
-    for (final dayKey in input.days.keys)
-      if (reached(dayKey)) dayKey,
-  };
+  final reachedDays = reachedDayKeys(
+    {for (final day in input.days.values) day.dayKey: day.proteinGrams},
+    input.goals,
+    input.currentGoal,
+  );
   final takenDays = {
     for (final MapEntry(key: dayKey, value: day) in input.days.entries)
       if (day.creatineDoses > 0) dayKey,
   };
 
-  // Today counts in the averages once its goal is reached: before, it is
-  // not over and would pull them down. Alone in the period, it counts all the
-  // same, there being nothing else to show.
-  final finished = [
-    for (final dayKey in counted)
-      if (dayKey != input.todayKey || reachedDays.contains(dayKey)) dayKey,
-  ];
-  final onlyToday = finished.isEmpty && counted.isNotEmpty;
-  final averaged = onlyToday ? counted : finished;
+  // Today counts in the averages, and in the days they are made of, once its
+  // goal is reached.
+  final averaged = finishedDayKeys(counted, input.todayKey, reachedDays);
+  final onlyToday =
+      averaged.length == 1 &&
+      averaged.single == input.todayKey &&
+      !reachedDays.contains(input.todayKey);
 
   double average(Iterable<int> dayKeys) =>
       dayKeys.isEmpty ? 0 : dayKeys.map(gramsOf).sum / dayKeys.length;
@@ -390,7 +391,8 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
   final protein = ProteinStats(
     averageGrams: averageGrams,
     averageGoal: averageGoal(averaged),
-    goalDays: counted.where(reachedDays.contains).length,
+    countedDays: averaged.length,
+    goalDays: averaged.where(reachedDays.contains).length,
     currentStreak: holdsToday
         ? currentStreak(reachedDays, input.todayKey)
         : null,
@@ -422,11 +424,15 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
   );
 
   // Creatine: counted from the first dose, it may have been turned on long
-  // after the app was first used.
+  // after the app was first used; today once a dose is taken.
   final firstDose = takenDays.isEmpty ? null : takenDays.min;
   final creatineCounted = firstDose == null
       ? const <int>[]
-      : counted.where((dayKey) => dayKey >= firstDose).toList();
+      : finishedDayKeys(
+          counted.where((dayKey) => dayKey >= firstDose),
+          input.todayKey,
+          takenDays,
+        );
   final creatineSet = creatineCounted.toSet();
   final doses = counted.map((k) => input.days[k]?.creatineDoses ?? 0).sum;
   final creatine = input.creatineTracked || doses > 0
@@ -442,8 +448,10 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
         )
       : null;
 
-  // Workouts.
+  // Workouts: today once it has one.
   final workoutDays = input.workoutDays;
+  final workoutCounted = finishedDayKeys(counted, input.todayKey, workoutDays);
+  final workoutSet = workoutCounted.toSet();
   final sessions = [
     for (final session in input.sessions)
       if (countedSet.contains(session.dayKey)) session,
@@ -456,12 +464,14 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
   final workouts = input.hevyImported
       ? WorkoutStats(
           sessions: sessions.length,
-          days: counted.where(workoutDays.contains).length,
-          perWeek: counted.isEmpty ? 0 : sessions.length * 7 / counted.length,
+          days: workoutCounted.where(workoutDays.contains).length,
+          perWeek: workoutCounted.isEmpty
+              ? 0
+              : sessions.length * 7 / workoutCounted.length,
           totalDuration: durations.isEmpty ? null : total,
           averageDuration: durations.isEmpty ? null : total ~/ durations.length,
-          marks: _marks(period, countedSet, workoutDays),
-          monthShares: _monthShares(period, counted, workoutDays),
+          marks: _marks(period, workoutSet, workoutDays),
+          monthShares: _monthShares(period, workoutCounted, workoutDays),
         )
       : null;
 
@@ -487,6 +497,19 @@ PeriodStats computeStats(StatsPeriod period, StatsInput input) {
       average: average,
     ),
   );
+}
+
+/// The days of [dayKeys] that are over, in order: all of them but today,
+/// which counts once it is one of [done] (its goal reached, a creatine dose
+/// taken, a workout made). Before, it is not over and would pull the figures
+/// down. Today alone counts all the same, there being nothing else to show.
+List<int> finishedDayKeys(Iterable<int> dayKeys, int todayKey, Set<int> done) {
+  final all = dayKeys.toList();
+  final finished = [
+    for (final dayKey in all)
+      if (dayKey != todayKey || done.contains(dayKey)) dayKey,
+  ];
+  return finished.isEmpty ? all : finished;
 }
 
 /// Each day of a week or a month: whether it is one of [days], null when it
@@ -563,12 +586,17 @@ CrossStats _cross({
       if (entry.proteinGrams > 0) entry,
   ];
 
-  // Protein grams taken within [postWorkoutWindow] after a workout.
-  double takenAfter(HevySession session) {
+  // Protein grams taken within [postWorkoutWindow] after the workout
+  // [index] of [sessions], until the next one starts: protein taken between
+  // two workouts close together counts once, after the later one.
+  double takenAfter(int index) {
+    final session = sessions[index];
     final over = workoutDuration(session.startedAt, session.endedAt) == null
         ? session.startedAt.add(assumedWorkoutLength)
         : session.endedAt!;
-    final until = over.add(postWorkoutWindow);
+    var until = over.add(postWorkoutWindow);
+    final next = sessions.elementAtOrNull(index + 1)?.startedAt;
+    if (next != null && next.isBefore(until)) until = next;
     return proteinEntries
         .where(
           (entry) =>
@@ -587,7 +615,7 @@ CrossStats _cross({
   })?
   workoutTime;
   if (hevy && sessions.length >= minCompareDays) {
-    final taken = [for (final session in sessions) takenAfter(session)];
+    final taken = [for (var i = 0; i < sessions.length; i++) takenAfter(i)];
     postWorkout = (
       grams: taken.sum / sessions.length,
       followed: taken.where((grams) => grams >= postWorkoutGrams).length,
@@ -639,7 +667,7 @@ CrossStats _cross({
     var total = 0.0;
     for (final entry in entries) {
       total += entry.proteinGrams;
-      if (total >= goal) {
+      if (isGoalReached(total, goal)) {
         reachedAt.add(_minutesOfDay(entry.createdAt, dayKey));
         break;
       }
@@ -668,10 +696,14 @@ CrossStats _cross({
     );
   }
 
-  // Creatine.
-  final complete = creatineCounted
-      .where((k) => reachedDays.contains(k) && takenDays.contains(k))
-      .length;
+  // Creatine: today counts once its goal is reached and a dose taken.
+  final completeDays = reachedDays.intersection(takenDays);
+  final completeCounted = finishedDayKeys(
+    creatineCounted,
+    input.todayKey,
+    completeDays,
+  );
+  final complete = completeCounted.where(completeDays.contains).length;
 
   // Weekdays, for a month or a year only.
   List<double?>? weekdayAverages;
@@ -764,9 +796,9 @@ CrossStats _cross({
     creatineByWorkout: hevy
         ? _compare(creatineTraining, creatineRest, takenShare)
         : null,
-    completeDays: creatineCounted.length < minCompareDays
+    completeDays: completeCounted.length < minCompareDays
         ? null
-        : (days: complete, share: complete / creatineCounted.length),
+        : (days: complete, share: complete / completeCounted.length),
     weekdayAverages: weekdayAverages,
     slotShares: slotTotal <= 0
         ? null

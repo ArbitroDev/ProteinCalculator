@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/day_progress.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/hevy/hevy_csv.dart';
@@ -14,6 +15,7 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
+import 'package:protein_calculator/core/widgets/slot_name.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
 import 'package:protein_calculator/features/share/share_choices.dart';
@@ -72,7 +74,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
         if (bySlot.containsKey(slot)) slot,
     ];
     final total = entries.proteinGrams;
-    final reached = goal > 0 && total >= goal;
+    final reached = goal > 0 && isGoalReached(total, goal);
     String grams(double value) => l10n.grams(formatGrams(value, locale));
 
     final summary = [
@@ -260,10 +262,11 @@ class _SlotCard extends StatelessWidget {
     // The part of the day stands out more than its entries.
     final style = Theme.of(context).textTheme.headlineSmall!
         .copyWith(color: AppColors.onAccent, fontSize: 20);
-    final (icon, label) = switch (slot) {
-      DaySlot.morning => (LucideIcons.sunrise, l10n.slotMorning),
-      DaySlot.afternoon => (LucideIcons.sun, l10n.slotAfternoon),
-      DaySlot.evening => (LucideIcons.moon, l10n.slotEvening),
+    final label = l10n.slotName(slot);
+    final icon = switch (slot) {
+      DaySlot.morning => LucideIcons.sunrise,
+      DaySlot.afternoon => LucideIcons.sun,
+      DaySlot.evening => LucideIcons.moon,
     };
     final card = Material(
       color: AppColors.slot(slot),

@@ -71,10 +71,11 @@ void main() {
     await addOctober();
     await openStats(tester);
     expect(find.text('October 2026'), findsOneWidget);
-    // 500 g over the 9 days since the goal was set, today not being over.
+    // 500 g over the 9 days since the goal was set, today not being over:
+    // the days reaching the goal are counted over the same 9 days.
     expect(find.textContaining(RegExp(r'^56 g')), findsOneWidget);
-    expect(find.text('5 / 10'), findsOneWidget);
-    expect(find.text('goal reached · 50%'), findsOneWidget);
+    expect(find.text('5 / 9'), findsOneWidget);
+    expect(find.text('goal reached · 56%'), findsOneWidget);
     expect(find.text('5 days'), findsNWidgets(2));
     // Neither creatine nor Hevy is used.
     expect(find.text('Creatine'), findsNothing);

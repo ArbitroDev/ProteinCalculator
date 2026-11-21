@@ -1,17 +1,15 @@
 import 'package:intl/intl.dart';
+import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// Grams truncated to the unit, formatted for [locale] ("1 234" in French).
+/// Grams rounded to the unit (see `roundGrams`), formatted for [locale]
+/// ("1 234" in French).
 ///
-/// For computed values (totals, what is left, the goal) and quantities of
-/// food: a total of 139.8 g shows 139 g, so the goal only shows as reached
-/// once it really is.
+/// For computed values (totals, averages, what is left, the goal) and
+/// quantities of food: a total of 139.6 g shows 140 g, and reaches a goal of
+/// 140 g, see `isGoalReached`.
 String formatGrams(double grams, String locale) =>
-    NumberFormat.decimalPattern(locale).format(truncateGrams(grams));
-
-/// Whole grams shown for [grams]; the epsilon absorbs floating point sums
-/// such as 59.99999 for 60.
-int truncateGrams(double grams) => (grams + 1e-9).floor();
+    NumberFormat.decimalPattern(locale).format(roundGrams(grams));
 
 /// Protein grams of one entry or one product, typed or computed with one
 /// decimal at most: "10,5", "23", "1 234,5".

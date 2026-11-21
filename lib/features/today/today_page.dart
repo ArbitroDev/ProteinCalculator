@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/day_progress.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
@@ -243,7 +244,7 @@ class _Summary extends StatelessWidget {
     String grams(double value) => formatGrams(value, locale);
 
     final total = entries.proteinGrams;
-    final reached = total >= goal;
+    final reached = isGoalReached(total, goal);
     final dateStyle = textTheme.headlineSmall!.copyWith(
       fontSize: compact ? 21 : 26,
     );
@@ -357,9 +358,11 @@ class _Summary extends StatelessWidget {
                   ),
                 ),
               ] else
-                // From the total as shown, truncated, so both agree.
+                // From the total as shown, rounded, so both agree.
                 TextSpan(
-                  text: l10n.todayRemaining(grams(goal - truncateGrams(total))),
+                  text: l10n.todayRemaining(
+                    grams(gramsLeft(total, goal).toDouble()),
+                  ),
                 ),
               // The mark of the days creatine was taken, even once it is no
               // longer tracked.

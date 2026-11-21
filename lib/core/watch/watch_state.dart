@@ -248,11 +248,9 @@ Future<WatchState> readWatchState(AppDatabase db, DateTime now) async {
     dayKey: dayKey,
     dayStartHour: dayStartHour,
     entries: await db.entriesDao.watchDayEntries(dayKey).first,
-    goal:
-        goalOn(dayKey, [
-          for (final goal in goals) (dayKey: goal.dayKey, grams: goal.grams),
-        ]) ??
-        await db.settingsDao.getDailyGoal(),
+    goal: goalOfDay(dayKey, [
+      for (final goal in goals) (dayKey: goal.dayKey, grams: goal.grams),
+    ], await db.settingsDao.getDailyGoal()),
     products: await db.productsDao.watchAll(sort).first,
     handled: await db.watchDao.watchHandledSince(handledSince(dayKey)).first,
     creatineEnabled: (await db.settingsDao.getCreatine()).enabled,

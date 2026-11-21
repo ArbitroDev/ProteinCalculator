@@ -335,7 +335,7 @@ class ShareTileFrame extends StatelessWidget {
                   children: [
                     Expanded(child: child),
                     const SizedBox(height: 10),
-                    _Signature(color: orange ? _onOrangeSecondary : null),
+                    _Signature(color: orange ? shareOnOrangeSecondary : null),
                   ],
                 ),
               ),
@@ -347,8 +347,8 @@ class ShareTileFrame extends StatelessWidget {
   }
 }
 
-/// Secondary text on the orange background.
-const _onOrangeSecondary = Color(0xFF5A2A08);
+/// Secondary text on the orange background of a tile.
+const shareOnOrangeSecondary = Color(0xFF5A2A08);
 
 class _Signature extends StatelessWidget {
   const _Signature({this.color});

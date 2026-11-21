@@ -66,15 +66,6 @@ final dayShareProvider = Provider.autoDispose.family<DayShare, int>((
   ref,
   dayKey,
 ) {
-  final days = ref.watch(historyProvider).value ?? const [];
-  final goals = ref.watch(goalChangesProvider).value ?? const [];
-  final current = ref.watch(dailyGoalProvider).value;
-  final reached = {
-    for (final day in days)
-      if ((goalOn(day.dayKey, goals) ?? current) case final goal?
-          when goal > 0 && day.proteinGrams >= goal)
-        day.dayKey,
-  };
   final shown = ref.watch(shownHevyDaysProvider).contains(dayKey);
   return DayShare(
     dayKey: dayKey,
@@ -83,7 +74,7 @@ final dayShareProvider = Provider.autoDispose.family<DayShare, int>((
     sessions: shown
         ? ref.watch(daySessionsProvider(dayKey)).value ?? const []
         : const <HevySession>[],
-    streak: currentStreak(reached, dayKey),
+    streak: currentStreak(ref.watch(reachedDaysProvider), dayKey),
     isToday: dayKey == ref.watch(currentDayKeyProvider).value,
   );
 });
@@ -169,7 +160,7 @@ List<ShareChoice> historyShareChoices(
   final days = ref.read(historyProvider).value ?? const [];
   final goals = ref.read(goalChangesProvider).value ?? const [];
   final current = ref.read(dailyGoalProvider).value;
-  double? goalOf(int dayKey) => goalOn(dayKey, goals) ?? current;
+  double? goalOf(int dayKey) => goalOfDay(dayKey, goals, current);
   final grams = {for (final day in days) day.dayKey: day.proteinGrams};
   final today = dateOfDayKey(todayKey);
   final first = dateOfDayKey(firstKey);

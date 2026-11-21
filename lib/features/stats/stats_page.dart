@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
+import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
@@ -17,6 +18,7 @@ import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/empty_state.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/pill_tabs.dart';
+import 'package:protein_calculator/core/widgets/slot_name.dart';
 import 'package:protein_calculator/features/share/share_choices.dart';
 import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/features/stats/stats_providers.dart';
@@ -564,9 +566,9 @@ class _PinnedBar extends SliverPersistentHeaderDelegate {
       oldDelegate.child != child || oldDelegate.color != color;
 }
 
-/// Grams rounded to the unit, for averages: "136 g".
+/// Grams rounded to the unit, as everywhere: "136 g".
 String _grams(double grams, String locale, AppLocalizations l10n) =>
-    l10n.grams(NumberFormat.decimalPattern(locale).format(grams.round()));
+    l10n.grams(formatGrams(grams, locale));
 
 String _percent(double share, String locale) =>
     NumberFormat.percentPattern(locale).format(share);
@@ -626,10 +628,7 @@ class _ProteinCard extends StatelessWidget {
       final when = bar.dayKey == null
           ? formatMonth(bar.date, locale)
           : formatShortDate(bar.date, locale);
-      final grams = bar.dayKey == null
-          ? _grams(bar.grams ?? 0, locale, l10n)
-          : l10n.grams(formatGrams(bar.grams ?? 0, locale));
-      return '$when · $grams';
+      return '$when · ${_grams(bar.grams ?? 0, locale, l10n)}';
     }
 
     final averageGoal = protein.averageGoal;
@@ -642,7 +641,7 @@ class _ProteinCard extends StatelessWidget {
             children: [
               TextSpan(
                 text: NumberFormat.decimalPattern(locale)
-                    .format(protein.averageGrams.round()),
+                    .format(roundGrams(protein.averageGrams)),
                 style: textTheme.displayMedium,
               ),
               TextSpan(text: ' ${l10n.gramsUnit}', style: unitStyle),
@@ -677,9 +676,9 @@ class _ProteinCard extends StatelessWidget {
         const SizedBox(height: 12),
         StatTiles([
           StatTile(
-            value: _outOf(protein.goalDays, stats.countedDays),
+            value: _outOf(protein.goalDays, protein.countedDays),
             label: l10n.statsGoalReached(
-              _percent(protein.goalDays / stats.countedDays, locale),
+              _percent(protein.goalDays / protein.countedDays, locale),
             ),
           ),
           if (protein.currentStreak case final streak?)
@@ -857,11 +856,7 @@ class _InsightsCard extends StatelessWidget {
     String percent(double value) => _percent(value, locale);
     String time(int minutes) =>
         formatTime(DateTime(2000, 1, 1, minutes ~/ 60, minutes % 60), locale);
-    String slotName(DaySlot slot) => switch (slot) {
-      DaySlot.morning => l10n.slotMorning,
-      DaySlot.afternoon => l10n.slotAfternoon,
-      DaySlot.evening => l10n.slotEvening,
-    };
+    final slotName = l10n.slotName;
 
     final sections = <(String, List<Widget>)>[];
 
@@ -1191,11 +1186,7 @@ class _DayParts extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
     final locale = context.localeName;
-    String name(DaySlot slot) => switch (slot) {
-      DaySlot.morning => l10n.slotMorning,
-      DaySlot.afternoon => l10n.slotAfternoon,
-      DaySlot.evening => l10n.slotEvening,
-    };
+    final name = l10n.slotName;
     final shown = [
       for (final slot in DaySlot.values)
         if ((shares[slot] ?? 0) > 0) slot,

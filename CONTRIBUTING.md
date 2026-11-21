@@ -260,10 +260,15 @@ upgrading these packages, replace them with the files of the same versions:
   whole grams, or whole milliliters for drinks (`QuantityUnit`), while
   protein is always in grams. The protein computed from a quantity is
   rounded to one decimal when the entry is saved (`computeProtein`).
-- Values are stored exactly. Totals, what is left and the goal are shown
-  truncated to the unit (`formatGrams`), so the goal only shows as reached
-  once it really is; the protein of one entry or one product shows with one
-  decimal at most (`formatProtein`).
+- Values are stored exactly. Totals, averages, what is left and the goal are
+  shown rounded to the unit, a half up (`roundGrams`, `formatGrams`), as not
+  every entry gives its decimals; the protein of one entry or one product
+  shows with one decimal at most (`formatProtein`).
+- A day reaches its goal once its total as shown reaches the goal as shown
+  (`isGoalReached`): 139.5 g reaches 140 g. Every screen, the shared tiles,
+  the watch and the widget follow this one rule, with what is left
+  (`gramsLeft`) and the percent (`goalPercent`), so that "140 g / 140 g"
+  always goes with the goal reached.
 - Backups follow the same rules: `parseBackup` refuses any value the forms
   would not accept.
 

@@ -32,13 +32,48 @@ void main() {
     await addEntry(30, DateTime(2026, 9, 30, 20));
     await pumpApp(tester, db);
 
-    // 59.6 g shows truncated, and what is left follows the shown total.
-    expect(find.text('59 g / 140 g'), findsOneWidget);
-    expect(find.text('2 entries · 81 g left to shake'), findsOneWidget);
+    // 59.6 g shows rounded, and what is left follows the shown total.
+    expect(find.text('60 g / 140 g'), findsOneWidget);
+    expect(find.text('2 entries · 80 g left to shake'), findsOneWidget);
     await disposeApp(tester, db);
   });
 
-  testWidgets('truncates the total but not the entries', (tester) async {
+  testWidgets('the goal is reached once the total as shown reaches it', (
+    tester,
+  ) async {
+    // 139.5 g shows 140 g: the goal of 140 g is reached, nothing left.
+    await addEntry(100.1, DateTime(2026, 10, 1, 8));
+    await addEntry(39.4, DateTime(2026, 10, 1, 9));
+    await pumpApp(tester, db);
+
+    expect(find.text('140 g / 140 g'), findsOneWidget);
+    expect(
+      find.textContaining('goal reached', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.textContaining('left to shake'), findsNothing);
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('a sum of decimals short of the goal by a float reaches it', (
+    tester,
+  ) async {
+    await db.settingsDao.setDailyGoal(50);
+    // Summed in this order, 49.99999999999999.
+    await addEntry(0.8, DateTime(2026, 10, 1, 8));
+    await addEntry(37.8, DateTime(2026, 10, 1, 9));
+    await addEntry(11.4, DateTime(2026, 10, 1, 10));
+    await pumpApp(tester, db);
+
+    expect(find.text('50 g / 50 g'), findsOneWidget);
+    expect(
+      find.textContaining('goal reached', findRichText: true),
+      findsOneWidget,
+    );
+    await disposeApp(tester, db);
+  });
+
+  testWidgets('rounds the total but not the entries', (tester) async {
     await db.entriesDao.insertEntry(
       amount: const DirectAmount(12.5),
       createdAt: DateTime(2026, 10, 1, 8),

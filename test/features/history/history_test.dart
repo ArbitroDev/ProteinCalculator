@@ -165,6 +165,19 @@ void main() {
       await disposeApp(tester, db);
     });
 
+    testWidgets('colors the days with the current goal when none was kept', (
+      tester,
+    ) async {
+      // A goal without its history, as a backup without goals restores it.
+      await db.delete(db.goalChanges).go();
+      await addEntry('Skyr', 150, DateTime(2026, 9, 30, 12));
+      await openCalendar(tester);
+      await showSeptember(tester);
+
+      expect(day('Wednesday, September 30, Goal reached'), findsWidgets);
+      await disposeApp(tester, db);
+    });
+
     testWidgets('judges a day against the goal it had', (tester) async {
       await db.settingsDao.setDailyGoal(100, now: DateTime(2026, 9, 1, 9));
       await db.settingsDao.setDailyGoal(200, now: DateTime(2026, 9, 30, 9));

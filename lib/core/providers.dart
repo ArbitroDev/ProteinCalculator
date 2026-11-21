@@ -90,9 +90,25 @@ final goalChangesProvider = StreamProvider<List<({int dayKey, double grams})>>(
 /// Goal of one app day: the one it had, which may differ from the current
 /// one. Null until the first launch is completed.
 final dayGoalProvider = Provider.family<double?, int>(
-  (ref, dayKey) =>
-      goalOn(dayKey, ref.watch(goalChangesProvider).value ?? const []) ??
-      ref.watch(dailyGoalProvider).value,
+  (ref, dayKey) => goalOfDay(
+    dayKey,
+    ref.watch(goalChangesProvider).value ?? const [],
+    ref.watch(dailyGoalProvider).value,
+  ),
+);
+
+/// App days having entries that reach the goal they had, see
+/// `reachedDayKeys`; empty until the data they come from is read.
+final reachedDaysProvider = Provider<Set<int>>(
+  (ref) => reachedDayKeys(
+    {
+      for (final day
+          in ref.watch(historyProvider).value ?? const <DaySummary>[])
+        day.dayKey: day.proteinGrams,
+    },
+    ref.watch(goalChangesProvider).value ?? const [],
+    ref.watch(dailyGoalProvider).value,
+  ),
 );
 
 /// Entries of one app day, in the order they were added.

@@ -150,7 +150,7 @@ the answers to `/protein_calculator/add` and `/protein_calculator/delete`.
 |---|---|
 | `day` | App day of `total`, as `yyyymmdd`. |
 | `dayStartHour` | Hour the app days start, from 0 to 7: the watch starts a new day at that hour, with a total of zero, without waiting for the phone. |
-| `total` | Protein grams of the entries of `day`, exact. The watch truncates it to the unit, as the phone app does. |
+| `total` | Protein grams of the entries of `day`, exact. The watch rounds it to the unit, a half up, as the phone app does. |
 | `goal` | Goal of `day` in grams, or `null` until the first launch of the phone app is done. |
 | `entries` | Entries of `day`, the most recent first, 100 at most. |
 | `entries[].id` | Id of the entry on the phone. |

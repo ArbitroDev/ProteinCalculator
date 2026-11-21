@@ -8,6 +8,7 @@ import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/day_progress.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
+import 'package:protein_calculator/core/domain/grams.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/hevy/hevy_csv.dart';
 import 'package:protein_calculator/core/stats/period_stats.dart';
@@ -18,15 +19,13 @@ import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/core/widgets/shaker_icon.dart';
+import 'package:protein_calculator/core/widgets/slot_name.dart';
 import 'package:protein_calculator/features/history/calendar_view.dart';
 import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/features/stats/stats_widgets.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 const _colors = AppColors.light;
-
-/// Secondary text on the orange background.
-const _onOrangeSecondary = Color(0xFF5A2A08);
 
 TextStyle _display(double size, {Color? color, FontWeight? weight}) =>
     TextStyle(
@@ -72,7 +71,7 @@ class DayShare {
 
   double get total => entries.proteinGrams;
   int get creatineDoses => entries.creatineDoses;
-  bool get reached => goal > 0 && total >= goal;
+  bool get reached => goal > 0 && isGoalReached(total, goal);
 
   /// When the entries reached the goal; null when they did not.
   DateTime? get reachedAt {
@@ -80,7 +79,7 @@ class DayShare {
     var sum = 0.0;
     for (final entry in entries) {
       sum += entry.proteinGrams;
-      if (sum >= goal) return entry.createdAt;
+      if (isGoalReached(sum, goal)) return entry.createdAt;
     }
     return null;
   }
@@ -107,7 +106,7 @@ class _Grams extends StatelessWidget {
       TextSpan(
         children: [
           TextSpan(
-            text: NumberFormat.decimalPattern(locale).format(grams.round()),
+            text: NumberFormat.decimalPattern(locale).format(roundGrams(grams)),
             style: _display(size),
           ),
           TextSpan(
@@ -211,7 +210,7 @@ class DayShakerTile extends StatelessWidget {
     final locale = context.localeName;
     final total = day.total;
     final goal = day.goal;
-    final percent = goal <= 0 ? 0 : (total / goal * 100).round();
+    final percent = goalPercent(total, goal);
     final chips = _dayChips(day, context);
 
     return ShareTileFrame(
@@ -273,10 +272,13 @@ class DayShakerTile extends StatelessWidget {
                               style: _body(14.5),
                             ),
                             if (day.reached) ...[
-                              if (total > goal)
+                              if (gramsOver(total, goal) > 0)
                                 Text(
                                   l10n.shareOverGoal(
-                                    formatGrams(total - goal, locale),
+                                    formatGrams(
+                                      gramsOver(total, goal).toDouble(),
+                                      locale,
+                                    ),
                                   ),
                                   style: _body(14.5),
                                 ),
@@ -296,14 +298,20 @@ class DayShakerTile extends StatelessWidget {
                             ] else if (day.isToday)
                               Text(
                                 l10n.todayRemaining(
-                                  formatGrams(max(0, goal - total), locale),
+                                  formatGrams(
+                                    gramsLeft(total, goal).toDouble(),
+                                    locale,
+                                  ),
                                 ),
                                 style: _body(14.5),
                               )
                             else
                               Text(
                                 l10n.shareShort(
-                                  formatGrams(max(0, goal - total), locale),
+                                  formatGrams(
+                                    gramsLeft(total, goal).toDouble(),
+                                    locale,
+                                  ),
                                 ),
                                 style: _body(14.5),
                               ),
@@ -360,11 +368,7 @@ class DayTimelineTile extends StatelessWidget {
       bySlot[entry.slot] = bySlot[entry.slot]! + entry.proteinGrams;
     }
     final total = day.total;
-    String slotName(DaySlot slot) => switch (slot) {
-      DaySlot.morning => l10n.slotMorning,
-      DaySlot.afternoon => l10n.slotAfternoon,
-      DaySlot.evening => l10n.slotEvening,
-    };
+    final slotName = l10n.slotName;
 
     return ShareTileFrame(
       child: Column(
@@ -396,7 +400,7 @@ class DayTimelineTile extends StatelessWidget {
                 ? l10n.shareGoalOnly(goal)
                 : l10n.shareGoalMissed(
                     goal,
-                    formatGrams(max(0, day.goal - total), locale),
+                    formatGrams(gramsLeft(total, day.goal).toDouble(), locale),
                   ),
             style: _body(13.5),
             maxLines: 1,
@@ -889,7 +893,7 @@ class PeriodTile extends StatelessWidget {
           Row(
             children: [
               _Stat(
-                value: '${protein.goalDays} / ${stats.countedDays}',
+                value: '${protein.goalDays} / ${protein.countedDays}',
                 label: l10n.shareGoalDays,
               ),
               const SizedBox(width: 28),
@@ -937,7 +941,10 @@ class YearTile extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(
-                    l10n.shareYearGoalDays(protein.goalDays, stats.countedDays),
+                    l10n.shareYearGoalDays(
+                      protein.goalDays,
+                      protein.countedDays,
+                    ),
                     style: _body(13),
                   ),
                 ),
@@ -1006,7 +1013,7 @@ class StreakTile extends StatelessWidget {
         children: [
           Text(
             l10n.shareCurrentStreak,
-            style: _body(14.5, color: _onOrangeSecondary),
+            style: _body(14.5, color: shareOnOrangeSecondary),
           ),
           // The number takes the room the shakers leave.
           Expanded(
@@ -1343,7 +1350,7 @@ class WeekTile extends StatelessWidget {
     final locale = context.localeName;
     double total(WeekDayShare day) => day.bySlot.values.sum;
     final reached = days
-        .where((day) => day.goal > 0 && total(day) >= day.goal)
+        .where((day) => day.goal > 0 && isGoalReached(total(day), day.goal))
         .length;
     final first = dateOfDayKey(days.first.dayKey);
     final last = dateOfDayKey(days.last.dayKey);
@@ -1402,7 +1409,7 @@ class WeekTile extends StatelessWidget {
                                 const SizedBox(height: 8),
                                 Text(
                                   NumberFormat.decimalPattern(locale)
-                                      .format(total(day).round()),
+                                      .format(roundGrams(total(day))),
                                   style: _display(18, weight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 2),
