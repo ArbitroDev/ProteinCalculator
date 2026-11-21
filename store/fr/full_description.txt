@@ -10,6 +10,12 @@ Une journée commence à 3 h du matin : ce que tu manges après minuit compte po
 
 Tu prends de la créatine ? Active son suivi dans le menu et choisis ta dose : tu l'ajoutes d'une touche depuis l'écran principal, ou avec un produit qui en contient, et l'historique marque les jours où tu l'as prise ; le calendrier peut aussi se colorer selon la créatine prise.
 
+L'onglet Statistiques résume une semaine, un mois ou une année : ta moyenne par jour face à ton objectif, les jours où tu l'atteins, tes séries, ta créatine et tes séances. Il te montre aussi l'heure à laquelle tu atteins ton objectif, ce qui te manque les jours ratés, ta régularité et tes protéines les jours d'entraînement.
+
+Tu t'entraînes avec Hevy ? Importe tes séances depuis le fichier exporté par Hevy : tes jours d'entraînement apparaissent dans l'historique, le calendrier, les statistiques et sur ta montre. Seuls la date, le nom et la durée de chaque séance sont gardés, sur ton téléphone.
+
+Partage ta journée, tes statistiques, ton mois ou ta série en image, depuis le bouton de partage de chaque onglet.
+
 Le widget « Objectif du jour » affiche ta progression sur l'écran d'accueil de ton téléphone.
 
 Avec une montre Wear OS :

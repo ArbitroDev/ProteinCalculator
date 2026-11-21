@@ -184,6 +184,8 @@ class StoreScreenshotsTest {
             products = products,
             handled = emptyList(),
             creatineEnabled = true,
+            // A workout imported from Hevy: the day shows its dumbbell.
+            hevyWorkouts = 1,
         )
         return Saved(
             state = state,

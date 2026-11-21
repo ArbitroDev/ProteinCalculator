@@ -80,8 +80,10 @@ No account, no ads, and your data stays on your phone.
 - A week, a month or a year at a glance: daily protein average against the
   goal, days reaching it and streaks, creatine taken and workouts.
 - What they tell together: protein on workout and rest days and after a
-  workout, the days of the week, the parts of the day, the rhythm of your
-  entries and the products you use most.
+  workout, the shortfall on missed days, the time the goal is reached, how
+  regular the days are, when the workouts start, the days of the week, the
+  parts of the day, the rhythm of your entries and the products you use
+  most.
 
 **Sharing**
 - Share an image of your day, your last 7 days, a month of the calendar, the
