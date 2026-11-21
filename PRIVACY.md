@@ -2,7 +2,7 @@
 
 *[English version below](#privacy-policy--protein-calculator)*
 
-**Date d'entrée en vigueur : 25 octobre 2026**
+**Date d'entrée en vigueur : 21 novembre 2026**
 
 Cette politique explique quelles données l'application **Protein Calculator** (Android) traite,
 pourquoi, et quels sont tes droits. Elle s'applique à l'application publiée sur Google Play.
@@ -48,6 +48,13 @@ dans les réglages d'Android, ou en la désinstallant.
 **Export et import.** Si tu utilises « Exporter mes données », un fichier est créé à l'endroit que
 tu choisis, avec tes séances Hevy importées s'il y en a. Ce que tu en fais ensuite (le garder, le
 partager) relève de ton choix ; nous n'y avons pas accès.
+
+**Partage d'images.** Le bouton Partager de l'écran du jour, de l'historique et des statistiques
+crée sur ton téléphone une image de ta journée, de ta semaine, d'un mois ou d'une période de
+statistiques. Elle n'est remise qu'à l'application que tu choisis dans le menu de partage
+d'Android. Elle montre tes grammes de protéines et ton objectif, et selon l'image ta créatine, le
+nom et la durée de tes séances Hevy, et le nom de tes produits seulement si tu l'affiches. Ce que
+tu en fais ensuite relève de ton choix ; nous n'y avons pas accès.
 
 **Sauvegarde Android.** Si la sauvegarde Google est activée sur ton appareil, Android peut inclure
 les données de l'application dans cette sauvegarde. Elle est gérée par Google, chiffrée, liée à
@@ -208,7 +215,7 @@ demande de consentement dans l'application.
 
 # Privacy policy — Protein Calculator
 
-**Effective date: October 25, 2026**
+**Effective date: November 21, 2026**
 
 This policy explains what data the **Protein Calculator** Android app processes, why, and what
 your rights are. It applies to the app published on Google Play.
@@ -253,6 +260,13 @@ products in the app, by clearing the app's data in Android settings, or by unins
 **Export and import.** If you use "Export my data", a file is created where you choose, with your
 imported Hevy workouts if there are any. What you do with it afterwards (keep it, share it) is up to
 you; we have no access to it.
+
+**Sharing images.** The Share button of the today screen, the history and the statistics makes
+an image of your day, your week, a month or a period of statistics, on your phone. It is only
+handed to the app you pick in the Android share menu. It shows your protein grams and your goal,
+and depending on the image your creatine, the name and length of your Hevy workouts, and the names
+of your products only if you show them. What you do with it afterwards is up to you; we have no
+access to it.
 
 **Android backup.** If Google backup is turned on for your device, Android may include the app's
 data in that backup. It is managed by Google, encrypted, tied to your Google account and not

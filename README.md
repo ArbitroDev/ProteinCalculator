@@ -83,6 +83,11 @@ No account, no ads, and your data stays on your phone.
   workout, the days of the week, the parts of the day, the rhythm of your
   entries and the products you use most.
 
+**Sharing**
+- Share an image of your day, your last 7 days, a month of the calendar, the
+  statistics of a period or your current streak, from the share button of
+  each tab. The image is made on the phone and only goes to the app you pick.
+
 **Hevy workouts**
 - Import the workouts exported from [Hevy](https://www.hevy.com), by sharing
   the file from Hevy or picking it in the menu, to see your workout days in
@@ -129,6 +134,10 @@ and has no server. Only two things can leave the phone:
 With a Wear OS watch, the phone and the watch exchange the day, its entries
 and the saved products directly, over Bluetooth or the same Wi-Fi network,
 never through a server. The watch app has no Internet access.
+
+The images you share are made on the phone and only go to the app you pick
+in the share menu of Android; the names of your products show on them only if
+you ask.
 
 Hevy workouts are read from the file you share or pick, and only their date,
 name and length are kept on the phone; the watch only gets how many there are
