@@ -28,19 +28,23 @@ WHITE = (255, 255, 255)
 SCREENS = {
     'fr': [
         ('1-today', 'light', 'Ton objectif et', 'ta progression du jour'),
-        ('2-day', 'light', 'Suis du matin', 'au soir'),
-        ('3-calendar', 'light', 'Ton mois', "en un coup d'œil"),
-        ('4-products', 'light', 'Tes aliments,', 'toujours sous la main'),
-        ('5-scan', 'light', 'Scanne un produit,', 'tout est rempli'),
-        ('6-entry', 'light', 'Les protéines', 'calculées pour toi'),
+        ('2-stats', 'light', 'Tes progrès,', 'semaine après semaine'),
+        ('3-day', 'light', 'Suis du matin', 'au soir'),
+        ('4-calendar', 'light', 'Ton mois', "en un coup d'œil"),
+        ('5-share', 'light', 'Partage ta journée', 'en une image'),
+        ('6-products', 'light', 'Tes aliments,', 'toujours sous la main'),
+        ('7-scan', 'light', 'Scanne un produit,', 'tout est rempli'),
+        ('8-entry', 'light', 'Les protéines', 'calculées pour toi'),
     ],
     'en': [
         ('1-today', 'light', 'Your goal and', "today's progress"),
-        ('2-day', 'light', 'Track from morning', 'to night'),
-        ('3-calendar', 'light', 'Your month', 'at a glance'),
-        ('4-products', 'light', 'Your foods,', 'always at hand'),
-        ('5-scan', 'light', 'Scan a product,', "it's all filled in"),
-        ('6-entry', 'light', 'Protein,', 'worked out for you'),
+        ('2-stats', 'light', 'Your progress,', 'week after week'),
+        ('3-day', 'light', 'Track from morning', 'to night'),
+        ('4-calendar', 'light', 'Your month', 'at a glance'),
+        ('5-share', 'light', 'Share your day', 'in one image'),
+        ('6-products', 'light', 'Your foods,', 'always at hand'),
+        ('7-scan', 'light', 'Scan a product,', "it's all filled in"),
+        ('8-entry', 'light', 'Protein,', 'worked out for you'),
     ],
 }
 # Raw screenshots of the watch app, rendered by android/wear
@@ -124,7 +128,7 @@ def screenshot(language, shot, theme, line1, line2, path):
         draw.text(((1080 - width) / 2, 90 + row * 110), text, font=title, fill=color)
 
     raw = Image.open(f'tool/store_screenshots/{language}/{theme}-{shot}.png')
-    if shot == '5-scan':
+    if shot == '7-scan':
         raw = barcode_in_frame(raw.convert('RGB'))
     height = 1560
     width = round(1080 * height / 1920)

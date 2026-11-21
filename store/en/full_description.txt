@@ -10,6 +10,12 @@ A day starts at 3 a.m.: what you eat after midnight counts for the day before.
 
 Taking creatine? Turn its tracking on in the menu and set your dose: add it in one tap from the main screen, or with a product that holds some, and the history marks the days you took it; the calendar can also be colored by creatine taken.
 
+The Statistics tab sums up a week, a month or a year: your daily average against your goal, the days you reach it, your streaks, your creatine and your workouts. It also shows the time you reach your goal, what you miss on the days you don't, how regular you are and your protein on workout days.
+
+Training with Hevy? Import your workouts from the file Hevy exports: your workout days show in the history, the calendar, the statistics and on your watch. Only the date, the name and the length of each workout are kept, on your phone.
+
+Share your day, your statistics, your month or your streak as an image, from the share button of each tab.
+
 The "Today's goal" widget shows your progress on the home screen of your phone.
 
 With a Wear OS watch:

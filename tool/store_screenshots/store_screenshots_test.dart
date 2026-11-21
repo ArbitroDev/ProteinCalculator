@@ -6,15 +6,18 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/router.dart';
+import 'package:protein_calculator/features/share/share_choices.dart';
 
 import '../../test/helpers.dart';
 
@@ -44,6 +47,7 @@ class _Texts {
     required this.entries,
     required this.earlierDays,
     required this.newFood,
+    required this.workouts,
   });
 
   final Locale locale;
@@ -60,6 +64,9 @@ class _Texts {
   /// Name of a food with the values of the second product, typed in the
   /// entry form: not a product yet, it can be saved as one.
   final String newFood;
+
+  /// Titles of the Hevy workouts, in turn.
+  final List<String> workouts;
 }
 
 const _french = _Texts(
@@ -80,6 +87,7 @@ const _french = _Texts(
   ],
   earlierDays: ['Skyr nature', 'Blanc de poulet', 'Whey vanille', 'Œufs'],
   newFood: 'Thon au naturel',
+  workouts: ['Haut du corps', 'Jambes', 'Full body'],
 );
 
 const _english = _Texts(
@@ -100,6 +108,7 @@ const _english = _Texts(
   ],
   earlierDays: ['Plain skyr', 'Chicken breast', 'Vanilla whey', 'Eggs'],
   newFood: 'Canned tuna',
+  workouts: ['Upper body', 'Legs', 'Full body'],
 );
 
 Future<AppDatabase> _seed(_Texts texts) async {
@@ -143,8 +152,9 @@ Future<AppDatabase> _seed(_Texts texts) async {
     await add(name, grams, _today.add(Duration(hours: hour, minutes: minute)));
   }
   // Earlier days, around the goal, a few of them forgotten: the calendar
-  // shows every kind of day.
-  const totals = [146, 121, 138, 152, 97, 143, 64, 131, 118, 140, 155, 88];
+  // shows every kind of day, and the last six days reached the goal, a
+  // streak the statistics tell.
+  const totals = [146, 152, 143, 158, 141, 147, 64, 131, 118, 97, 155, 88];
   for (var day = 1; day <= 52; day++) {
     if (day % 9 == 0) continue;
     final date = DateTime(_today.year, _today.month, _today.day - day);
@@ -156,6 +166,30 @@ Future<AppDatabase> _seed(_Texts texts) async {
     await add(names[2], total * 0.2, date.add(const Duration(hours: 17)));
     await add(names[3], total * 0.2, date.add(const Duration(hours: 20)));
   }
+
+  // Hevy workouts three mornings a week, today too: the calendar, the day,
+  // the statistics and the share tiles show them.
+  final sessions = <HevySessionsCompanion>[];
+  for (var day = 0; day <= 52; day++) {
+    final date = DateTime(_today.year, _today.month, _today.day - day);
+    if (!{
+      DateTime.monday,
+      DateTime.wednesday,
+      DateTime.thursday,
+    }.contains(date.weekday)) {
+      continue;
+    }
+    final start = date.add(const Duration(hours: 7));
+    sessions.add(
+      HevySessionsCompanion.insert(
+        title: texts.workouts[sessions.length % texts.workouts.length],
+        startedAt: start,
+        endedAt: Value(start.add(Duration(minutes: 55 + day % 4 * 10))),
+        dayKey: dayKeyOf(start),
+      ),
+    );
+  }
+  await db.hevyDao.replaceSessions(sessions, importedAt: _now);
   return db;
 }
 
@@ -210,8 +244,11 @@ void main() {
 
         await shoot('1-today');
 
+        router().go(AppRoutes.stats);
+        await shoot('2-stats');
+
         router().go(AppRoutes.historyDay(20261022));
-        await shoot('2-day');
+        await shoot('3-day');
 
         await tester.runAsync(
           () => db.settingsDao.setHistoryView(HistoryView.calendar),
@@ -227,13 +264,24 @@ void main() {
           ),
           const Offset(0, 32),
         );
-        await shoot('3-calendar');
+        await shoot('4-calendar');
+
+        // The shaker of today, ready to share.
+        router().go(AppRoutes.today);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(ShareButton));
+        await shoot('5-share');
+        Navigator.of(
+          tester.element(find.byType(BottomSheet)),
+          rootNavigator: true,
+        ).pop();
+        await tester.pumpAndSettle();
 
         router().go(AppRoutes.products);
-        await shoot('4-products');
+        await shoot('6-products');
 
         unawaited(router().push(AppRoutes.scan));
-        await shoot('5-scan');
+        await shoot('7-scan');
         router().pop();
         await tester.pumpAndSettle();
 
@@ -248,7 +296,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.enterText(find.byType(TextField).first, texts.newFood);
         FocusManager.instance.primaryFocus?.unfocus();
-        await shoot('6-entry');
+        await shoot('8-entry');
 
         await disposeApp(tester, db);
       });
