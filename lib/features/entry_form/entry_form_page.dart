@@ -11,6 +11,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/products_dao.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/daily_routine.dart';
 import 'package:protein_calculator/core/domain/entry_mode.dart';
@@ -1203,13 +1204,15 @@ class _EntryTime extends StatelessWidget {
   String _label(AppLocalizations l10n) {
     final time = this.time;
     if (time == null) return l10n.formNow;
-    final today = DateUtils.dateOnly(now);
-    final day = DateUtils.dateOnly(time);
+    // App days, as the entry is counted: at 1 a.m., 11 p.m. the evening
+    // before is still today.
+    final today = dateOfDayKey(dayKeyOf(now));
+    final day = dateOfDayKey(dayKeyOf(time));
     final dayText = day == today
         ? l10n.formToday
         : day == DateTime(today.year, today.month, today.day - 1)
         ? l10n.formYesterday
-        : formatShortDate(time, locale);
+        : formatShortDate(day, locale);
     return l10n.formDayAt(dayText, formatTime(time, locale));
   }
 

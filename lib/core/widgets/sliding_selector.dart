@@ -11,6 +11,7 @@ class SlidingSelector extends StatelessWidget {
     required this.children,
     this.gap = 0,
     this.direction = Axis.horizontal,
+    this.color = AppColors.selection,
   });
 
   final int selectedIndex;
@@ -25,9 +26,14 @@ class SlidingSelector extends StatelessWidget {
   /// Whether the options are laid out in a row or in a column.
   final Axis direction;
 
+  /// Color of the pill, which it takes on as it slides when it changes.
+  final Color color;
+
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 250);
     final horizontal = direction == Axis.horizontal;
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -40,9 +46,7 @@ class SlidingSelector extends StatelessWidget {
         return Stack(
           children: [
             AnimatedPositioned(
-              duration: reduceMotion
-                  ? Duration.zero
-                  : const Duration(milliseconds: 250),
+              duration: duration,
               curve: Curves.easeOutCubic,
               left: horizontal ? offset : 0,
               top: horizontal ? 0 : offset,
@@ -50,11 +54,10 @@ class SlidingSelector extends StatelessWidget {
               bottom: horizontal ? 0 : null,
               width: horizontal ? size : null,
               height: horizontal ? null : size,
-              child: DecoratedBox(
-                decoration: ShapeDecoration(
-                  color: AppColors.selection,
-                  shape: shape,
-                ),
+              child: AnimatedContainer(
+                duration: duration,
+                curve: Curves.easeOutCubic,
+                decoration: ShapeDecoration(color: color, shape: shape),
               ),
             ),
             Flex(

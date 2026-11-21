@@ -5,15 +5,21 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/day_progress.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/formatting.dart';
+import 'package:protein_calculator/core/hevy/hevy_csv.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/creatine_mark.dart';
+import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
+import 'package:protein_calculator/core/widgets/slot_name.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
+import 'package:protein_calculator/features/share/share_choices.dart';
+import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Entries of one day on stacked cards, one per part of the day. Swiping an
@@ -46,11 +52,18 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
     final textTheme = Theme.of(context).textTheme;
     final locale = context.localeName;
     final goal = ref.watch(dayGoalProvider(widget.dayKey)) ?? 0;
+    final share = ref.watch(dayShareProvider(widget.dayKey));
     final entries = [
       for (final entry
           in ref.watch(dayEntriesProvider(widget.dayKey)).value ?? <Entry>[])
         if (!isDeleted(entry.id)) entry,
     ];
+    // Workouts before the first app day stay hidden, like in the history.
+    final firstDayKey = ref.watch(firstAppDayKeyProvider);
+    final sessions = firstDayKey != null && widget.dayKey >= firstDayKey
+        ? ref.watch(daySessionsProvider(widget.dayKey)).value ??
+              const <HevySession>[]
+        : const <HevySession>[];
 
     final bySlot = <DaySlot, List<Entry>>{};
     for (final entry in entries) {
@@ -61,7 +74,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
         if (bySlot.containsKey(slot)) slot,
     ];
     final total = entries.proteinGrams;
-    final reached = goal > 0 && total >= goal;
+    final reached = goal > 0 && isGoalReached(total, goal);
     String grams(double value) => l10n.grams(formatGrams(value, locale));
 
     final summary = [
@@ -169,6 +182,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
               ),
           ],
         ),
+      if (sessions.isNotEmpty) _HevyCard(sessions: sessions),
     ];
     final landscape =
         MediaQuery.orientationOf(context) == Orientation.landscape;
@@ -176,6 +190,15 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
     return Scaffold(
       appBar: AppBar(
         title: Text(formatLongDate(dateOfDayKey(widget.dayKey), locale)),
+        actions: [
+          ShareButton(
+            onPressed: () => showShareSheet(
+              context,
+              dayShareChoices(context, share, timelineFirst: true),
+            ),
+          ),
+          const SizedBox(width: shareButtonEndGap),
+        ],
       ),
       body: landscape
           // The summary on the left, the cards on the right.
@@ -239,10 +262,11 @@ class _SlotCard extends StatelessWidget {
     // The part of the day stands out more than its entries.
     final style = Theme.of(context).textTheme.headlineSmall!
         .copyWith(color: AppColors.onAccent, fontSize: 20);
-    final (icon, label) = switch (slot) {
-      DaySlot.morning => (LucideIcons.sunrise, l10n.slotMorning),
-      DaySlot.afternoon => (LucideIcons.sun, l10n.slotAfternoon),
-      DaySlot.evening => (LucideIcons.moon, l10n.slotEvening),
+    final label = l10n.slotName(slot);
+    final icon = switch (slot) {
+      DaySlot.morning => LucideIcons.sunrise,
+      DaySlot.afternoon => LucideIcons.sun,
+      DaySlot.evening => LucideIcons.moon,
     };
     final card = Material(
       color: AppColors.slot(slot),
@@ -295,6 +319,91 @@ class _SlotCard extends StatelessWidget {
   }
 }
 
+/// Card of the Hevy workouts of the day, set apart from the stack of the cards
+/// of the parts of the day.
+class _HevyCard extends StatelessWidget {
+  const _HevyCard({required this.sessions});
+
+  final List<HevySession> sessions;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final style = textTheme.headlineSmall!.copyWith(
+      color: colors.text,
+      fontSize: 20,
+    );
+    final faded = textTheme.bodyMedium!.copyWith(color: colors.textSecondary);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 18, 6, 0),
+      child: Material(
+        color: colors.surfaceRaised,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+                child: Row(
+                  children: [
+                    Icon(hevyIcon, size: 22, color: colors.hevy),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('Hevy', style: style)),
+                    Text(
+                      l10n.hevyWorkoutCount(sessions.length),
+                      style: textTheme.bodyLarge!.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              for (final (index, session) in sessions.indexed) ...[
+                // Not `divider`: it is the color of the card in the dark theme.
+                if (index > 0)
+                  Divider(
+                    height: 1,
+                    indent: 16,
+                    endIndent: 16,
+                    color: colors.background,
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          session.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyMedium,
+                        ),
+                      ),
+                      if (workoutDuration(session.startedAt, session.endedAt)
+                          case final length?) ...[
+                        const SizedBox(width: 12),
+                        Text(formatDuration(length, l10n), style: faded),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DismissibleEntry extends StatelessWidget {
   const _DismissibleEntry({
     required this.entry,
@@ -342,22 +451,6 @@ class _DismissibleEntry extends StatelessWidget {
                             )
                           : textTheme.bodyMedium!.copyWith(color: ink),
                       children: [
-                        // The blue dot of creatine taken on its own.
-                        if (creatineOnly) ...[
-                          WidgetSpan(
-                            alignment: PlaceholderAlignment.middle,
-                            child: Container(
-                              width: 9,
-                              height: 9,
-                              decoration: BoxDecoration(
-                                color: AppColors.creatine,
-                                borderRadius: BorderRadius.circular(3),
-                                border: Border.all(color: faded),
-                              ),
-                            ),
-                          ),
-                          const TextSpan(text: ' '),
-                        ],
                         TextSpan(text: name ?? l10n.unnamedEntry),
                         TextSpan(
                           text: '  $time',
@@ -375,7 +468,9 @@ class _DismissibleEntry extends StatelessWidget {
                             ),
                           ),
                         ],
-                        if (entry.creatineDoses > 0 && !creatineOnly) ...[
+                        // Creatine taken on its own too: named so, it only
+                        // shows its mark, like the products holding some.
+                        if (entry.creatineDoses > 0) ...[
                           const TextSpan(text: ' '),
                           WidgetSpan(
                             alignment: PlaceholderAlignment.middle,
@@ -390,13 +485,16 @@ class _DismissibleEntry extends StatelessWidget {
                     ),
                   ),
                 ),
-                EntryGrams(
-                  entry: entry,
-                  style: textTheme.bodyMedium!.copyWith(
-                    color: ink,
-                    fontWeight: FontWeight.w600,
+                // Grams of protein only: those of creatine taken on its own
+                // would read as protein.
+                if (!creatineOnly)
+                  EntryGrams(
+                    entry: entry,
+                    style: textTheme.bodyMedium!.copyWith(
+                      color: ink,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
               ],
             ),
           ),

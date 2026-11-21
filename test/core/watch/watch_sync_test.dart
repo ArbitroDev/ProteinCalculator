@@ -29,6 +29,10 @@ class _RecordingLink implements WatchLink {
 }
 
 void main() {
+  // The plugin of the home widget, updated with the watch, talks through the
+  // binding of the tests.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late AppDatabase db;
   late _RecordingLink link;
   late ProviderContainer container;

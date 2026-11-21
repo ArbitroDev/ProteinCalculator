@@ -8,15 +8,15 @@ package arbitro.android.protein_calculator.protocol
  */
 object WatchProtocol {
     /** Version of the messages this app writes and reads. */
-    const val VERSION = 2
+    const val VERSION = 3
 
     /**
      * Versions of the requests of the watch the phone reads: those of
-     * version 1 hold no creatine, and their additions and deletions waiting
-     * on a watch are never lost. The states and the answers of the phone are
-     * only read in [VERSION].
+     * version 1 hold no creatine, those of version 2 are those of version 3,
+     * and their additions and deletions waiting on a watch are never lost.
+     * The states and the answers of the phone are only read in [VERSION].
      */
-    val SUPPORTED_VERSIONS = listOf(1, VERSION)
+    val SUPPORTED_VERSIONS = listOf(1, 2, VERSION)
 
     /** The phone sends the state of the day to the watch, see [DayState]. */
     const val STATE_PATH = "/protein_calculator/state"

@@ -1,17 +1,19 @@
-# Libraries of the watch app and of its link with the phone app. The Gradle
-# plugins follow the versions set by Flutter, in settings.gradle.kts.
+# Libraries of the watch app, of its link with the phone app, and of the
+# Android code of the phone app. The Gradle plugins follow the versions set by
+# Flutter, in settings.gradle.kts.
 [versions]
 activity = "1.13.0"
 complications = "1.3.0"
 compose-bom = "2026.09.00"
 coroutines = "1.11.0"
-datastore = "1.2.1"
+datastore = "1.3.0"
+desugar-jdk-libs = "2.1.4"
 fragment = "1.9.1"
 lifecycle = "2.10.0"
 play-services-wearable = "20.0.1"
 protolayout = "1.4.2"
 robolectric = "4.17"
-serialization = "1.11.0"
+serialization = "1.13.0"
 splashscreen = "1.2.0"
 tiles = "1.6.2"
 wear-compose = "1.6.2"
@@ -26,6 +28,7 @@ compose-ui = { module = "androidx.compose.ui:ui" }
 compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar-jdk-libs" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 fragment = { module = "androidx.fragment:fragment", version.ref = "fragment" }
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }

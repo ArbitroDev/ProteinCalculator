@@ -87,10 +87,22 @@ class EntriesDao extends DatabaseAccessor<AppDatabase> with _$EntriesDaoMixin {
     });
   }
 
-  /// Entries of one app day, in the order they were added.
+  /// Entries of one app day, by their time.
   Stream<List<Entry>> watchDayEntries(int dayKey) {
     final query = select(entries)
       ..where((e) => e.dayKey.equals(dayKey))
+      ..orderBy([
+        (e) => OrderingTerm.asc(e.createdAt),
+        (e) => OrderingTerm.asc(e.id),
+      ]);
+    return query.watch();
+  }
+
+  /// Entries of the app days from [fromKey] to [toKey] included, by their
+  /// time.
+  Stream<List<Entry>> watchEntriesBetween(int fromKey, int toKey) {
+    final query = select(entries)
+      ..where((e) => e.dayKey.isBetweenValues(fromKey, toKey))
       ..orderBy([
         (e) => OrderingTerm.asc(e.createdAt),
         (e) => OrderingTerm.asc(e.id),

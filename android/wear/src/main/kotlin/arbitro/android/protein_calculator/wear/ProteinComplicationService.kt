@@ -70,7 +70,7 @@ class ProteinComplicationService : SuspendingTimelineComplicationDataSourceServi
         return when (type) {
             ComplicationType.RANGED_VALUE ->
                 RangedValueComplicationData.Builder(
-                    value = truncateGrams(total).toFloat().coerceAtMost(goal.toFloat()),
+                    value = roundGrams(total).toFloat().coerceAtMost(goal.toFloat()),
                     min = 0f,
                     max = goal.toFloat(),
                     contentDescription = description,

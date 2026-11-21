@@ -25,6 +25,7 @@ class WatchMessagesTest {
             WatchProduct(id = 2, name = "Whey", protein = 24.5, favorite = false),
         ),
         handled = listOf("a1"),
+        hevyWorkouts = 2,
     )
 
     private val addition = WatchAddition(
@@ -79,19 +80,39 @@ class WatchMessagesTest {
 
     @Test
     fun `a message of another version is not read`() {
-        val message = WatchMessages.encodeState(state).with("v", JsonPrimitive(3))
+        val message = WatchMessages.encodeState(state).with("v", JsonPrimitive(4))
 
-        assertEquals(Received.OtherVersion(3), WatchMessages.decodeState(message))
-        assertEquals(Received.OtherVersion(3), WatchMessages.decodeSyncRequest(message))
+        assertEquals(Received.OtherVersion(4), WatchMessages.decodeState(message))
+        assertEquals(Received.OtherVersion(4), WatchMessages.decodeSyncRequest(message))
     }
 
     @Test
-    fun `ignores a version 1 state`() {
-        val message = WatchMessages.encodeState(state).with("v", JsonPrimitive(1))
-        val reply = WatchMessages.encodeAddReply(AddReply(emptyList(), state)).with("v", JsonPrimitive(1))
+    fun `ignores the states of earlier versions`() {
+        for (version in listOf(1, 2)) {
+            val message = WatchMessages.encodeState(state).with("v", JsonPrimitive(version))
+            val reply = WatchMessages.encodeAddReply(AddReply(emptyList(), state)).with("v", JsonPrimitive(version))
 
-        assertEquals(Received.OtherVersion(1), WatchMessages.decodeState(message))
-        assertEquals(Received.OtherVersion(1), WatchMessages.decodeAddReply(reply))
+            assertEquals(Received.OtherVersion(version), WatchMessages.decodeState(message))
+            assertEquals(Received.OtherVersion(version), WatchMessages.decodeAddReply(reply))
+        }
+    }
+
+    @Test
+    fun `decodes the requests of version 2`() {
+        val request = """{"v":2,"requests":[{"id":"a2","productId":4,"name":"Skyr","protein":15.0,""" +
+            """"addedAt":1790000100000,"creatineDoses":0}]}"""
+
+        assertEquals(AddRequest(listOf(addition)), WatchMessages.decodeAddRequest(request.encodeToByteArray()).value())
+        assertEquals(Unit, WatchMessages.decodeSyncRequest("""{"v":2}""".encodeToByteArray()).value())
+    }
+
+    @Test
+    fun `a state without Hevy workouts has none`() {
+        val read = WatchMessages.decodeState(
+            JsonObject(WatchMessages.encodeState(state).fields() - "hevyWorkouts").bytes(),
+        ).value()
+
+        assertEquals(0, (read as DayState).hevyWorkouts)
     }
 
     @Test
@@ -142,9 +163,9 @@ class WatchMessagesTest {
     fun `the answer to a message of another version lists the versions read`() {
         val answer = WatchMessages.encodeUnsupported()
 
-        assertEquals("""{"unsupported":[1,2]}""", answer.decodeToString())
-        assertEquals(Received.Unsupported(listOf(1, 2)), WatchMessages.decodeState(answer))
-        assertEquals(Received.Unsupported(listOf(1, 2)), WatchMessages.decodeAddReply(answer))
+        assertEquals("""{"unsupported":[1,2,3]}""", answer.decodeToString())
+        assertEquals(Received.Unsupported(listOf(1, 2, 3)), WatchMessages.decodeState(answer))
+        assertEquals(Received.Unsupported(listOf(1, 2, 3)), WatchMessages.decodeAddReply(answer))
     }
 
     @Test
@@ -156,7 +177,7 @@ class WatchMessagesTest {
             "[1]".encodeToByteArray(),
             """{"day":20261001}""".encodeToByteArray(),
             """{"v":"one"}""".encodeToByteArray(),
-            """{"v":2}""".encodeToByteArray(),
+            """{"v":3}""".encodeToByteArray(),
             """{"unsupported":1}""".encodeToByteArray(),
             message.with("total", JsonPrimitive("much")),
             JsonObject(message.fields() - "entries").bytes(),
@@ -189,6 +210,7 @@ class WatchMessagesTest {
             state.copy(products = listOf(product, product.copy(id = 5))),
             state.copy(handled = listOf("")),
             state.copy(handled = listOf("a".repeat(WatchProtocol.MAX_ID_LENGTH + 1))),
+            state.copy(hevyWorkouts = -1),
         )) {
             assertEquals(Received.Malformed, WatchMessages.decodeState(WatchMessages.encodeState(invalid)), "$invalid")
         }
@@ -205,7 +227,7 @@ class WatchMessagesTest {
     fun `a request for the state holds the version only`() {
         val request = WatchMessages.encodeSyncRequest()
 
-        assertEquals("""{"v":2}""", request.decodeToString())
+        assertEquals("""{"v":3}""", request.decodeToString())
         assertEquals(Unit, WatchMessages.decodeSyncRequest(request).value())
     }
 
@@ -373,7 +395,7 @@ class WatchMessagesTest {
 
     @Test
     fun `the capability of the watch names the version`() {
-        assertEquals("protein_calculator_watch_v2", WatchProtocol.watchCapability())
+        assertEquals("protein_calculator_watch_v3", WatchProtocol.watchCapability())
         assertEquals("protein_calculator_watch_v1", WatchProtocol.watchCapability(1))
     }
 }

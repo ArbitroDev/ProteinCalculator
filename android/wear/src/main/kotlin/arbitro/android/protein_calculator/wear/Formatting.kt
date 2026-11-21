@@ -7,15 +7,19 @@ import java.util.Locale
 import kotlin.math.floor
 
 /**
- * Whole grams shown for a total, a goal or what is left: truncated, as in
- * the phone app (`truncateGrams`), so the goal only shows as reached once it
- * really is. The epsilon absorbs floating point sums such as 59.99999 for 60.
+ * Whole grams shown for a total, a goal or what is left: rounded to the
+ * nearest, a half up, as in the phone app (`roundGrams`), whose goal is
+ * reached once the total as shown reaches it (`isGoalReached`). The epsilon
+ * absorbs floating point sums such as 139.49999 for 139.5.
  */
-fun truncateGrams(grams: Double): Long = floor(grams + 1e-9).toLong()
+fun roundGrams(grams: Double): Long = floor(grams + 0.5 + 1e-9).toLong()
 
-/** [grams] truncated to the unit, formatted for [locale]: "1 234" in French. */
+/** Whether a day of [total] grams reaches its [goal], both as shown, as in the phone app. */
+fun isGoalReached(total: Double, goal: Double): Boolean = roundGrams(total) >= roundGrams(goal)
+
+/** [grams] rounded to the unit, formatted for [locale]: "1 234" in French. */
 fun formatGrams(grams: Double, locale: Locale): String =
-    NumberFormat.getIntegerInstance(locale).format(truncateGrams(grams))
+    NumberFormat.getIntegerInstance(locale).format(roundGrams(grams))
 
 /** Longest name of an entry, as in the phone app (`maxNameLength`). */
 const val MAX_NAME_LENGTH = 40

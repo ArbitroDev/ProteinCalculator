@@ -128,6 +128,17 @@ void main() {
     expect(entries.map((e) => e.name), ['morning', 'noon', 'late']);
   });
 
+  test('watchEntriesBetween lists the entries of a range of days', () async {
+    await addEntry(10, DateTime(2026, 9, 29, 20), name: 'before');
+    await addEntry(20, DateTime(2026, 10, 2, 1), name: 'late');
+    await addEntry(15, DateTime(2026, 9, 30, 8), name: 'first');
+    await addEntry(40, DateTime(2026, 10, 2, 9), name: 'after');
+
+    final entries = await dao.watchEntriesBetween(20260930, 20261001).first;
+
+    expect(entries.map((e) => e.name), ['first', 'late']);
+  });
+
   group('updateEntry', () {
     test('saves new values but keeps the time and the app day', () async {
       final id = await addEntry(15, DateTime(2026, 9, 30, 8), name: 'Skyr');
