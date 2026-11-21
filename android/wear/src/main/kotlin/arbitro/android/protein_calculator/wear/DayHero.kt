@@ -81,7 +81,7 @@ fun TransformingLazyColumnItemScope.DayHero(day: WatchScreen.Day, viewportWidth:
     val viewport = with(LocalDensity.current) { viewportHeight.toPx() }
     val closer = with(LocalDensity.current) { PRODUCTS_CLOSER.toPx() }
     val fraction = (day.total / day.goal).toFloat().coerceIn(0f, 1f)
-    val left = truncateGrams(day.goal) - truncateGrams(day.total)
+    val left = roundGrams(day.goal) - roundGrams(day.total)
     val details = Modifier.graphicsLayer {
         alpha = (1f - heroShrink(scrollProgress, viewport).first * 2).coerceAtLeast(0f)
     }
