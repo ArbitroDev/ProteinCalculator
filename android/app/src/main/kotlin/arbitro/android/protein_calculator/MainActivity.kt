@@ -84,9 +84,13 @@ class MainActivity : FlutterActivity() {
             appSettings()
         }
 
-    /** Keeps the file [intent] shares, if any, in place of the one kept. */
+    /**
+     * Keeps the file [intent] shares, if any, in place of the one kept: only a
+     * content of another app, see [isSharedByAnotherApp].
+     */
     private fun keepSharedFile(intent: Intent) {
         IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+            ?.takeIf { isSharedByAnotherApp(it) }
             ?.let { sharedFile = it }
     }
 

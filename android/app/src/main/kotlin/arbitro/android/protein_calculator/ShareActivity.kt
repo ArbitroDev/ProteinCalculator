@@ -19,6 +19,7 @@ class ShareActivity : Activity() {
         // Created again, the share was handed over already.
         if (savedInstanceState == null) {
             IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+                ?.takeIf { isSharedByAnotherApp(it) }
                 ?.let(::handOver)
         }
         finish()
