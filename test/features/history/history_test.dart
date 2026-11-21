@@ -1,16 +1,28 @@
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
+import 'package:protein_calculator/core/domain/app_day.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/creatine_mark.dart';
+import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 
 import '../../helpers.dart';
 
 void main() {
   late AppDatabase db;
+
+  /// A phone held upright: the filter and the legend over the bottom of the
+  /// calendar, rather than beside it as in landscape.
+  void holdUpright(WidgetTester tester) {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+  }
 
   setUp(() async {
     db = openTestDatabase();
@@ -24,6 +36,23 @@ void main() {
   Future<void> openHistory(WidgetTester tester) async {
     await pumpApp(tester, db);
     await tester.tap(find.byTooltip('History'));
+    await tester.pumpAndSettle();
+  }
+
+  /// The list of the months, the current one at the bottom: the only
+  /// scrollable going up, the weeks of each month not scrolling.
+  final months = find.byWidgetPredicate(
+    (widget) =>
+        widget is Scrollable && widget.axisDirection == AxisDirection.up,
+  );
+
+  /// Scrolls up to the month before, its title last.
+  Future<void> showSeptember(WidgetTester tester) async {
+    await tester.scrollUntilVisible(
+      find.text('September 2026'),
+      300,
+      scrollable: months,
+    );
     await tester.pumpAndSettle();
   }
 
@@ -57,23 +86,6 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    /// The list of the months, the current one at the bottom: the only
-    /// scrollable going up, the weeks of each month not scrolling.
-    final months = find.byWidgetPredicate(
-      (widget) =>
-          widget is Scrollable && widget.axisDirection == AxisDirection.up,
-    );
-
-    /// Scrolls up to the month before, its title last.
-    Future<void> showSeptember(WidgetTester tester) async {
-      await tester.scrollUntilVisible(
-        find.text('September 2026'),
-        300,
-        scrollable: months,
-      );
-      await tester.pumpAndSettle();
-    }
-
     /// The day labeled [label] for screen readers.
     Finder day(String label) => find.bySemanticsLabel(label);
 
@@ -88,6 +100,31 @@ void main() {
       );
       await disposeApp(tester, db);
     });
+
+    testWidgets(
+      'in landscape, tells the month and the legend beside the days',
+      (tester) async {
+        tester.view.physicalSize = const Size(2340, 1080);
+        tester.view.devicePixelRatio = 3;
+        addTearDown(tester.view.reset);
+        await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
+        await openCalendar(tester);
+
+        // The month being read once, on the left; the days on the right.
+        expect(find.text('October 2026'), findsOneWidget);
+        final month = tester.getRect(find.text('October 2026'));
+        final legend = tester.getRect(find.text('Goal reached'));
+        final firstDay = tester.getRect(find.text('1'));
+        expect(month.right, lessThan(firstDay.left));
+        expect(legend.right, lessThan(firstDay.left));
+        // The legend tells one thing a line.
+        expect(
+          tester.getTopLeft(find.text('None taken')).dy,
+          lessThan(tester.getTopLeft(find.text('Under 50%')).dy),
+        );
+        await disposeApp(tester, db);
+      },
+    );
 
     testWidgets('shows the current month in place from the first frame', (
       tester,
@@ -128,6 +165,19 @@ void main() {
       await disposeApp(tester, db);
     });
 
+    testWidgets('colors the days with the current goal when none was kept', (
+      tester,
+    ) async {
+      // A goal without its history, as a backup without goals restores it.
+      await db.delete(db.goalChanges).go();
+      await addEntry('Skyr', 150, DateTime(2026, 9, 30, 12));
+      await openCalendar(tester);
+      await showSeptember(tester);
+
+      expect(day('Wednesday, September 30, Goal reached'), findsWidgets);
+      await disposeApp(tester, db);
+    });
+
     testWidgets('judges a day against the goal it had', (tester) async {
       await db.settingsDao.setDailyGoal(100, now: DateTime(2026, 9, 1, 9));
       await db.settingsDao.setDailyGoal(200, now: DateTime(2026, 9, 30, 9));
@@ -153,6 +203,8 @@ void main() {
       await showSeptember(tester);
 
       expect(day('Thursday, September 10, Goal reached'), findsWidgets);
+      // The days in between count from then on, as days of 0 g.
+      expect(day('Friday, September 11, None taken'), findsWidgets);
       await tester.scrollUntilVisible(
         find.text('August 2026'),
         300,
@@ -223,6 +275,7 @@ void main() {
     testWidgets('the calendar colors the days by creatine taken on demand', (
       tester,
     ) async {
+      holdUpright(tester);
       // Reaches the goal and takes creatine on October 1.
       await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 1, 9));
       await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
@@ -297,7 +350,8 @@ void main() {
 
       // 3 × 3.3 g, whatever the rounding of the sum.
       expect(find.text('3 doses of creatine · 9.9 g'), findsOneWidget);
-      expect(find.text('3.3 g'), findsNWidgets(3));
+      // The grams of a dose would read as protein next to the entries.
+      expect(find.text('3.3 g'), findsNothing);
       await disposeApp(tester, db);
     });
 
@@ -310,9 +364,199 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('2 doses of creatine · 10 g'), findsOneWidget);
-      // Creatine taken on its own shows its own grams, under its name.
+      // Creatine taken on its own is named so, with the mark of creatine,
+      // and without grams, which would read as protein.
       expect(find.textContaining('Creatine', findRichText: true), findsWidgets);
-      expect(find.text('5 g'), findsNWidgets(2));
+      expect(find.byType(CreatineMark), findsNWidgets(2));
+      expect(find.text('5 g'), findsNothing);
+      await disposeApp(tester, db);
+    });
+  });
+
+  group('Hevy', () {
+    /// Imports one workout of [minutes] for each of [starts].
+    Future<void> importWorkouts(List<DateTime> starts, {int minutes = 65}) =>
+        db.hevyDao.replaceSessions([
+          for (final (index, start) in starts.indexed)
+            HevySessionsCompanion.insert(
+              title: 'Workout ${index + 1}',
+              startedAt: start,
+              endedAt: Value(start.add(Duration(minutes: minutes))),
+              dayKey: dayKeyOf(start),
+            ),
+        ], importedAt: DateTime(2026, 10, 1, 7));
+
+    Future<void> openCalendar(WidgetTester tester) async {
+      await openHistory(tester);
+      await tester.tap(find.text('Calendar'));
+      await tester.pumpAndSettle();
+    }
+
+    final dumbbells = find.byWidgetPredicate(
+      (widget) => widget is Icon && widget.icon == hevyIcon,
+    );
+
+    /// Days of the calendar filled with the color of the Hevy workouts.
+    Finder workoutDays(WidgetTester tester) {
+      final hevy = AppColors.of(tester.element(months)).hevy;
+      return find.byWidgetPredicate(
+        (widget) =>
+            widget is Material &&
+            widget.shape is CircleBorder &&
+            widget.color == hevy,
+      );
+    }
+
+    testWidgets('nothing about Hevy shows before an import', (tester) async {
+      await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
+      await openHistory(tester);
+      expect(dumbbells, findsNothing);
+
+      await tester.tap(find.text('Calendar'));
+      await tester.pumpAndSettle();
+      expect(dumbbells, findsNothing);
+      expect(find.text('Hevy workout'), findsNothing);
+      // No filter with protein alone.
+      expect(find.byTooltip('Protein'), findsNothing);
+
+      // With creatine, the filter has its two options only.
+      await db.settingsDao.setCreatineEnabled(true);
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Protein'), findsOneWidget);
+      expect(find.byTooltip('Creatine'), findsOneWidget);
+      expect(find.byTooltip('Hevy workouts'), findsNothing);
+      expect(dumbbells, findsNothing);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the list shows the dumbbell before the checks', (
+      tester,
+    ) async {
+      await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 1, 9));
+      await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
+      await db.entriesDao.addCreatineDose(createdAt: DateTime(2026, 10, 1, 9));
+      await addEntry('Poulet', 20, DateTime(2026, 9, 30, 12));
+      await importWorkouts([DateTime(2026, 10, 1, 7)]);
+      await openHistory(tester);
+
+      final workout = find.byWidgetPredicate(
+        (widget) => widget is Icon && widget.semanticLabel == 'Hevy workout',
+      );
+      // Only on the day of the workout.
+      expect(workout, findsOneWidget);
+      final creatine = find.byWidgetPredicate(
+        (widget) => widget is Icon && widget.semanticLabel == 'creatine taken',
+      );
+      final goal = find.byWidgetPredicate(
+        (widget) =>
+            widget is Icon &&
+            widget.icon == LucideIcons.circleCheck &&
+            widget.semanticLabel == null,
+      );
+      expect(
+        tester.getTopLeft(workout).dx,
+        lessThan(tester.getTopLeft(creatine).dx),
+      );
+      expect(
+        tester.getTopLeft(creatine).dx,
+        lessThan(tester.getTopLeft(goal).dx),
+      );
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('a workout day without entries opens', (tester) async {
+      await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 1, 9));
+      await addEntry('Skyr', 15, DateTime(2026, 10, 1, 8));
+      await importWorkouts([DateTime(2026, 9, 30, 18)]);
+      await openCalendar(tester);
+
+      // The last week of September, above the screen of the tests.
+      final september30 = find.bySemanticsLabel(
+        'Wednesday, September 30, None taken, Hevy workout',
+      );
+      await tester.scrollUntilVisible(september30, 100, scrollable: months);
+      // Out of the legend, which takes the bottom of the screen.
+      await tester.drag(months, const Offset(0, -200));
+      await tester.pumpAndSettle();
+      await tester.tap(september30.first);
+      await tester.pumpAndSettle();
+
+      // The detail of the day, with its Hevy card.
+      expect(find.text('Wednesday, September 30'), findsOneWidget);
+      expect(find.text('Hevy'), findsOneWidget);
+      expect(find.text('1 workout'), findsOneWidget);
+      expect(find.text('Workout 1'), findsOneWidget);
+      expect(find.text('1 h 5 min'), findsOneWidget);
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('the Hevy filter colors workout days', (tester) async {
+      holdUpright(tester);
+      await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 1, 9));
+      await addEntry('Skyr', 150, DateTime(2026, 10, 1, 8));
+      await importWorkouts([DateTime(2026, 9, 29, 18)]);
+      await openCalendar(tester);
+
+      // Protein and the Hevy workouts, without creatine.
+      expect(find.byTooltip('Protein'), findsOneWidget);
+      expect(find.byTooltip('Creatine'), findsNothing);
+      expect(find.byTooltip('Hevy workouts'), findsOneWidget);
+      expect(workoutDays(tester), findsNothing);
+      // The legend tells the mark of the workout days.
+      expect(find.text('Hevy workout'), findsOneWidget);
+      final first = tester.getCenter(find.text('1'));
+
+      await tester.tap(find.byTooltip('Hevy workouts'));
+      await tester.pumpAndSettle();
+
+      // The days stay in place.
+      expect(tester.getCenter(find.text('1')), first);
+      expect(find.text('No workout'), findsOneWidget);
+      expect(find.text('Hevy workout'), findsOneWidget);
+      expect(find.text('Goal reached'), findsOneWidget);
+      expect(find.text('Under 50%'), findsNothing);
+      // October 1, reached but without a workout, is no longer highlighted.
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Material &&
+              widget.shape is CircleBorder &&
+              widget.color == AppColors.accent,
+        ),
+        findsNothing,
+      );
+
+      await showSeptember(tester);
+      expect(workoutDays(tester), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp('^Tuesday, September 29, .*Hevy workout')),
+        findsWidgets,
+      );
+      await disposeApp(tester, db);
+    });
+
+    testWidgets('workouts before the first app day do not show', (
+      tester,
+    ) async {
+      // The app is used from September 15.
+      await db.settingsDao.setDailyGoal(140, now: DateTime(2026, 9, 15, 9));
+      await addEntry('Skyr', 15, DateTime(2026, 10, 1, 8));
+      await importWorkouts([
+        DateTime(2026, 9, 10, 18),
+        DateTime(2026, 9, 20, 18),
+      ]);
+      await openCalendar(tester);
+      await tester.tap(find.byTooltip('Hevy workouts'));
+      await tester.pumpAndSettle();
+      await showSeptember(tester);
+
+      // September 20 only.
+      expect(workoutDays(tester), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp('^Sunday, September 20, .*Hevy workout')),
+        findsWidgets,
+      );
+      expect(find.bySemanticsLabel('Thursday, September 10'), findsWidgets);
       await disposeApp(tester, db);
     });
   });

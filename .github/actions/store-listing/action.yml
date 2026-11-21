@@ -1,0 +1,40 @@
+name: Store listing
+description: >-
+  Sends the main Google Play listing, French and English, from the store
+  folder: titles, descriptions, icon, feature graphic and the screenshots of
+  the phone and of the watch, which replace those shown.
+
+inputs:
+  service-account:
+    description: The JSON key of the Google Play service account.
+    required: true
+  dry-run:
+    description: Checks the listing with Google Play without publishing it.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Install the Google Play client
+      shell: bash
+      run: |
+        python3 -m venv .venv
+        .venv/bin/pip install --quiet \
+          google-api-python-client==2.149.0 google-auth==2.35.0
+
+    - name: Show what is sent
+      shell: bash
+      run: .venv/bin/python .github/scripts/update_store_listing.py --plan
+
+    - name: Update the listing on Google Play
+      shell: bash
+      env:
+        PLAY_SERVICE_ACCOUNT_JSON: ${{ inputs.service-account }}
+        DRY_RUN: ${{ inputs.dry-run }}
+      run: |
+        if [ "$DRY_RUN" = "true" ]; then
+          .venv/bin/python .github/scripts/update_store_listing.py --dry-run
+        else
+          .venv/bin/python .github/scripts/update_store_listing.py
+        fi

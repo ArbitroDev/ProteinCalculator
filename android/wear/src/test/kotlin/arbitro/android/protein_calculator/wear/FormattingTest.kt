@@ -4,22 +4,32 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class FormattingTest {
     @Test
-    fun `grams are truncated, as in the phone app`() {
-        assertEquals(59, truncateGrams(59.9))
-        assertEquals(0, truncateGrams(0.4))
+    fun `grams are rounded, a half up, as in the phone app`() {
+        assertEquals(59, roundGrams(59.4))
+        assertEquals(60, roundGrams(59.5))
+        assertEquals(0, roundGrams(0.4))
         // Sums of decimals are not exact.
-        assertEquals(60, truncateGrams(59.999999999999))
-        assertEquals(60, truncateGrams(20.1 + 19.9 + 20.0))
+        assertEquals(60, roundGrams(59.999999999999))
+        assertEquals(50, roundGrams(0.8 + 37.8 + 11.4))
+    }
+
+    @Test
+    fun `the goal is reached once the total as shown reaches it`() {
+        assertFalse(isGoalReached(139.4, 140.0))
+        assertTrue(isGoalReached(139.5, 140.0))
+        assertTrue(isGoalReached(0.8 + 37.8 + 11.4, 50.0))
     }
 
     @Test
     fun `grams are written in the language of the watch`() {
-        assertEquals("1,234", formatGrams(1234.9, Locale.US))
-        assertEquals(NumberFormat.getIntegerInstance(Locale.FRANCE).format(1234), formatGrams(1234.9, Locale.FRANCE))
+        assertEquals("1,235", formatGrams(1234.9, Locale.US))
+        assertEquals(NumberFormat.getIntegerInstance(Locale.FRANCE).format(1234), formatGrams(1234.4, Locale.FRANCE))
         assertEquals("140", formatGrams(140.0, Locale.FRANCE))
     }
 

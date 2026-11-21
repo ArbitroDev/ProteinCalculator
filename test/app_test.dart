@@ -62,12 +62,17 @@ void main() {
       await disposeApp(tester, db);
     });
 
-    testWidgets('switches between the four tabs', (tester) async {
+    testWidgets('switches between the five tabs, in order', (tester) async {
       final db = openTestDatabase();
       await db.settingsDao.setDailyGoal(140);
       await pumpApp(tester, db);
 
-      for (final tab in ['History', 'Products', 'Menu']) {
+      const tabs = ['Today', 'Products', 'History', 'Statistics', 'Menu'];
+      final lefts = [
+        for (final tab in tabs) tester.getCenter(find.byTooltip(tab)).dx,
+      ];
+      expect(lefts, [...lefts]..sort());
+      for (final tab in ['History', 'Products', 'Statistics', 'Menu']) {
         await tester.tap(find.byTooltip(tab));
         await tester.pumpAndSettle();
         expect(find.widgetWithText(AppBar, tab), findsOneWidget);
@@ -77,6 +82,27 @@ void main() {
       expect(find.text('Thursday, October 1'), findsOneWidget);
       await disposeApp(tester, db);
     });
+
+    for (final (name, size) in [
+      ('a narrow phone held upright', const Size(320, 640)),
+      ('a low phone in landscape', const Size(640, 360)),
+    ]) {
+      testWidgets('the five tabs fit $name', (tester) async {
+        tester.view.physicalSize = size * 3;
+        tester.view.devicePixelRatio = 3;
+        tester.view.padding = const FakeViewPadding(top: 72);
+        addTearDown(tester.view.reset);
+        final db = openTestDatabase();
+        await db.settingsDao.setDailyGoal(140);
+        await pumpApp(tester, db);
+
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.byTooltip('Statistics'));
+        await tester.pumpAndSettle();
+        expect(find.widgetWithText(AppBar, 'Statistics'), findsOneWidget);
+        await disposeApp(tester, db);
+      });
+    }
 
     testWidgets('opens the new entry form above the tabs', (tester) async {
       final db = openTestDatabase();

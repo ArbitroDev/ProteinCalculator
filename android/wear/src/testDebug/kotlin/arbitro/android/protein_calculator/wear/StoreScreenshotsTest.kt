@@ -18,9 +18,9 @@ import androidx.wear.compose.material3.TimeSource
 import androidx.wear.compose.material3.TimeText
 import androidx.wear.protolayout.DeviceParametersBuilders
 import androidx.wear.protolayout.LayoutElementBuilders
-import androidx.wear.protolayout.ResourceBuilders
+import androidx.wear.protolayout.ProtoLayoutScope
 import androidx.wear.protolayout.expression.VersionBuilders
-import androidx.wear.protolayout.material3.materialScope
+import androidx.wear.protolayout.material3.materialScopeWithResources
 import androidx.wear.tiles.renderer.TileRenderer
 import arbitro.android.protein_calculator.protocol.DayState
 import arbitro.android.protein_calculator.protocol.WatchEntry
@@ -230,8 +230,10 @@ class StoreScreenshotsTest {
                 VersionBuilders.VersionInfo.Builder().setMajor(1).setMinor(RENDERER_MINOR).build(),
             )
             .build()
+        // The marks of the day register their images in the scope.
+        val scope = ProtoLayoutScope()
         val layout = with(service) {
-            materialScope(activity, device, false, ProteinTileService.tileColors) {
+            materialScopeWithResources(activity, scope, device, false, ProteinTileService.tileColors) {
                 layout(screen, addedId = null)
             }
         }
@@ -242,7 +244,7 @@ class StoreScreenshotsTest {
         val renderer = TileRenderer(activity, Executors.newSingleThreadExecutor()) {}
         val inflated = renderer.inflateAsync(
             LayoutElementBuilders.Layout.fromLayoutElement(layout),
-            ResourceBuilders.Resources.Builder().setVersion("1").build(),
+            scope.collectResources(),
             frame,
         )
         shadowOf(Looper.getMainLooper()).idle()

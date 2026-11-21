@@ -17,6 +17,7 @@ import 'package:protein_calculator/core/domain/product_name.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/domain/quantity_unit.dart';
+import 'package:protein_calculator/core/hevy/hevy_csv.dart';
 
 /// Identifies Protein Calculator backup files.
 const backupFormat = 'protein-calculator';
@@ -32,7 +33,8 @@ const backupFormat = 'protein-calculator';
 /// 7: products hold their barcode.
 /// 8: entries and products hold their creatine doses, and the settings
 /// whether creatine is tracked and the grams of one dose.
-const backupVersion = 8;
+/// 9: the Hevy workouts imported, and when.
+const backupVersion = 9;
 
 /// Thrown when a file is not a valid Protein Calculator backup.
 class InvalidBackupException implements Exception {
@@ -56,6 +58,9 @@ class Backup {
     this.goalChanges = const [],
     this.creatineEnabled = false,
     this.creatineDoseGrams,
+    this.hevySessions = const [],
+    this.hevyImportedAt,
+    this.holdsHevy = true,
   });
 
   final List<EntriesCompanion> entries;
@@ -72,6 +77,15 @@ class Backup {
   /// was first turned on.
   final bool creatineEnabled;
   final double? creatineDoseGrams;
+
+  /// Hevy workouts, and when they were imported; none in backups made before
+  /// they were kept.
+  final List<HevySessionsCompanion> hevySessions;
+  final DateTime? hevyImportedAt;
+
+  /// Whether the backup was made once workouts were kept: an older one
+  /// leaves the workouts in place when restored.
+  final bool holdsHevy;
 }
 
 /// File name suggested for a backup made on [date].
@@ -86,6 +100,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
     db.appSettings,
   )..where((s) => s.id.equals(SettingsDao.rowId))).getSingle();
   final goalChanges = await db.select(db.goalChanges).get();
+  final hevySessions = await db.select(db.hevySessions).get();
 
   return const JsonEncoder.withIndent('  ').convert({
     'format': backupFormat,
@@ -98,6 +113,7 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
       'dayStartHour': settings.dayStartHour,
       'creatineEnabled': settings.creatineEnabled,
       'creatineDoseGrams': settings.creatineDoseGrams,
+      'hevyImportedAt': settings.hevyImportedAt?.toUtc().toIso8601String(),
     },
     'goalChanges': [
       for (final g in goalChanges) {'dayKey': g.dayKey, 'grams': g.grams},
@@ -140,6 +156,15 @@ Future<String> exportBackup(AppDatabase db, DateTime now) async {
           'routineMinutes': p.routineMinutes,
           'barcode': p.barcode,
           'creatineDoses': p.creatineDoses,
+        },
+    ],
+    'hevySessions': [
+      for (final s in hevySessions)
+        {
+          'title': s.title,
+          'startedAt': s.startedAt.toUtc().toIso8601String(),
+          'endedAt': s.endedAt?.toUtc().toIso8601String(),
+          'dayKey': s.dayKey,
         },
     ],
   });
@@ -214,6 +239,22 @@ Backup parseBackup(String text) {
     if (!_unique(goalChanges.map((g) => g.dayKey.value))) {
       throw const InvalidBackupException('duplicate goal days');
     }
+    // Absent from backups made before the Hevy workouts were kept: none, and
+    // never imported.
+    final hevyImportedAt = version < 9
+        ? null
+        : _optionalDate(settings['hevyImportedAt']);
+    final hevySessions = version < 9
+        ? const <HevySessionsCompanion>[]
+        : [
+            for (final s in json['hevySessions'] as List)
+              _hevySession(s as Map<String, dynamic>),
+          ];
+    // Workouts are only kept with the date of their import, which shows
+    // them in the history.
+    if (hevySessions.isNotEmpty && hevyImportedAt == null) {
+      throw const InvalidBackupException('workouts without an import date');
+    }
 
     return Backup(
       entries: entries,
@@ -228,6 +269,9 @@ Backup parseBackup(String text) {
       goalChanges: goalChanges,
       creatineEnabled: creatineEnabled,
       creatineDoseGrams: creatineDoseGrams,
+      hevySessions: hevySessions,
+      hevyImportedAt: hevyImportedAt,
+      holdsHevy: version >= 9,
     );
   } on InvalidBackupException {
     rethrow;
@@ -253,6 +297,7 @@ Future<void> restoreBackup(
     await db.delete(db.entries).go();
     await db.delete(db.products).go();
     await db.delete(db.goalChanges).go();
+    if (backup.holdsHevy) await db.delete(db.hevySessions).go();
     await db.batch((batch) {
       batch
         ..insertAll(db.entries, backup.entries)
@@ -281,6 +326,11 @@ Future<void> restoreBackup(
             ),
           );
     }
+    if (backup.holdsHevy) {
+      await db.batch(
+        (batch) => batch.insertAll(db.hevySessions, backup.hevySessions),
+      );
+    }
     // Uses follow the restored entries, whatever the file says.
     await db.refreshUses();
     // The barcodes of the products replaced make recent scans again.
@@ -297,6 +347,9 @@ Future<void> restoreBackup(
         dayStartHour: Value(backup.dayStartHour),
         creatineEnabled: Value(backup.creatineEnabled),
         creatineDoseGrams: Value(backup.creatineDoseGrams),
+        hevyImportedAt: backup.holdsHevy
+            ? Value(backup.hevyImportedAt)
+            : const Value.absent(),
       ),
     );
   });
@@ -311,6 +364,21 @@ GoalChangesCompanion _goalChange(Map<String, dynamic> g) {
     throw const InvalidBackupException('daily goal out of range');
   }
   return GoalChangesCompanion.insert(dayKey: Value(dayKey), grams: grams);
+}
+
+HevySessionsCompanion _hevySession(Map<String, dynamic> s) {
+  final dayKey = s['dayKey'] as int;
+  if (!isValidDayKey(dayKey)) throw const InvalidBackupException('invalid day');
+  final title = s['title'] as String;
+  if (!isValidWorkoutTitle(title)) {
+    throw const InvalidBackupException('invalid workout title');
+  }
+  return HevySessionsCompanion.insert(
+    title: title,
+    startedAt: DateTime.parse(s['startedAt'] as String).toLocal(),
+    endedAt: Value(_optionalDate(s['endedAt'])),
+    dayKey: dayKey,
+  );
 }
 
 EntriesCompanion _entry(Map<String, dynamic> e, int version) {
@@ -475,6 +543,9 @@ int _id(Object? value) {
 }
 
 double? _optionalDouble(Object? value) => (value as num?)?.toDouble();
+
+DateTime? _optionalDate(Object? value) =>
+    value == null ? null : DateTime.parse(value as String).toLocal();
 
 bool _unique(Iterable<Object?> values) {
   final list = values.toList();

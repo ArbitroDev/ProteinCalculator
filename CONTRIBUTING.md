@@ -24,22 +24,32 @@ request.
    template.
 
 Every pull request runs the automated checks (formatting, analysis, tests,
-commit messages, and the lint, tests and build of the watch app). A pull
-request can only be merged once all checks pass.
+commit messages, the lint, tests and build of the watch app, and the lint of
+the Android code of the phone app). A pull request can only be merged once
+all checks pass.
 
 ### Branches and releases
 
 - `develop` gathers the accepted pull requests. It is the default branch.
 - `main` holds released versions only. It accepts pull requests from
   `develop` alone, opened by the maintainer when a version is ready.
-- Every merge into `main` runs the release workflow: it runs the automated
-  checks again on the merged commit and, only if they pass, builds the
-  signed app bundles of the phone and of the watch, sends them to their
-  closed testing tracks of Google Play (`alpha` and `wear:alpha`) and tags
-  the version (`v1.2.3`). The version in `pubspec.yaml` must therefore be
-  increased in `develop` before each release; its build number must stay
-  below `wear.versionCodeOffset`, which the version code of the watch app
-  adds to it.
+- A release is published by hand, once merged into `main`: the
+  **Release** workflow, run from `main`, asks where to publish:
+  - `alpha`: the closed testing tracks of Google Play (`alpha` and
+    `wear:alpha`);
+  - `production`: the production tracks (`production` and
+    `wear:production`), then the listing of the `store` folder, as the
+    **Store listing** workflow sends it.
+
+  It runs the automated checks on the commit of `main`, waits for the
+  maintainer's approval, builds the signed app bundles of the phone and of
+  the watch, sends them to the tracks chosen and tags the version
+  (`v1.2.3`). A version goes to one track only: Google Play refuses a
+  bundle whose version code it already has, so a version tested in `alpha`
+  goes to production from the Google Play Console. The version in
+  `pubspec.yaml` must therefore be increased in `develop` before each
+  release; its build number must stay below `wear.versionCodeOffset`,
+  which the version code of the watch app adds to it.
 - The publishing job uses the `release` environment of the repository: its
   secrets (signing key, Google Play service account, Sentry address) are
   stored there only, and each release waits for the maintainer's approval.
@@ -61,8 +71,8 @@ request can only be merged once all checks pass.
   `feature-graphic.png`, `screenshots/<n>.png` and `wear/<n>.png`, with
   `icon-512.png` for both. `python tool/store_screenshots/compose.py` writes
   the images, in place of the previous ones. The **Store listing** workflow,
-  run by hand only, sends them to Google Play and replaces the listing shown;
-  its dry run checks it without publishing.
+  run by hand, sends them to Google Play and replaces the listing shown, as a
+  release to production does; its dry run checks it without publishing.
 
 ### Actions used by the workflows
 
@@ -260,10 +270,15 @@ upgrading these packages, replace them with the files of the same versions:
   whole grams, or whole milliliters for drinks (`QuantityUnit`), while
   protein is always in grams. The protein computed from a quantity is
   rounded to one decimal when the entry is saved (`computeProtein`).
-- Values are stored exactly. Totals, what is left and the goal are shown
-  truncated to the unit (`formatGrams`), so the goal only shows as reached
-  once it really is; the protein of one entry or one product shows with one
-  decimal at most (`formatProtein`).
+- Values are stored exactly. Totals, averages, what is left and the goal are
+  shown rounded to the unit, a half up (`roundGrams`, `formatGrams`), as not
+  every entry gives its decimals; the protein of one entry or one product
+  shows with one decimal at most (`formatProtein`).
+- A day reaches its goal once its total as shown reaches the goal as shown
+  (`isGoalReached`): 139.5 g reaches 140 g. Every screen, the shared tiles,
+  the watch and the widget follow this one rule, with what is left
+  (`gramsLeft`) and the percent (`goalPercent`), so that "140 g / 140 g"
+  always goes with the goal reached.
 - Backups follow the same rules: `parseBackup` refuses any value the forms
   would not accept.
 

@@ -17,6 +17,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import es.antonborri.home_widget.HomeWidgetPlugin
 import java.text.NumberFormat
 import java.time.LocalDateTime
@@ -142,7 +143,7 @@ class GoalWidget : AppWidgetProvider() {
         val dark = context.resources.configuration.uiMode and
             Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         val colors = if (dark) DARK else LIGHT
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
         val s = size.toFloat()
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -169,7 +170,7 @@ class GoalWidget : AppWidgetProvider() {
         // Open at the bottom, where the goal goes.
         paint.color = colors.track
         canvas.drawArc(ring, RING_START, RING_SWEEP, false, paint)
-        val progress = (truncate(day.total) / goal).coerceIn(0.0, 1.0)
+        val progress = (round(day.total) / goal).coerceIn(0.0, 1.0)
         if (progress > 0) {
             paint.color = ORANGE
             canvas.drawArc(ring, RING_START, (RING_SWEEP * progress).toFloat(), false, paint)
@@ -177,7 +178,7 @@ class GoalWidget : AppWidgetProvider() {
 
         paint.style = Paint.Style.FILL
         paint.textAlign = Paint.Align.CENTER
-        paint.color = if (truncate(day.total) >= goal) colors.accentText else colors.text
+        paint.color = if (round(day.total) >= round(goal)) colors.accentText else colors.text
         paint.typeface = font(context, "SairaSemiCondensed-ExtraBold.ttf", Typeface.DEFAULT_BOLD)
         paint.textSize = s * 0.33f
         val total = grams(day.total)
@@ -262,11 +263,14 @@ class GoalWidget : AppWidgetProvider() {
             return date.year * 10000 + date.monthValue * 100 + date.dayOfMonth
         }
 
-        /** Whole grams, truncated as in the app (`truncateGrams`). */
-        private fun truncate(grams: Double): Double = floor(grams + 1e-9)
+        /**
+         * Whole grams, rounded as in the app (`roundGrams`): a half up. The goal
+         * is reached once the total as shown reaches it (`isGoalReached`).
+         */
+        private fun round(grams: Double): Double = floor(grams + 0.5 + 1e-9)
 
         private fun grams(grams: Double): String =
-            NumberFormat.getIntegerInstance().format(truncate(grams).toLong())
+            NumberFormat.getIntegerInstance().format(round(grams).toLong())
 
         /** Fonts of the app, read once from its assets. */
         private val fonts = mutableMapOf<String, Typeface>()

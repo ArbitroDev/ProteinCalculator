@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/day_progress.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/formatting.dart';
 import 'package:protein_calculator/core/providers.dart';
@@ -19,8 +20,15 @@ import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/core/widgets/swipe_to_delete.dart';
 import 'package:protein_calculator/core/widgets/undo_snack_bar.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
+import 'package:protein_calculator/features/share/share_choices.dart';
+import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/features/today/quick_add.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
+
+/// Space above the date: the tops of its capitals meet those of the titles
+/// of the other tabs, measured on a device, upright and in landscape.
+const _topUpright = 12.8;
+const _topLandscape = 12.9;
 
 /// Main tab: the summary of the current app day, then the shaker with one
 /// label per entry next to it, swiped to the left to delete the entry. In
@@ -118,15 +126,24 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
         if (!isDeleted(entry.id)) entry,
     ];
     final locale = context.localeName;
+    final share = ref.watch(dayShareProvider(dayKey));
     final favorite = ref.watch(favoriteProductProvider);
     final creatine =
         ref.watch(creatineSettingsProvider).value?.enabled ?? false;
 
+    void onShare() => showShareSheet(
+      context,
+      dayShareChoices(context, share, timelineFirst: false),
+    );
+
     if (MediaQuery.orientationOf(context) == Orientation.landscape) {
-      return Scaffold(
-        body: SafeArea(
+      return _WithShareButton(
+        onShare: onShare,
+        child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 14, 16, 12),
+            // The top of the date at the height of the top of the titles of
+            // the other tabs, as upright.
+            padding: const EdgeInsets.fromLTRB(8, _topLandscape, 16, 12),
             child: _ShakerWithLabels(
               shakerKey: _shakerKey,
               entries: entries,
@@ -150,11 +167,14 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
       );
     }
 
-    return Scaffold(
-      body: SafeArea(
+    return _WithShareButton(
+      onShare: onShare,
+      child: SafeArea(
         child: Padding(
-          // Lined up with the tab bar.
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+          // Lined up with the tab bar; the top of the date at the height of
+          // the top of the titles of the other tabs, centered in their app
+          // bar, though the date is larger.
+          padding: const EdgeInsets.fromLTRB(16, _topUpright, 16, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -224,7 +244,10 @@ class _Summary extends StatelessWidget {
     String grams(double value) => formatGrams(value, locale);
 
     final total = entries.proteinGrams;
-    final reached = total >= goal;
+    final reached = isGoalReached(total, goal);
+    final dateStyle = textTheme.headlineSmall!.copyWith(
+      fontSize: compact ? 21 : 26,
+    );
     final status = textTheme.bodyLarge!.copyWith(
       fontSize: 14,
       color: colors.textSecondary,
@@ -255,9 +278,18 @@ class _Summary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          formatLongDate(dateOfDayKey(dayKey), locale),
-          style: textTheme.headlineSmall!.copyWith(fontSize: compact ? 21 : 26),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                formatLongDate(dateOfDayKey(dayKey), locale),
+                style: dateStyle,
+              ),
+            ),
+            // Room for the share button, drawn over the page.
+            const SizedBox(width: shareButtonSize),
+          ],
         ),
         SizedBox(height: compact ? 4 : 10),
         ExcludeSemantics(
@@ -326,9 +358,11 @@ class _Summary extends StatelessWidget {
                   ),
                 ),
               ] else
-                // From the total as shown, truncated, so both agree.
+                // From the total as shown, rounded, so both agree.
                 TextSpan(
-                  text: l10n.todayRemaining(grams(goal - truncateGrams(total))),
+                  text: l10n.todayRemaining(
+                    grams(gramsLeft(total, goal).toDouble()),
+                  ),
                 ),
               // The mark of the days creatine was taken, even once it is no
               // longer tracked.
@@ -604,4 +638,37 @@ class _EntryLabel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// [child] under the share button of the day, at the top right where the
+/// app bars of the other tabs center theirs. Over the page rather than in
+/// the line of the date, lower than it: the whole button takes taps.
+class _WithShareButton extends StatelessWidget {
+  const _WithShareButton({required this.onShare, required this.child});
+
+  final VoidCallback onShare;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Stack(
+      children: [
+        child,
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              // The button keeps 4 dp around its circle to be touched, as
+              // in the app bars: its circle at the same place as there.
+              padding: const EdgeInsets.only(
+                top: (kToolbarHeight - shareButtonSize) / 2 - 4,
+                right: shareButtonEndGap,
+              ),
+              child: ShareButton(onPressed: onShare),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

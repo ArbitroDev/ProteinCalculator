@@ -137,6 +137,21 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  testWidgets('tells the moment of an entry by its app day', (tester) async {
+    final id = await db.entriesDao.insertEntry(
+      amount: const DirectAmount(15),
+      createdAt: DateTime(2026, 10, 1, 23),
+    );
+    // At 1 a.m., the app day is still October 1.
+    await pumpApp(tester, db, now: DateTime(2026, 10, 2, 1));
+    final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+    unawaited(router.push(AppRoutes.editEntry(id)));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Today at'), findsOneWidget);
+    await disposeApp(tester, db);
+  });
+
   testWidgets('saves as a product only under a free name', (tester) async {
     final productId = await db.productsDao.insertProduct(
       name: 'Skyr',
@@ -170,7 +185,7 @@ void main() {
     final id = await db.entriesDao.insertEntry(
       name: 'Shaker',
       amount: const DirectAmount(25),
-      createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
+      createdAt: defaultNow.subtract(const Duration(minutes: 5)),
     );
     await pumpApp(tester, db);
     final router = GoRouter.of(tester.element(find.byType(Scaffold).first));

@@ -13,11 +13,14 @@ import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/content_width.dart';
 import 'package:protein_calculator/core/widgets/creatine_mark.dart';
 import 'package:protein_calculator/core/widgets/empty_state.dart';
+import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/pill_tabs.dart';
 import 'package:protein_calculator/core/widgets/stacked_bar.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
 import 'package:protein_calculator/features/history/calendar_view.dart';
+import 'package:protein_calculator/features/share/share_choices.dart';
+import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// History tab: every day with entries, most recent first, or a calendar
@@ -31,7 +34,19 @@ class HistoryPage extends ConsumerWidget {
     final view = ref.watch(historyViewProvider).value ?? HistoryView.list;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.tabHistory)),
+      appBar: AppBar(
+        title: Text(l10n.tabHistory),
+        actions: [
+          if (ref.watch(historyProvider).value?.isNotEmpty ?? false)
+            ShareButton(
+              onPressed: () => showShareSheet(
+                context,
+                historyShareChoices(ref, context, view),
+              ),
+            ),
+          const SizedBox(width: shareButtonEndGap),
+        ],
+      ),
       body: ContentWidth(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -75,6 +90,7 @@ class _DayList extends ConsumerWidget {
     final days = ref.watch(historyProvider).value;
     final goals = ref.watch(goalChangesProvider).value ?? const [];
     final goal = ref.watch(dailyGoalProvider).value;
+    final hevyDays = ref.watch(shownHevyDaysProvider);
 
     return switch (days) {
       null => const SizedBox.shrink(),
@@ -85,7 +101,8 @@ class _DayList extends ConsumerWidget {
         itemBuilder: (context, index) => _DayTile(
           day: days[index],
           // The goal each day had.
-          goal: goalOn(days[index].dayKey, goals) ?? goal ?? 0,
+          goal: goalOfDay(days[index].dayKey, goals, goal) ?? 0,
+          workedOut: hevyDays.contains(days[index].dayKey),
         ),
       ),
     };
@@ -93,10 +110,17 @@ class _DayList extends ConsumerWidget {
 }
 
 class _DayTile extends StatelessWidget {
-  const _DayTile({required this.day, required this.goal});
+  const _DayTile({
+    required this.day,
+    required this.goal,
+    required this.workedOut,
+  });
 
   final DaySummary day;
   final double goal;
+
+  /// Whether the day holds a Hevy workout.
+  final bool workedOut;
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +129,7 @@ class _DayTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final locale = context.localeName;
     final total = day.proteinGrams;
-    final reached = goal > 0 && total >= goal;
+    final reached = goal > 0 && isGoalReached(total, goal);
 
     return InkWell(
       onTap: () => context.go(AppRoutes.historyDay(day.dayKey)),
@@ -124,8 +148,12 @@ class _DayTile extends StatelessWidget {
                     style: textTheme.titleMedium,
                   ),
                 ),
-                // The mark of the days creatine was taken, then that of the
-                // goal reached.
+                // The mark of the days with a Hevy workout, that of the days
+                // creatine was taken, then that of the goal reached.
+                if (workedOut) ...[
+                  const HevyMark(size: 16, labelled: true),
+                  const SizedBox(width: 5),
+                ],
                 if (day.creatineDoses > 0) ...[
                   const CreatineCheck(size: 16, labelled: true),
                   const SizedBox(width: 5),

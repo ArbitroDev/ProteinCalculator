@@ -2,7 +2,10 @@
 <!-- Widget "Today's goal", 1 x 1, on the home screen and, where the phone
      allows it, on the lock screen. The app updates it at each change; every
      30 minutes, it also checks whether a new app day started. -->
+<!-- The target cells serve from Android 12, the minimum size before. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="UnusedAttribute"
     android:minWidth="40dp"
     android:minHeight="40dp"
     android:targetCellWidth="1"

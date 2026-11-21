@@ -81,4 +81,36 @@ void main() {
       expect(isValidAppDayStartHour(-1), isFalse);
     });
   });
+
+  test('firstAppDayKey is the first goal or an older entry', () {
+    // The day of the first goal.
+    expect(
+      firstAppDayKey(
+        todayKey: 20261024,
+        firstGoalDayKey: 20261010,
+        entryDayKeys: [20261012, 20261024],
+      ),
+      20261010,
+    );
+    // An entry added afterwards for an earlier day.
+    expect(
+      firstAppDayKey(
+        todayKey: 20261024,
+        firstGoalDayKey: 20261010,
+        entryDayKeys: [20261012, 20261005],
+      ),
+      20261005,
+    );
+    // Today, without goal nor entry.
+    expect(firstAppDayKey(todayKey: 20261024, entryDayKeys: []), 20261024);
+    // Never after today.
+    expect(
+      firstAppDayKey(
+        todayKey: 20261024,
+        firstGoalDayKey: 20261030,
+        entryDayKeys: [],
+      ),
+      20261024,
+    );
+  });
 }

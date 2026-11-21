@@ -9,6 +9,11 @@ double? parseGrams(String input) {
   return value != null && value.isFinite ? value : null;
 }
 
+/// Whole grams shown for [grams]: rounded to the nearest, a half up, as not
+/// every entry gives its decimals. The epsilon absorbs floating point sums
+/// such as 139.49999 for 139.5. The watch and the widget round the same way.
+int roundGrams(double grams) => (grams + 0.5 + 1e-9).floor();
+
 /// Largest quantity of food, in grams: the four digits the forms let type.
 const maxFoodGrams = 9999.0;
 

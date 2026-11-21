@@ -10,6 +10,7 @@ import 'package:protein_calculator/features/menu/menu_page.dart';
 import 'package:protein_calculator/features/onboarding/onboarding_page.dart';
 import 'package:protein_calculator/features/products/products_page.dart';
 import 'package:protein_calculator/features/scan/scan_page.dart';
+import 'package:protein_calculator/features/stats/stats_page.dart';
 import 'package:protein_calculator/features/today/today_page.dart';
 
 abstract final class AppRoutes {
@@ -17,6 +18,7 @@ abstract final class AppRoutes {
   static const today = '/today';
   static const history = '/history';
   static const products = '/products';
+  static const stats = '/stats';
   static const menu = '/menu';
   static const newEntry = '/entries/new';
 
@@ -80,6 +82,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: AppRoutes.products,
+                builder: (context, state) => const ProductsPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: AppRoutes.history,
                 builder: (context, state) => const HistoryPage(),
                 routes: [
@@ -97,8 +107,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: AppRoutes.products,
-                builder: (context, state) => const ProductsPage(),
+                path: AppRoutes.stats,
+                builder: (context, state) => const StatsPage(),
               ),
             ],
           ),
