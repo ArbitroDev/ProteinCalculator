@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/home_widget.dart';
 import 'package:protein_calculator/core/watch/watch_state.dart';
 
 void main() {
+  // The plugin of the widget talks through the binding of the tests.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   WatchEntry entry(int id, {double protein = 20, int doses = 0}) => WatchEntry(
     id: id,
     name: null,
@@ -53,6 +57,12 @@ void main() {
 
   test('updating the widget without its plugin does nothing', () async {
     // The engines of the tests have no plugin: no error reported.
+    final reported = <FlutterErrorDetails>[];
+    final onError = FlutterError.onError;
+    FlutterError.onError = reported.add;
+    addTearDown(() => FlutterError.onError = onError);
+
     await updateHomeWidget(state([entry(1)]));
+    expect(reported, isEmpty);
   });
 }
