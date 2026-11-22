@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/pill_tabs.dart';
 import 'package:protein_calculator/core/widgets/user_action.dart';
@@ -247,7 +248,10 @@ class _ShareSheetState extends ConsumerState<_ShareSheet> {
                     child: FittedBox(
                       child: RepaintBoundary(
                         key: _tileKey,
-                        child: _choice.build(_options),
+                        child: ShareTileChristmas(
+                          christmas: ref.watch(christmasActiveProvider),
+                          child: _choice.build(_options),
+                        ),
                       ),
                     ),
                   ),
@@ -295,25 +299,57 @@ Future<Uint8List> captureTile(GlobalKey key) async {
   }
 }
 
+/// Dresses the tiles under it for Christmas, as the app is: red in place of
+/// the orange, see [shareTileColors], snow on the shakers, the baubles of the
+/// calendar. The share sheet puts it over the tiles while the Christmas
+/// theme is on.
+class ShareTileChristmas extends InheritedWidget {
+  const ShareTileChristmas({
+    super.key,
+    required this.christmas,
+    required super.child,
+  });
+
+  final bool christmas;
+
+  /// Whether the tiles under [context] are dressed for Christmas.
+  static bool of(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<ShareTileChristmas>()
+          ?.christmas ??
+      false;
+
+  @override
+  bool updateShouldNotify(ShareTileChristmas oldWidget) =>
+      oldWidget.christmas != christmas;
+}
+
+/// Colors of the tiles: the light ones whatever the theme, red for
+/// Christmas, see [ShareTileChristmas].
+AppColors shareTileColors(BuildContext context) =>
+    ShareTileChristmas.of(context) ? AppColors.christmasLight : AppColors.light;
+
 /// The square every tile is drawn in: the light colors whatever the theme,
 /// no text scaling nor animation, and the logo with the name of the app at
 /// the bottom.
 class ShareTileFrame extends StatelessWidget {
-  const ShareTileFrame({super.key, required this.child, this.orange = false});
+  const ShareTileFrame({super.key, required this.child, this.accent = false});
 
   final Widget child;
 
-  /// Orange background, for the streak.
-  final bool orange;
+  /// Background in the color of the app, orange or Christmas red, for the
+  /// streak.
+  final bool accent;
 
   /// Space around the content.
   static const padding = 27.0;
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.light;
-    const colors = AppColors.light;
-    final ink = orange ? AppColors.onAccent : colors.text;
+    final christmas = ShareTileChristmas.of(context);
+    final theme = christmas ? AppTheme.christmasLight : AppTheme.light;
+    final colors = shareTileColors(context);
+    final ink = accent ? colors.onAccent : colors.text;
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(
         disableAnimations: true,
@@ -325,7 +361,7 @@ class ShareTileFrame extends StatelessWidget {
         child: SizedBox.square(
           dimension: shareTileSize,
           child: ColoredBox(
-            color: orange ? AppColors.accent : colors.background,
+            color: accent ? colors.accent : colors.background,
             child: DefaultTextStyle(
               style: theme.textTheme.bodyMedium!.copyWith(color: ink),
               child: Padding(
@@ -335,7 +371,10 @@ class ShareTileFrame extends StatelessWidget {
                   children: [
                     Expanded(child: child),
                     const SizedBox(height: 10),
-                    _Signature(color: orange ? shareOnOrangeSecondary : null),
+                    _Signature(
+                      color: accent ? shareOnAccentSecondary(context) : null,
+                      christmas: christmas,
+                    ),
                   ],
                 ),
               ),
@@ -347,13 +386,20 @@ class ShareTileFrame extends StatelessWidget {
   }
 }
 
-/// Secondary text on the orange background of a tile.
-const shareOnOrangeSecondary = Color(0xFF5A2A08);
+/// Secondary text on the background of a tile in the color of the app: dark
+/// on the orange, light on the Christmas red.
+Color shareOnAccentSecondary(BuildContext context) =>
+    ShareTileChristmas.of(context)
+    ? const Color(0xFFFFE3E7)
+    : const Color(0xFF5A2A08);
 
 class _Signature extends StatelessWidget {
-  const _Signature({this.color});
+  const _Signature({this.color, required this.christmas});
 
   final Color? color;
+
+  /// Whether the logo is the Christmas one, red.
+  final bool christmas;
 
   @override
   Widget build(BuildContext context) {
@@ -361,7 +407,9 @@ class _Signature extends StatelessWidget {
     return Row(
       children: [
         SvgPicture.asset(
-          'assets/branding/logo.svg',
+          christmas
+              ? 'assets/branding/logo-christmas.svg'
+              : 'assets/branding/logo.svg',
           width: 16,
           height: 16,
           excludeFromSemantics: true,

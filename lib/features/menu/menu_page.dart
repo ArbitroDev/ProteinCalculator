@@ -138,6 +138,8 @@ class MenuPage extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             const _SlotRemindersCard(),
+            const SizedBox(height: 10),
+            const _ChristmasThemeCard(),
             const SizedBox(height: 16),
             _MenuItem(
               icon: LucideIcons.shieldCheck,
@@ -659,6 +661,51 @@ class _HevySheetState extends ConsumerState<_HevySheet> {
 }
 
 /// Switch of the reminders of the parts of the day left empty, see
+/// Switch of the Christmas theme, on by default, shown all year with its
+/// dates so the user knows when it comes back.
+class _ChristmasThemeCard extends ConsumerWidget {
+  const _ChristmasThemeCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final enabled = ref.watch(christmasThemeProvider).value;
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: SwitchListTile(
+        value: enabled ?? true,
+        onChanged: enabled == null
+            ? null
+            : (value) => ref
+                  .read(databaseProvider)
+                  .settingsDao
+                  .setChristmasTheme(value),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        contentPadding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
+        secondary: Icon(
+          LucideIcons.treePine,
+          size: 22,
+          color: AppColors.christmasGreenText(Theme.of(context).brightness),
+        ),
+        title: Text(
+          l10n.menuChristmasTheme,
+          style: textTheme.bodyLarge!.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          l10n.menuChristmasThemeBody,
+          style: textTheme.bodySmall!.copyWith(color: colors.textSecondary),
+        ),
+      ),
+    );
+  }
+}
+
 /// `SlotReminder`, with a banner when their notifications are off or late.
 class _SlotRemindersCard extends ConsumerWidget {
   const _SlotRemindersCard();

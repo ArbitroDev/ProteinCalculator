@@ -11,7 +11,7 @@ class SlidingSelector extends StatelessWidget {
     required this.children,
     this.gap = 0,
     this.direction = Axis.horizontal,
-    this.color = AppColors.selection,
+    this.color,
   });
 
   final int selectedIndex;
@@ -26,11 +26,13 @@ class SlidingSelector extends StatelessWidget {
   /// Whether the options are laid out in a row or in a column.
   final Axis direction;
 
-  /// Color of the pill, which it takes on as it slides when it changes.
-  final Color color;
+  /// Color of the pill, which it takes on as it slides when it changes:
+  /// [AppColors.selection] by default.
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final color = this.color ?? AppColors.of(context).selection;
     final duration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
         : const Duration(milliseconds: 250);

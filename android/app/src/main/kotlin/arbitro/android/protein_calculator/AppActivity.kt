@@ -1,6 +1,9 @@
 package arbitro.android.protein_calculator
 
+import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -13,7 +16,17 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import kotlin.concurrent.thread
 
-class MainActivity : FlutterActivity() {
+/**
+ * The activity of the app. The launcher opens it through one of two aliases,
+ * the usual icon (`.MainActivity`, the name the activity had, so the icons
+ * already on home screens keep working) or the Christmas one
+ * (`.ChristmasLauncher`), see [setChristmasIcon]; its splash screen changes
+ * with it, see [setChristmasSplash].
+ */
+class AppActivity : FlutterActivity() {
+    /** Icon and splash screen to show once the app is left, see [onStop]. */
+    private var wantedChristmasIcon: Boolean? = null
+
     /** File shared to the app, kept until the app takes it. */
     private var sharedFile: Uri? = null
     private var sharedFileChannel: MethodChannel? = null
@@ -58,6 +71,18 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        // Shows the Christmas icon from December 1 to 25, see
+        // lib/core/launcher_icon.dart.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "protein_calculator/launcher_icon")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "setChristmas" -> {
+                        wantedChristmasIcon = call.arguments as Boolean
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         // Gives the app the file shared to it, see lib/core/hevy/shared_file.dart.
         sharedFileChannel =
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "protein_calculator/shared_file")
@@ -69,6 +94,66 @@ class MainActivity : FlutterActivity() {
                         }
                     }
                 }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Android closes the screens of an app whose launcher entry turns off:
+        // the icon changes once the app is no longer seen, not while in use.
+        if (isChangingConfigurations) return
+        wantedChristmasIcon?.let {
+            setChristmasIcon(it)
+            setChristmasSplash(it)
+        }
+        wantedChristmasIcon = null
+    }
+
+    /**
+     * Shows the Christmas splash screen at the next launches if [christmas],
+     * the usual one otherwise. Android keeps the choice; it lets an app choose
+     * its splash screen from Android 13.
+     */
+    private fun setChristmasSplash(christmas: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        splashScreen.setSplashScreenTheme(
+            if (christmas) R.style.ChristmasLaunchTheme else Resources.ID_NULL,
+        )
+    }
+
+    /**
+     * Shows the Christmas icon in the launcher if [christmas], the usual one
+     * otherwise, by turning on one alias and off the other. Does nothing when
+     * the right one already shows: launchers may move or drop the icon of a
+     * home screen when it changes.
+     */
+    private fun setChristmasIcon(christmas: Boolean) {
+        val shown = if (christmas) CHRISTMAS_ALIAS else USUAL_ALIAS
+        val hidden = if (christmas) USUAL_ALIAS else CHRISTMAS_ALIAS
+        // The new icon first, so the app never leaves the launcher.
+        setAliasEnabled(shown, true)
+        setAliasEnabled(hidden, false)
+    }
+
+    private fun setAliasEnabled(alias: String, enabled: Boolean) {
+        val component = ComponentName(packageName, "${javaClass.`package`!!.name}.$alias")
+        val state = packageManager.getComponentEnabledSetting(component)
+        // Until changed once, an alias is as the manifest declares it.
+        val isEnabled = when (state) {
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
+            PackageManager.COMPONENT_ENABLED_STATE_DEFAULT -> alias == USUAL_ALIAS
+            else -> false
+        }
+        if (isEnabled == enabled) return
+        packageManager.setComponentEnabledSetting(
+            component,
+            if (enabled) {
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            } else {
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            },
+            // The app stays open while its icon changes.
+            PackageManager.DONT_KILL_APP,
+        )
     }
 
     private fun appSettings(): Intent =
@@ -137,6 +222,10 @@ class MainActivity : FlutterActivity() {
     }
 
     companion object {
+        /** Aliases of this activity in the manifest, one per launcher icon. */
+        private const val USUAL_ALIAS = "MainActivity"
+        private const val CHRISTMAS_ALIAS = "ChristmasLauncher"
+
         /** Largest file the app takes: an export of years of workouts is far smaller. */
         private const val MAX_SHARED_FILE_BYTES = 32 * 1024 * 1024
     }

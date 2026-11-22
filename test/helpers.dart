@@ -26,10 +26,16 @@ AppDatabase openTestDatabase() {
 ///
 /// Starts on the first launch screen if the database has no daily goal.
 /// [overrides] replace other providers, such as Open Food Facts.
+///
+/// The Christmas theme stays off, whatever the date, unless [christmas].
+/// [dayKeys], when given, are the app days the app goes through, in place of
+/// the day of [now].
 Future<void> pumpApp(
   WidgetTester tester,
   AppDatabase database, {
   DateTime? now,
+  bool christmas = false,
+  Stream<int>? dayKeys,
   List<Locale> locales = const [Locale('en', 'US')],
   List<Override> overrides = const [],
 }) async {
@@ -47,8 +53,9 @@ Future<void> pumpApp(
         databaseProvider.overrideWithValue(database),
         clockProvider.overrideWithValue(() => time),
         currentDayKeyProvider.overrideWith(
-          (ref) => Stream.value(dayKeyOf(time)),
+          (ref) => dayKeys ?? Stream.value(dayKeyOf(time)),
         ),
+        christmasThemeProvider.overrideWith((ref) => Stream.value(christmas)),
         initialLocationProvider.overrideWithValue(
           goal == null ? AppRoutes.onboarding : AppRoutes.today,
         ),

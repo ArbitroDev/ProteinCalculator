@@ -206,17 +206,17 @@ class StreakTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final locale = context.localeName;
-    const ink = AppColors.onAccent;
+    final ink = shareTileColors(context).onAccent;
     final drawn = min(streak, streakMaxShakers);
 
     return ShareTileFrame(
-      orange: true,
+      accent: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             l10n.shareCurrentStreak,
-            style: _body(14.5, color: shareOnOrangeSecondary),
+            style: _body(14.5, color: shareOnAccentSecondary(context)),
           ),
           // The number takes the room the shakers leave.
           Expanded(
@@ -235,7 +235,7 @@ class StreakTile extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           IconTheme(
-            data: const IconThemeData(color: ink, size: 24),
+            data: IconThemeData(color: ink, size: 24),
             child: Wrap(
               spacing: 3,
               runSpacing: 4,
@@ -296,7 +296,7 @@ class CreatineTile extends StatelessWidget {
                   child: CustomPaint(
                     painter: _Ring(
                       share: share,
-                      color: AppColors.creatine,
+                      color: shareTileColors(context).creatineFill,
                       track: _colors.surface,
                     ),
                     child: Center(
@@ -371,7 +371,7 @@ class CreatineTile extends StatelessWidget {
           _MarksStrip(
             marks: creatine.marks,
             monthShares: creatine.monthShares,
-            color: AppColors.creatine,
+            color: shareTileColors(context).creatineFill,
           ),
         ],
       ),
@@ -466,14 +466,14 @@ class WorkoutTile extends StatelessWidget {
               label: l10n.statsOnWorkoutDays,
               value: grams(byWorkout.first),
               fraction: top <= 0 ? 0 : byWorkout.first / top,
-              color: AppColors.accent,
+              color: shareTileColors(context).accent,
             ),
             const SizedBox(height: 8),
             _TileCompareBar(
               label: l10n.statsOnRestDays,
               value: grams(byWorkout.second),
               fraction: top <= 0 ? 0 : byWorkout.second / top,
-              color: AppColors.progressHalf,
+              color: shareTileColors(context).progressHalf,
             ),
           ],
           if (after != null) ...[

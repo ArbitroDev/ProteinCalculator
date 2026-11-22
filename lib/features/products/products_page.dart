@@ -336,8 +336,8 @@ class _ScanTile extends StatelessWidget {
                     tooltip: l10n.addToToday,
                     padding: EdgeInsets.zero,
                     style: IconButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: AppColors.onAccent,
+                      backgroundColor: colors.accent,
+                      foregroundColor: colors.onAccent,
                     ),
                     icon: const Icon(LucideIcons.plus, size: 18),
                   ),
@@ -429,10 +429,10 @@ class _ProductTile extends StatelessWidget {
                       ),
                       // Lucide has no filled icons: the favorite uses the
                       // Material star, filled with the accent.
-                      selectedIcon: const Icon(
+                      selectedIcon: Icon(
                         Icons.star_rounded,
                         size: 26,
-                        color: AppColors.accent,
+                        color: colors.accent,
                       ),
                     ),
                   ),
@@ -503,8 +503,8 @@ class _ProductTile extends StatelessWidget {
                       tooltip: l10n.addToToday,
                       padding: EdgeInsets.zero,
                       style: IconButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        foregroundColor: AppColors.onAccent,
+                        backgroundColor: colors.accent,
+                        foregroundColor: colors.onAccent,
                       ),
                       icon: const Icon(LucideIcons.plus, size: 18),
                     ),

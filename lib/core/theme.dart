@@ -24,6 +24,16 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.creatineText,
     required this.hevy,
     required this.onHevy,
+    this.accent = brandAccent,
+    this.onAccent = ink,
+    this.selection = _brandSelection,
+    this.progressHalf = brandProgressHalf,
+    this.slotMorning = _brandMorning,
+    this.slotAfternoon = brandAccent,
+    this.slotEvening = _brandEvening,
+    this.creatineFill = creatine,
+    this.knitBase = const Color(0xFF2D3FE0),
+    this.knitStitch = const Color(0xFF4657EE),
   });
 
   final Color background;
@@ -57,24 +67,53 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color hevy;
   final Color onHevy;
 
+  /// Color of the app, orange: its buttons, the total and the days reached,
+  /// the selected tab. [onAccent] is the one for what sits on it.
+  final Color accent;
+  final Color onAccent;
+
+  /// Selected option of the pill selectors (tabs, sorts, entry modes): a
+  /// lighter [accent], so it does not look like an add button.
+  final Color selection;
+
+  /// Calendar days at half of their goal or more: a lighter [accent], the
+  /// full one marking the goal reached. Halfway between, so it stands apart
+  /// from the pale days under half.
+  final Color progressHalf;
+
+  /// Colors of the entries added in each part of the day, see [slot].
+  final Color slotMorning;
+  final Color slotAfternoon;
+  final Color slotEvening;
+
+  /// Color of creatine on the screens: its button, its dot, its veil in the
+  /// shaker and its days in the calendar. Blue, Christmas green in the
+  /// Christmas theme; [creatine] stays the blue of what is shared.
+  final Color creatineFill;
+
+  /// Wool of the knitted tab bar of the Christmas theme, and of the stitches
+  /// drawn on it.
+  final Color knitBase;
+  final Color knitStitch;
+
   /// Blue of creatine: its button, its dot and its veil in the shaker.
   static const creatine = Color(0xFF3FA9F5);
 
   /// Frame the barcode is placed in, over the camera picture.
   static const scanFrame = Color(0xFF5FD38F);
 
-  static const accent = Color(0xFFFF8A3D);
-  static const onAccent = Color(0xFF1B0E05);
+  /// Orange of the app, whatever the theme: the notifications keep it, and
+  /// the share tiles out of Christmas. Read [accent] for the screens.
+  static const brandAccent = Color(0xFFFF8A3D);
+  static const brandProgressHalf = Color(0xFFFFAC72);
+  static const _brandSelection = Color(0xFFFF9854);
+  static const _brandMorning = Color(0xFFFFC59E);
+  static const _brandEvening = Color(0xFFD9531A);
 
-  /// Selected option of the pill selectors (tabs, sorts, entry modes): a
-  /// lighter [accent], so it does not look like an add button.
-  static const selection = Color(0xFFFF9854);
+  /// Dark ink, readable on the orange and on the light fills (creatine, the
+  /// parts of the day).
+  static const ink = Color(0xFF1B0E05);
   static const danger = Color(0xFFFF5C7A);
-
-  /// Calendar days at half of their goal or more: a lighter [accent], the
-  /// full one marking the goal reached. Halfway between, so it stands apart
-  /// from the pale days under half.
-  static const progressHalf = Color(0xFFFFAC72);
 
   static const light = AppColors(
     background: Color(0xFFD9E3FF),
@@ -110,11 +149,56 @@ class AppColors extends ThemeExtension<AppColors> {
     onHevy: Color(0xFF000000),
   );
 
+  /// Christmas red in place of the orange, from December 1 to 25.
+  static final christmasLight = light.copyWith(
+    accent: _christmasRed,
+    onAccent: const Color(0xFFFFFFFF),
+    accentText: const Color(0xFFB0182C),
+    selection: _christmasSelection,
+    progressHalf: _christmasHalf,
+    slotMorning: const Color(0xFFF9C2C7),
+    slotAfternoon: _christmasHalf,
+    slotEvening: _christmasSelection,
+    creatineFill: _christmasGreen,
+    creatineText: const Color(0xFF1B7A45),
+  );
+
+  static final christmasDark = dark.copyWith(
+    accent: _christmasRed,
+    onAccent: const Color(0xFFFFFFFF),
+    accentText: const Color(0xFFFF5A6A),
+    selection: _christmasSelection,
+    progressHalf: _christmasHalf,
+    slotMorning: const Color(0xFFF9C2C7),
+    slotAfternoon: _christmasHalf,
+    slotEvening: _christmasSelection,
+    creatineFill: _christmasGreen,
+    creatineText: const Color(0xFF6BD69A),
+    knitBase: const Color(0xFF262E6B),
+    knitStitch: const Color(0xFF353E80),
+  );
+
+  static const _christmasRed = Color(0xFFD7263D);
+
+  /// Fir green of creatine, dark ink staying readable on it.
+  static const _christmasGreen = Color(0xFF2E9E5B);
+
+  /// Fir green readable as text and icons on the background of the light
+  /// theme, or of the dark one: the tree of the Christmas theme switch.
+  static Color christmasGreenText(Brightness brightness) =>
+      brightness == Brightness.light
+      ? christmasLight.creatineText
+      : christmasDark.creatineText;
+
+  /// Lighter reds, dark ink staying readable on them.
+  static const _christmasSelection = Color(0xFFE0485C);
+  static const _christmasHalf = Color(0xFFEE8592);
+
   /// Color of the entries added during [slot].
-  static Color slot(DaySlot slot) => switch (slot) {
-    DaySlot.morning => const Color(0xFFFFC59E),
-    DaySlot.afternoon => const Color(0xFFFF8A3D),
-    DaySlot.evening => const Color(0xFFD9531A),
+  Color slot(DaySlot slot) => switch (slot) {
+    DaySlot.morning => slotMorning,
+    DaySlot.afternoon => slotAfternoon,
+    DaySlot.evening => slotEvening,
   };
 
   static AppColors of(BuildContext context) =>
@@ -136,6 +220,16 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? creatineText,
     Color? hevy,
     Color? onHevy,
+    Color? accent,
+    Color? onAccent,
+    Color? selection,
+    Color? progressHalf,
+    Color? slotMorning,
+    Color? slotAfternoon,
+    Color? slotEvening,
+    Color? creatineFill,
+    Color? knitBase,
+    Color? knitStitch,
   }) => AppColors(
     background: background ?? this.background,
     surface: surface ?? this.surface,
@@ -151,6 +245,16 @@ class AppColors extends ThemeExtension<AppColors> {
     creatineText: creatineText ?? this.creatineText,
     hevy: hevy ?? this.hevy,
     onHevy: onHevy ?? this.onHevy,
+    accent: accent ?? this.accent,
+    onAccent: onAccent ?? this.onAccent,
+    selection: selection ?? this.selection,
+    progressHalf: progressHalf ?? this.progressHalf,
+    slotMorning: slotMorning ?? this.slotMorning,
+    slotAfternoon: slotAfternoon ?? this.slotAfternoon,
+    slotEvening: slotEvening ?? this.slotEvening,
+    creatineFill: creatineFill ?? this.creatineFill,
+    knitBase: knitBase ?? this.knitBase,
+    knitStitch: knitStitch ?? this.knitStitch,
   );
 
   @override
@@ -172,6 +276,16 @@ class AppColors extends ThemeExtension<AppColors> {
       creatineText: mix(creatineText, other.creatineText),
       hevy: mix(hevy, other.hevy),
       onHevy: mix(onHevy, other.onHevy),
+      accent: mix(accent, other.accent),
+      onAccent: mix(onAccent, other.onAccent),
+      selection: mix(selection, other.selection),
+      progressHalf: mix(progressHalf, other.progressHalf),
+      slotMorning: mix(slotMorning, other.slotMorning),
+      slotAfternoon: mix(slotAfternoon, other.slotAfternoon),
+      slotEvening: mix(slotEvening, other.slotEvening),
+      creatineFill: mix(creatineFill, other.creatineFill),
+      knitBase: mix(knitBase, other.knitBase),
+      knitStitch: mix(knitStitch, other.knitStitch),
     );
   }
 }
@@ -180,7 +294,24 @@ abstract final class AppTheme {
   static final ThemeData light = _build(AppColors.light, Brightness.light);
   static final ThemeData dark = _build(AppColors.dark, Brightness.dark);
 
-  static ThemeData _build(AppColors colors, Brightness brightness) {
+  /// From December 1 to 25, see `christmasActiveProvider`.
+  static final ThemeData christmasLight = _build(
+    AppColors.christmasLight,
+    Brightness.light,
+  );
+  static final ThemeData christmasDark = _build(
+    AppColors.christmasDark,
+    Brightness.dark,
+    lightColors: AppColors.christmasLight,
+  );
+
+  /// [lightColors] are those of the light theme going with [colors], which
+  /// the snack bars of the dark theme, white, use.
+  static ThemeData _build(
+    AppColors colors,
+    Brightness brightness, {
+    AppColors lightColors = AppColors.light,
+  }) {
     TextStyle title(double size, FontWeight weight) => TextStyle(
       fontFamily: _titleFont,
       fontSize: size,
@@ -205,7 +336,7 @@ abstract final class AppTheme {
       bodyLarge: body(15, FontWeight.w400, colors.text),
       bodyMedium: body(13, FontWeight.w400, colors.text),
       bodySmall: body(12, FontWeight.w400, colors.textSecondary),
-      labelLarge: body(14, FontWeight.w600, AppColors.onAccent),
+      labelLarge: body(14, FontWeight.w600, colors.onAccent),
       labelSmall: body(11, FontWeight.w500, colors.textSecondary),
     );
 
@@ -216,8 +347,8 @@ abstract final class AppTheme {
       fontFamily: _bodyFont,
       colorScheme: ColorScheme(
         brightness: brightness,
-        primary: AppColors.accent,
-        onPrimary: AppColors.onAccent,
+        primary: colors.accent,
+        onPrimary: colors.onAccent,
         secondary: colors.structure,
         onSecondary: AppColors.light.surfaceRaised,
         error: AppColors.danger,
@@ -247,8 +378,8 @@ abstract final class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.accent,
-          foregroundColor: AppColors.onAccent,
+          backgroundColor: colors.accent,
+          foregroundColor: colors.onAccent,
           minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 18),
           shape: RoundedRectangleBorder(borderRadius: radius),
@@ -273,7 +404,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: radius,
-          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+          borderSide: BorderSide(color: colors.accent, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: radius,
@@ -284,9 +415,9 @@ abstract final class AppTheme {
           borderSide: BorderSide(color: colors.accentText, width: 1.5),
         ),
       ),
-      textSelectionTheme: const TextSelectionThemeData(
-        cursorColor: AppColors.accent,
-        selectionHandleColor: AppColors.accent,
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: colors.accent,
+        selectionHandleColor: colors.accent,
       ),
       dividerTheme: DividerThemeData(color: colors.divider, thickness: 1),
       checkboxTheme: CheckboxThemeData(
@@ -294,10 +425,10 @@ abstract final class AppTheme {
           (states) =>
               states.contains(WidgetState.selected) &&
                   !states.contains(WidgetState.disabled)
-              ? AppColors.accent
+              ? colors.accent
               : null,
         ),
-        checkColor: const WidgetStatePropertyAll(AppColors.onAccent),
+        checkColor: WidgetStatePropertyAll(colors.onAccent),
         side: BorderSide(color: colors.textSecondary, width: 1.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       ),
@@ -320,8 +451,8 @@ abstract final class AppTheme {
               : AppColors.dark.background,
         ),
         actionTextColor: brightness == Brightness.light
-            ? AppColors.accent
-            : AppColors.light.accentText,
+            ? colors.accent
+            : lightColors.accentText,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );

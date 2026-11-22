@@ -14,11 +14,11 @@ Color progressColor(double grams, double? goal, AppColors colors) =>
     switch (DayProgress.of(grams, goal ?? 0)) {
       DayProgress.none => colors.divider,
       DayProgress.low => Color.alphaBlend(
-        AppColors.accent.withValues(alpha: 0.3),
+        colors.accent.withValues(alpha: 0.3),
         colors.surface,
       ),
-      DayProgress.half => AppColors.progressHalf,
-      DayProgress.reached => AppColors.accent,
+      DayProgress.half => colors.progressHalf,
+      DayProgress.reached => colors.accent,
     };
 
 /// A card of the statistics tab, with its [title].

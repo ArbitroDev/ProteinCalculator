@@ -226,6 +226,11 @@ class AppSettings extends Table {
   /// which leaves the Hevy marks off the history.
   DateTimeColumn get hevyImportedAt => dateTime().nullable()();
 
+  /// Whether the app dresses for Christmas from December 1 to 25, see
+  /// `isChristmasSeason`; on until the user turns it off.
+  BoolColumn get christmasTheme =>
+      boolean().withDefault(const Constant(true))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

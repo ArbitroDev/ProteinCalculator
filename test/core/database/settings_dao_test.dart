@@ -103,6 +103,17 @@ void main() {
     });
   });
 
+  group('Christmas theme', () {
+    test('is on by default, and can be turned off', () async {
+      expect(await dao.getChristmasTheme(), isTrue);
+
+      await dao.setChristmasTheme(false);
+
+      expect(await dao.getChristmasTheme(), isFalse);
+      expect(await dao.watchChristmasTheme().first, isFalse);
+    });
+  });
+
   group('creatine', () {
     test('is off by default, never turned on', () async {
       final creatine = await dao.getCreatine();

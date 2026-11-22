@@ -176,7 +176,7 @@ class _DayDetailPageState extends ConsumerState<DayDetailPage>
             for (final entry in bySlot[slot]!)
               _DismissibleEntry(
                 entry: entry,
-                color: AppColors.slot(slot),
+                color: colors.slot(slot),
                 time: formatTime(entry.createdAt, locale),
                 onDelete: () => _delete(entry),
               ),
@@ -261,7 +261,7 @@ class _SlotCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     // The part of the day stands out more than its entries.
     final style = Theme.of(context).textTheme.headlineSmall!
-        .copyWith(color: AppColors.onAccent, fontSize: 20);
+        .copyWith(color: AppColors.ink, fontSize: 20);
     final label = l10n.slotName(slot);
     final icon = switch (slot) {
       DaySlot.morning => LucideIcons.sunrise,
@@ -269,7 +269,7 @@ class _SlotCard extends StatelessWidget {
       DaySlot.evening => LucideIcons.moon,
     };
     final card = Material(
-      color: AppColors.slot(slot),
+      color: AppColors.of(context).slot(slot),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -286,7 +286,7 @@ class _SlotCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
               child: Row(
                 children: [
-                  Icon(icon, size: 22, color: AppColors.onAccent),
+                  Icon(icon, size: 22, color: AppColors.ink),
                   const SizedBox(width: 10),
                   Expanded(child: Text(label, style: style)),
                   Text(total, style: style),
@@ -310,7 +310,9 @@ class _SlotCard extends StatelessWidget {
                   left: 0,
                   right: 0,
                   height: _radius.y,
-                  child: ColoredBox(color: AppColors.slot(previous)),
+                  child: ColoredBox(
+                    color: AppColors.of(context).slot(previous),
+                  ),
                 ),
                 card,
               ],
@@ -423,7 +425,7 @@ class _DismissibleEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
-    const ink = AppColors.onAccent;
+    const ink = AppColors.ink;
     final faded = ink.withValues(alpha: 0.7);
     final creatineOnly = entry.isCreatineOnly;
     final name = shownEntryName(entry, l10n);

@@ -40,8 +40,8 @@ class GoalField extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colors = AppColors.of(context);
     final locale = context.localeName;
-    const underline = UnderlineInputBorder(
-      borderSide: BorderSide(color: AppColors.accent, width: 2),
+    final underline = UnderlineInputBorder(
+      borderSide: BorderSide(color: colors.accent, width: 2),
     );
 
     return TextField(

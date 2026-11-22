@@ -44,7 +44,7 @@ class _UndoCountdown extends StatelessWidget {
             builder: (context, value, _) => CircularProgressIndicator(
               value: value,
               strokeWidth: 3,
-              color: AppColors.accent,
+              color: AppColors.of(context).accent,
               backgroundColor: track,
             ),
           ),

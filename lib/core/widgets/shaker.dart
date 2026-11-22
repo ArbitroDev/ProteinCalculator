@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/snow.dart';
 
 /// One entry shown as a layer in the shaker.
 @immutable
@@ -34,14 +35,30 @@ class ShakerMotion extends ChangeNotifier {
   /// Advances while mixing, to animate the swirl and the bubbles.
   double phase = 0;
 
+  /// Snow on the lid in the Christmas theme, from 0 to 1, see
+  /// `paintSnowOnLid`: shaking makes it fall, then it settles again.
+  double snow = 1;
+
+  /// Seconds since the snow fell off, while it falls; null otherwise.
+  double? snowFall;
+
+  /// How much snow fell off, from 0 to 1.
+  double fallenSnow = 0;
+
   void update({
     required double tilt,
     required double mix,
     required double phase,
+    double? snow,
+    double? snowFall,
+    double? fallenSnow,
   }) {
     this.tilt = tilt;
     this.mix = mix;
     this.phase = phase;
+    this.snow = snow ?? this.snow;
+    this.snowFall = snowFall;
+    this.fallenSnow = fallenSnow ?? this.fallenSnow;
     notifyListeners();
   }
 }
@@ -61,6 +78,7 @@ class Shaker extends StatefulWidget {
     this.maxGrams,
     this.showGoalLine = true,
     this.creatineDoses = 0,
+    this.snowy = false,
   });
 
   final List<ShakerLayer> layers;
@@ -71,6 +89,9 @@ class Shaker extends StatefulWidget {
   /// Creatine doses of the day, settled at the bottom as a veil over the
   /// layers: they never raise the liquid.
   final int creatineDoses;
+
+  /// Whether snow lies on the lid, for the Christmas theme.
+  final bool snowy;
 
   /// Grams at the top of the graduations; by default the larger of the
   /// goal and the total. Content above it keeps the shaker full.
@@ -130,6 +151,7 @@ class _ShakerState extends State<Shaker> {
                 maxGrams: widget.maxGrams,
                 showGoalLine: widget.showGoalLine,
                 creatineDoses: widget.creatineDoses,
+                snowy: widget.snowy,
               ),
             ),
           ),
@@ -149,6 +171,7 @@ class _ShakerPainter extends CustomPainter {
     required this.maxGrams,
     required this.showGoalLine,
     required this.creatineDoses,
+    required this.snowy,
   }) : super(repaint: motion);
 
   final List<ShakerLayer> layers;
@@ -159,6 +182,7 @@ class _ShakerPainter extends CustomPainter {
   final double? maxGrams;
   final bool showGoalLine;
   final int creatineDoses;
+  final bool snowy;
 
   // Drawing coordinates, in a 110 x 290 box.
   static const _width = 110.0;
@@ -195,6 +219,15 @@ class _ShakerPainter extends CustomPainter {
     _paintContent(canvas, y, total);
     _paintGraduations(canvas, range, y);
     _paintLid(canvas);
+    if (snowy) {
+      paintSnowOnLid(
+        canvas,
+        colors,
+        amount: motion?.snow ?? 1,
+        fall: motion?.snowFall,
+        fallen: motion?.fallenSnow ?? 0,
+      );
+    }
   }
 
   void _paintContent(Canvas canvas, double Function(double) y, double total) {
@@ -227,10 +260,10 @@ class _ShakerPainter extends CustomPainter {
 
     // Creatine dissolves in the mix, tinting it, and settles again after.
     final mixed = creatineDoses > 0
-        ? Color.lerp(_averageColor(total), AppColors.creatine, 0.2 * mix)!
+        ? Color.lerp(_averageColor(total), colors.creatineFill, 0.2 * mix)!
         : _averageColor(total);
     final separator = Paint()
-      ..color = AppColors.onAccent.withValues(alpha: 0.25 * (1 - mix))
+      ..color = AppColors.ink.withValues(alpha: 0.25 * (1 - mix))
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke;
 
@@ -247,7 +280,7 @@ class _ShakerPainter extends CustomPainter {
       final lower = i == 0
           ? [const Offset(_right, 290), const Offset(_left, 290)]
           : line(start, i).reversed.toList();
-      final color = Color.lerp(AppColors.slot(layer.slot), mixed, mix)!;
+      final color = Color.lerp(colors.slot(layer.slot), mixed, mix)!;
       canvas.drawPath(
         Path()..addPolygon([...upper, ...lower], true),
         Paint()..color = color,
@@ -288,7 +321,7 @@ class _ShakerPainter extends CustomPainter {
     void strata(double opacity) {
       final fade = opacity * (1 - mix);
       final separator = Paint()
-        ..color = AppColors.onAccent.withValues(alpha: 0.25 * fade)
+        ..color = AppColors.ink.withValues(alpha: 0.25 * fade)
         ..strokeWidth = 1.2
         ..style = PaintingStyle.stroke;
       for (var k = 0; k < creatineDoses; k++) {
@@ -302,7 +335,7 @@ class _ShakerPainter extends CustomPainter {
             ...boundary(bottom - _creatineHeight),
             ...lower,
           ], true),
-          Paint()..color = AppColors.creatine.withValues(alpha: 0.45 * fade),
+          Paint()..color = colors.creatineFill.withValues(alpha: 0.45 * fade),
         );
         if (k > 0) {
           canvas.drawPath(
@@ -343,10 +376,10 @@ class _ShakerPainter extends CustomPainter {
 
   /// Color of the whole content, each layer weighted by its grams.
   Color _averageColor(double total) {
-    if (total == 0) return AppColors.slot(DaySlot.afternoon);
+    if (total == 0) return colors.slot(DaySlot.afternoon);
     var r = 0.0, g = 0.0, b = 0.0;
     for (final layer in layers) {
-      final color = AppColors.slot(layer.slot);
+      final color = colors.slot(layer.slot);
       final weight = layer.grams / total;
       r += color.r * weight;
       g += color.g * weight;
@@ -360,7 +393,7 @@ class _ShakerPainter extends CustomPainter {
     final height = _bottom - surface;
     if (height < 8) return;
     final bubble = creatineDoses > 0
-        ? Color.lerp(Colors.white, AppColors.creatine, 0.5)!
+        ? Color.lerp(Colors.white, colors.creatineFill, 0.5)!
         : Colors.white;
     final paint = Paint()..color = bubble.withValues(alpha: 0.35 * mix);
     for (var i = 0; i < 12; i++) {
@@ -470,6 +503,7 @@ class _ShakerPainter extends CustomPainter {
       old.colors != colors ||
       old.motion != motion ||
       old.creatineDoses != creatineDoses ||
+      old.snowy != snowy ||
       !_sameLayers(old.layers, layers);
 
   static bool _sameLayers(List<ShakerLayer> a, List<ShakerLayer> b) {

@@ -345,7 +345,7 @@ class _AndroidNotifications implements RoutineNotifications {
             _slotRemindersChannel,
             l10n.notificationChannelSlotReminders,
             icon: 'ic_notification',
-            color: AppColors.accent,
+            color: AppColors.brandAccent,
             category: AndroidNotificationCategory.reminder,
           ),
         ),
@@ -385,7 +385,7 @@ class _AndroidNotifications implements RoutineNotifications {
               ? l10n.notificationChannelReminders
               : l10n.notificationChannelAutoAdds,
           icon: 'ic_notification',
-          color: AppColors.accent,
+          color: AppColors.brandAccent,
           category: reminder
               ? AndroidNotificationCategory.reminder
               : AndroidNotificationCategory.status,

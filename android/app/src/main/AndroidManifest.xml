@@ -42,8 +42,9 @@
         android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Opened by the launcher through the aliases below, one per icon. -->
         <activity
-            android:name=".MainActivity"
+            android:name=".AppActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -59,13 +60,33 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+        </activity>
+        <!-- The usual icon. Named as the activity was, so that the icons already
+             on home screens keep opening the app. -->
+        <activity-alias
+            android:name=".MainActivity"
+            android:exported="true"
+            android:targetActivity=".AppActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-        </activity>
+        </activity-alias>
+        <!-- The Christmas icon, in place of the usual one from December 1 to
+             25 when the Christmas theme is on, see AppActivity.setChristmasIcon. -->
+        <activity-alias
+            android:name=".ChristmasLauncher"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_christmas"
+            android:targetActivity=".AppActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
         <!-- Receives the Hevy workouts export, shared to the app from Hevy,
-             and hands it to MainActivity in the task of the app: imported as
+             and hands it to AppActivity in the task of the app: imported as
              from the menu, see lib/core/hevy/shared_file.dart. -->
         <activity
             android:name=".ShareActivity"
