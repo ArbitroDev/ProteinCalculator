@@ -53,9 +53,13 @@ class CalendarMonthTile extends StatelessWidget {
     final mode = data.mode;
     final days = DateTime(month.year, month.month + 1, 0).day;
     final lead = (month.weekday % 7 - data.firstWeekday + 7) % 7;
+    final colors = shareTileColors(context);
+    // From December 1 to 25, the baubles of the Christmas theme.
+    final christmas = ShareTileChristmas.of(context) && month.month == 12;
     var marked = 0;
-    final cells = <Widget>[
-      for (var i = 0; i < lead; i++) const SizedBox.shrink(),
+    // Each day, from the space the garland crosses between two of them.
+    final cells = <Widget Function(double gap)>[
+      for (var i = 0; i < lead; i++) (_) => const SizedBox.shrink(),
     ];
     for (var day = 1; day <= days; day++) {
       final dayKey = dayKeyOfDate(DateTime(month.year, month.month, day));
@@ -86,16 +90,33 @@ class CalendarMonthTile extends StatelessWidget {
               ),
             )
           : switch (mode) {
-              CalendarMode.protein => calendarProgressColors(progress, _colors),
-              CalendarMode.creatine => calendarCreatineColors(
-                creatine,
-                _colors,
-              ),
-              CalendarMode.hevy => calendarHevyColors(hevy, _colors),
+              CalendarMode.protein => calendarProgressColors(progress, colors),
+              CalendarMode.creatine => calendarCreatineColors(creatine, colors),
+              CalendarMode.hevy => calendarHevyColors(hevy, colors),
             };
       final isToday = dayKey == data.todayKey;
+      if (christmas && day <= 25) {
+        cells.add(
+          (gap) => Center(
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: ChristmasDay(
+                day: day,
+                fill: style.fill,
+                textColor: style.text,
+                bold: highlighted || isToday,
+                isToday: isToday,
+                lit: highlighted,
+                gap: gap,
+                onTap: null,
+              ),
+            ),
+          ),
+        );
+        continue;
+      }
       cells.add(
-        Center(
+        (_) => Center(
           child: AspectRatio(
             aspectRatio: 1,
             child: DecoratedBox(
@@ -124,13 +145,13 @@ class CalendarMonthTile extends StatelessWidget {
       );
     }
 
-    final none = calendarProgressColors(DayProgress.none, _colors);
+    final none = calendarProgressColors(DayProgress.none, colors);
     final legend = switch (mode) {
       CalendarMode.protein => [
         for (final progress in DayProgress.values)
           _LegendItem(
             label: calendarProgressLabel(l10n, progress),
-            fill: calendarProgressColors(progress, _colors).fill,
+            fill: calendarProgressColors(progress, colors).fill,
             bordered: progress == DayProgress.none,
           ),
       ],
@@ -138,7 +159,7 @@ class CalendarMonthTile extends StatelessWidget {
         _LegendItem(label: l10n.calendarNone, fill: none.fill, bordered: true),
         _LegendItem(
           label: l10n.calendarCreatine,
-          fill: calendarCreatineColors(true, _colors).fill,
+          fill: calendarCreatineColors(true, colors).fill,
         ),
       ],
       CalendarMode.hevy => [
@@ -149,7 +170,7 @@ class CalendarMonthTile extends StatelessWidget {
         ),
         _LegendItem(
           label: l10n.calendarHevy,
-          fill: calendarHevyColors(true, _colors).fill,
+          fill: calendarHevyColors(true, colors).fill,
         ),
       ],
     };
@@ -204,6 +225,9 @@ class CalendarMonthTile extends StatelessWidget {
                 final width = (constraints.maxWidth - gap * 6) / 7;
                 final height =
                     (constraints.maxHeight - gap * (rows - 1)) / rows;
+                // The days are squares in the middle of their cells: the
+                // garland crosses the room left on their sides too.
+                final garland = gap + max(0.0, width - height);
                 return GridView.count(
                   crossAxisCount: 7,
                   mainAxisSpacing: gap,
@@ -211,7 +235,7 @@ class CalendarMonthTile extends StatelessWidget {
                   childAspectRatio: width / height,
                   physics: const NeverScrollableScrollPhysics(),
                   padding: EdgeInsets.zero,
-                  children: cells,
+                  children: [for (final cell in cells) cell(garland)],
                 );
               },
             ),
@@ -334,6 +358,7 @@ class WeekTile extends StatelessWidget {
                                   height: 118,
                                   width: 118 * Shaker.aspectRatio,
                                   child: Shaker(
+                                    snowy: ShareTileChristmas.of(context),
                                     layers: [
                                       for (final slot in DaySlot.values)
                                         if ((day.bySlot[slot] ?? 0) > 0)

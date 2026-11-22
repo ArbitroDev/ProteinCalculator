@@ -195,7 +195,7 @@ class _CreatineCard extends StatelessWidget {
           DayMarksStrip(
             marks: stats.marks,
             monthShares: stats.monthShares,
-            color: AppColors.creatine,
+            color: colors.creatineFill,
             summary: l10n.statsMarks(stats.takenDays, stats.countedDays),
           ),
         ],

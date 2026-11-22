@@ -23,12 +23,16 @@ Future<bool> startApp({
   final database = openDatabase();
   final double? goal;
   final bool crashReports;
+  final bool christmasTheme;
   try {
     // The database opens, and migrates, on its first query. Reading the goal
     // before the first frame also avoids flashing the today screen before
     // the first launch screen.
     goal = await database.settingsDao.getDailyGoal();
     crashReports = await database.settingsDao.getCrashReports();
+    // Read before the first frame too: in December, the app opens dressed
+    // for Christmas rather than turning red once the setting is read.
+    christmasTheme = await database.settingsDao.getChristmasTheme();
   } on Object catch (error, stack) {
     // The choice about crash reports is stored with the unreadable data: the
     // error is only reported on the device.
@@ -70,6 +74,7 @@ Future<bool> startApp({
         databaseProvider.overrideWithValue(database),
         routineNotificationsProvider.overrideWithValue(notifications),
         watchLinkProvider.overrideWithValue(WatchLink.platform()),
+        initialChristmasThemeProvider.overrideWithValue(christmasTheme),
         initialLocationProvider.overrideWithValue(
           goal == null ? AppRoutes.onboarding : AppRoutes.today,
         ),

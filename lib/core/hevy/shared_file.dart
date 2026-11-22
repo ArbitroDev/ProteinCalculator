@@ -11,7 +11,7 @@ import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
-/// Link with `MainActivity`, which keeps the file shared to the app until
+/// Link with `AppActivity`, which keeps the file shared to the app until
 /// `take` gives it, and says `available` when one is shared while the app is
 /// open.
 const _channel = MethodChannel('protein_calculator/shared_file');

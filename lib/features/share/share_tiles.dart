@@ -21,6 +21,7 @@ import 'package:protein_calculator/core/widgets/shaker.dart';
 import 'package:protein_calculator/core/widgets/shaker_icon.dart';
 import 'package:protein_calculator/core/widgets/slot_name.dart';
 import 'package:protein_calculator/features/history/calendar_view.dart';
+import 'package:protein_calculator/features/history/christmas_day.dart';
 import 'package:protein_calculator/features/share/share_sheet.dart';
 import 'package:protein_calculator/features/stats/stats_widgets.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
@@ -29,6 +30,8 @@ part 'tiles/day_tiles.dart';
 part 'tiles/period_tiles.dart';
 part 'tiles/history_tiles.dart';
 
+/// Colors of the tiles that Christmas leaves as they are: the text, the
+/// surfaces. Those it turns red or green come from [shareTileColors].
 const _colors = AppColors.light;
 
 TextStyle _display(double size, {Color? color, FontWeight? weight}) =>
@@ -178,7 +181,7 @@ List<Widget> _dayChips(DayShare day, BuildContext context) {
     if (day.creatineDoses > 0)
       _Chip(
         label: l10n.creatine,
-        background: AppColors.creatine,
+        background: shareTileColors(context).creatineFill,
         foreground: const Color(0xFF06263F),
         leading: CreatineMark(
           doses: day.creatineDoses,
@@ -233,6 +236,7 @@ class _TileBars extends StatelessWidget {
     final shown = goal > 0;
     final top = max(values.nonNulls.maxOrNull ?? 0, goal) * 1.12;
     final labels = this.labels;
+    final colors = shareTileColors(context);
     // The goal is written on the right of the bars, in a gutter of its own,
     // where it hides none of them.
     final gutter = shown ? _goalGutter : 0.0;
@@ -269,7 +273,7 @@ class _TileBars extends StatelessWidget {
                                         color: progressColor(
                                           value,
                                           goals[index],
-                                          _colors,
+                                          colors,
                                         ),
                                         borderRadius:
                                             const BorderRadius.vertical(

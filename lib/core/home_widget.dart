@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/watch/watch_state.dart';
 
 /// Widget "Today's goal" of the home screen, see `GoalWidget` in the Android
@@ -13,6 +16,11 @@ const _widget = 'arbitro.android.protein_calculator.GoalWidget';
 /// Key of the day the widget shows, a JSON object, in the storage of the
 /// plugin `home_widget`.
 const homeWidgetDayKey = 'day';
+
+/// Key of the Christmas theme setting, a bool, in the storage of the plugin
+/// `home_widget`: the widget dresses for Christmas from December 1 to 25
+/// while it is on, checking the day on its own.
+const homeWidgetChristmasKey = 'christmasTheme';
 
 /// What the widget shows of the app day: it starts a new day at
 /// [dayStartHour] on its own, with nothing, without waiting for the app.
@@ -69,16 +77,34 @@ class HomeWidgetDay {
       Object.hash(dayKey, dayStartHour, total, goal, creatineTaken);
 }
 
+/// Tells the widget of the home screen whether the Christmas theme is on,
+/// each time the user turns it on or off, on Android only.
+final homeWidgetChristmasProvider = Provider<void>((ref) {
+  final on = ref.watch(christmasThemeProvider).value;
+  if (on != null) unawaited(updateHomeWidgetChristmas(on));
+});
+
+/// Writes the Christmas theme setting [on] for the widget and draws it
+/// again. A failure is only reported: the widget keeps what it showed.
+Future<void> updateHomeWidgetChristmas(bool on) => _updateWidget(
+  () => HomeWidget.saveWidgetData<bool>(homeWidgetChristmasKey, on),
+);
+
 /// Shows [state], the day sent to the watch, in the widget of the home
 /// screen, on Android only. A failure is only reported: the widget keeps
 /// what it showed.
-Future<void> updateHomeWidget(WatchState state) async {
+Future<void> updateHomeWidget(WatchState state) => _updateWidget(
+  () => HomeWidget.saveWidgetData<String>(
+    homeWidgetDayKey,
+    jsonEncode(HomeWidgetDay.of(state).toJson()),
+  ),
+);
+
+/// Saves data with [save], then draws the widget again, on Android only.
+Future<void> _updateWidget(Future<void> Function() save) async {
   if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
   try {
-    await HomeWidget.saveWidgetData<String>(
-      homeWidgetDayKey,
-      jsonEncode(HomeWidgetDay.of(state).toJson()),
-    );
+    await save();
     await HomeWidget.updateWidget(qualifiedAndroidName: _widget);
   } on MissingPluginException {
     // An engine without the plugin, as in the tests: no widget to update.

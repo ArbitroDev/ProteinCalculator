@@ -127,7 +127,7 @@ class _PeriodPickerState extends State<_PeriodPicker> {
       return Semantics(
         selected: selected,
         child: Material(
-          color: selected ? AppColors.selection : colors.surface,
+          color: selected ? colors.selection : colors.surface,
           shape: const StadiumBorder(),
           child: InkWell(
             customBorder: const StadiumBorder(),
@@ -138,7 +138,7 @@ class _PeriodPickerState extends State<_PeriodPicker> {
                 style: textTheme.bodyLarge!.copyWith(
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                   color: selected
-                      ? AppColors.onAccent
+                      ? colors.onSelection
                       : enabled
                       ? colors.text
                       : colors.textSecondary.withValues(alpha: 0.4),

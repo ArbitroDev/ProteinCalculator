@@ -11,6 +11,7 @@ import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v12.dart' as v12;
 import 'generated/schema_v13.dart' as v13;
 import 'generated/schema_v14.dart' as v14;
+import 'generated/schema_v15.dart' as v15;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
@@ -601,6 +602,41 @@ void main() {
         expect(await newDb.select(newDb.hevySessions).get(), isEmpty);
         final settings = await newDb.select(newDb.appSettings).getSingle();
         expect(settings.hevyImportedAt, equals(null));
+      },
+    );
+  });
+
+  test('migration from v14, the version of 1.6.0, to v15 turns the Christmas '
+      'theme on', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 14,
+      newVersion: 15,
+      createOld: v14.DatabaseAtV14.new,
+      createNew: v15.DatabaseAtV15.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insert(
+          oldDb.appSettings,
+          const v14.AppSettingsData(
+            id: 1,
+            dailyGoalGrams: 140,
+            productSort: 'mostUsed',
+            dayStartHour: 3,
+            historyView: 'list',
+            crashReports: 0,
+            slotReminders: 1,
+            savedProductsCollapsed: 0,
+            recentScansCollapsed: 0,
+            scanNoticeSeen: 1,
+            creatineEnabled: 0,
+          ),
+        );
+      },
+      validateItems: (newDb) async {
+        final settings = await newDb.select(newDb.appSettings).getSingle();
+        expect(settings.dailyGoalGrams, 140);
+        expect(settings.slotReminders, 1);
+        expect(settings.christmasTheme, 1);
       },
     );
   });

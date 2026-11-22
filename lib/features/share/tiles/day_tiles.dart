@@ -14,6 +14,7 @@ class DayShakerTile extends StatelessWidget {
     final goal = day.goal;
     final percent = goalPercent(total, goal);
     final chips = _dayChips(day, context);
+    final colors = shareTileColors(context);
 
     return ShareTileFrame(
       child: Column(
@@ -36,6 +37,7 @@ class DayShakerTile extends StatelessWidget {
                   height: 226,
                   width: 226 * Shaker.aspectRatio,
                   child: Shaker(
+                    snowy: ShareTileChristmas.of(context),
                     layers: day.layers,
                     goal: goal,
                     creatineDoses: day.creatineDoses,
@@ -87,8 +89,8 @@ class DayShakerTile extends StatelessWidget {
                               const SizedBox(height: 10),
                               _Chip(
                                 label: l10n.shareGoalReached,
-                                background: AppColors.accent,
-                                foreground: AppColors.onAccent,
+                                background: colors.accent,
+                                foreground: colors.onAccent,
                               ),
                               if (day.streak >= 3) ...[
                                 const SizedBox(height: 8),
@@ -171,6 +173,7 @@ class DayTimelineTile extends StatelessWidget {
     }
     final total = day.total;
     final slotName = l10n.slotName;
+    final colors = shareTileColors(context);
 
     return ShareTileFrame(
       child: Column(
@@ -266,7 +269,7 @@ class DayTimelineTile extends StatelessWidget {
                             1,
                             1000,
                           ),
-                          child: ColoredBox(color: AppColors.slot(slot)),
+                          child: ColoredBox(color: colors.slot(slot)),
                         ),
                   ],
                 ),
@@ -285,7 +288,7 @@ class DayTimelineTile extends StatelessWidget {
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: AppColors.slot(slot),
+                            color: colors.slot(slot),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -327,6 +330,7 @@ class _TimelineLine extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final locale = context.localeName;
     final named = showProducts && entry.name != null;
+    final colors = shareTileColors(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 7),
       child: SizedBox(
@@ -356,7 +360,7 @@ class _TimelineLine extends StatelessWidget {
                         width: max(6, room * entry.proteinGrams / most),
                         height: 12,
                         decoration: BoxDecoration(
-                          color: AppColors.slot(entry.slot),
+                          color: colors.slot(entry.slot),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),

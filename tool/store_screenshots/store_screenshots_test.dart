@@ -17,6 +17,7 @@ import 'package:protein_calculator/core/domain/history_view.dart';
 import 'package:protein_calculator/core/domain/product_sort.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
 import 'package:protein_calculator/core/router.dart';
+import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/features/share/share_choices.dart';
 
 import '../../test/helpers.dart';
@@ -228,11 +229,24 @@ void main() {
         addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
         final db = await tester.runAsync(() => _seed(texts));
-        await pumpApp(tester, db!, now: _now, locales: [texts.locale]);
+        // Never a special theme, such as the Christmas one, whatever the
+        // date: the store and the README show the app as it is all year.
+        await pumpApp(
+          tester,
+          db!,
+          now: _now,
+          locales: [texts.locale],
+          christmas: false,
+        );
         await tester.pumpAndSettle(const Duration(seconds: 2));
 
         Future<void> shoot(String name) async {
           await tester.pumpAndSettle(const Duration(seconds: 2));
+          expect(
+            AppColors.of(tester.element(find.byType(Navigator).first)).accent,
+            AppColors.brandAccent,
+            reason: 'the store images show the usual theme only',
+          );
           await expectLater(
             find.byType(MaterialApp),
             matchesGoldenFile('$folder/$theme-$name.png'),

@@ -63,6 +63,7 @@ void main() {
     addTearDown(() => FlutterError.onError = onError);
 
     await updateHomeWidget(state([entry(1)]));
+    await updateHomeWidgetChristmas(true);
     expect(reported, isEmpty);
   });
 }

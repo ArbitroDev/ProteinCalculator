@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/protein_amounts.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/christmas.dart';
 import 'package:protein_calculator/core/domain/day_progress.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/formatting.dart';
@@ -52,7 +53,8 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
     final messenger = ScaffoldMessenger.of(context);
     final entries = ref.read(databaseProvider).entriesDao;
     if (!MediaQuery.disableAnimationsOf(context)) {
-      final color = AppColors.slot(DaySlot.of(ref.read(clockProvider)()));
+      final color = AppColors.of(context)
+          .slot(DaySlot.of(ref.read(clockProvider)()));
       await flyToShaker(
         context,
         from: from,
@@ -87,7 +89,8 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
         context,
         from: from,
         shaker: _shakerKey,
-        builder: creatinePowder,
+        builder: (size) =>
+            creatinePowder(size, AppColors.of(context).creatineFill),
       );
     }
     final id = await runUserAction(
@@ -130,6 +133,7 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
     final favorite = ref.watch(favoriteProductProvider);
     final creatine =
         ref.watch(creatineSettingsProvider).value?.enabled ?? false;
+    final christmas = ref.watch(christmasActiveProvider);
 
     void onShare() => showShareSheet(
       context,
@@ -139,6 +143,9 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
     if (MediaQuery.orientationOf(context) == Orientation.landscape) {
       return _WithShareButton(
         onShare: onShare,
+        below: christmas && isChristmasSeason(dayKey)
+            ? _ChristmasCountdown(dayKey: dayKey)
+            : null,
         child: SafeArea(
           child: Padding(
             // The top of the date at the height of the top of the titles of
@@ -169,6 +176,10 @@ class _TodayPageState extends ConsumerState<TodayPage> with UndoableDeletion {
 
     return _WithShareButton(
       onShare: onShare,
+      // Over the page, under the share button: it moves nothing.
+      below: christmas && isChristmasSeason(dayKey)
+          ? _ChristmasCountdown(dayKey: dayKey)
+          : null,
       child: SafeArea(
         child: Padding(
           // Lined up with the tab bar; the top of the date at the height of
@@ -398,9 +409,70 @@ class _Summary extends StatelessWidget {
   }
 }
 
+/// Days left until Christmas, in a small upright badge under the share
+/// button: a gift, the number of days and "days", or "Christmas" on the day.
+class _ChristmasCountdown extends StatelessWidget {
+  const _ChristmasCountdown({required this.dayKey});
+
+  final int dayKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final days = daysUntilChristmas(dayKey);
+    return Semantics(
+      label: days == 0 ? l10n.christmasDay : l10n.christmasCountdown(days),
+      excludeSemantics: true,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: shareButtonSize),
+        padding: const EdgeInsets.fromLTRB(5, 6, 5, 5),
+        decoration: ShapeDecoration(
+          color: colors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(LucideIcons.gift, size: 16, color: colors.accentText),
+            const SizedBox(height: 2),
+            if (days > 0) ...[
+              Text(
+                '$days',
+                style: textTheme.titleMedium!.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
+              ),
+              Text(
+                l10n.christmasDaysShort(days),
+                style: textTheme.labelSmall!.copyWith(
+                  fontSize: 11,
+                  height: 1.2,
+                ),
+              ),
+            ] else
+              Text(
+                l10n.christmasDayShort,
+                style: textTheme.titleSmall!.copyWith(
+                  fontSize: 12,
+                  height: 1.1,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// The shaker, as large as the screen allows, with a label per entry on
 /// its right: the latest entry on top, like the layers.
-class _ShakerWithLabels extends StatefulWidget {
+class _ShakerWithLabels extends ConsumerStatefulWidget {
   const _ShakerWithLabels({
     required this.shakerKey,
     required this.entries,
@@ -420,10 +492,10 @@ class _ShakerWithLabels extends StatefulWidget {
   final Widget? header;
 
   @override
-  State<_ShakerWithLabels> createState() => _ShakerWithLabelsState();
+  ConsumerState<_ShakerWithLabels> createState() => _ShakerWithLabelsState();
 }
 
-class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
+class _ShakerWithLabelsState extends ConsumerState<_ShakerWithLabels> {
   final _scroll = ScrollController();
 
   /// Whether the labels overflow and scroll: only then is room kept on the
@@ -473,6 +545,7 @@ class _ShakerWithLabelsState extends State<_ShakerWithLabels> {
                       ShakerLayer(grams: entry.proteinGrams, slot: entry.slot),
                 ],
                 creatineDoses: entries.creatineDoses,
+                snowy: ref.watch(christmasActiveProvider),
                 goal: goal,
                 semanticLabel: l10n.shakerDescription(
                   formatGrams(total, locale),
@@ -576,8 +649,8 @@ class _EntryLabel extends StatelessWidget {
                     height: 9,
                     decoration: BoxDecoration(
                       color: creatineOnly
-                          ? AppColors.creatine
-                          : AppColors.slot(entry.slot),
+                          ? colors.creatineFill
+                          : colors.slot(entry.slot),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -644,10 +717,17 @@ class _EntryLabel extends StatelessWidget {
 /// app bars of the other tabs center theirs. Over the page rather than in
 /// the line of the date, lower than it: the whole button takes taps.
 class _WithShareButton extends StatelessWidget {
-  const _WithShareButton({required this.onShare, required this.child});
+  const _WithShareButton({
+    required this.onShare,
+    required this.child,
+    this.below,
+  });
 
   final VoidCallback onShare;
   final Widget child;
+
+  /// Under the button, centered on it, such as the countdown to Christmas.
+  final Widget? below;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -664,7 +744,16 @@ class _WithShareButton extends StatelessWidget {
                 top: (kToolbarHeight - shareButtonSize) / 2 - 4,
                 right: shareButtonEndGap,
               ),
-              child: ShareButton(onPressed: onShare),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ShareButton(onPressed: onShare),
+                  if (below case final below?) ...[
+                    const SizedBox(height: 4),
+                    below,
+                  ],
+                ],
+              ),
             ),
           ),
         ),

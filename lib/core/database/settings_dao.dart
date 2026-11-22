@@ -108,6 +108,15 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
   Future<void> setSlotReminders(bool enabled) =>
       _write(AppSettingsCompanion(slotReminders: Value(enabled)));
 
+  Future<bool> getChristmasTheme() async =>
+      (await _row.getSingle()).christmasTheme;
+
+  Stream<bool> watchChristmasTheme() =>
+      _row.watchSingle().map((settings) => settings.christmasTheme);
+
+  Future<void> setChristmasTheme(bool enabled) =>
+      _write(AppSettingsCompanion(christmasTheme: Value(enabled)));
+
   static CreatineSettings _creatine(AppSettingsRow settings) =>
       CreatineSettings(
         enabled: settings.creatineEnabled,

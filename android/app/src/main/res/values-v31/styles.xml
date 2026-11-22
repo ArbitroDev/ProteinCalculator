@@ -8,6 +8,13 @@
         <item name="android:windowSplashScreenIconBackgroundColor">@color/splash_background</item>
         <item name="android:windowSplashScreenBrandingImage">@drawable/splash_branding</item>
     </style>
+    <!-- Splash screen from December 1 to 25 while the Christmas theme is on,
+         see AppActivity.setChristmasSplash: the Christmas logo, the signature
+         in fir green. -->
+    <style name="ChristmasLaunchTheme" parent="LaunchTheme">
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo_christmas</item>
+        <item name="android:windowSplashScreenBrandingImage">@drawable/splash_branding_christmas</item>
+    </style>
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">@color/splash_background</item>
     </style>

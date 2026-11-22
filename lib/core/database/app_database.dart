@@ -57,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -138,6 +138,12 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(
           schema.appSettings,
           schema.appSettings.hevyImportedAt,
+        );
+      },
+      from14To15: (m, schema) async {
+        await m.addColumn(
+          schema.appSettings,
+          schema.appSettings.christmasTheme,
         );
       },
     ),

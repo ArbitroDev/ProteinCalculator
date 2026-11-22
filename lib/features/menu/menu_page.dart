@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/christmas.dart';
 import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
@@ -138,6 +139,7 @@ class MenuPage extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             const _SlotRemindersCard(),
+            const _ChristmasThemeCard(),
             const SizedBox(height: 16),
             _MenuItem(
               icon: LucideIcons.shieldCheck,
@@ -655,6 +657,54 @@ class _HevySheetState extends ConsumerState<_HevySheet> {
         ),
       ],
     );
+  }
+}
+
+/// Switch of the Christmas theme, on by default, under the cards above. Shown
+/// only from December 1 to 25: before, the theme stays a surprise.
+class _ChristmasThemeCard extends ConsumerWidget {
+  const _ChristmasThemeCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final colors = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final today = ref.watch(currentDayKeyProvider).value;
+    if (today == null || !isChristmasSeason(today)) return const SizedBox();
+    final enabled = ref.watch(christmasThemeProvider).value;
+    final card = Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: SwitchListTile(
+        value: enabled ?? true,
+        onChanged: enabled == null
+            ? null
+            : (value) => ref
+                  .read(databaseProvider)
+                  .settingsDao
+                  .setChristmasTheme(value),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        contentPadding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
+        secondary: Icon(
+          LucideIcons.treePine,
+          size: 22,
+          color: AppColors.christmasGreenText(Theme.of(context).brightness),
+        ),
+        title: Text(
+          l10n.menuChristmasTheme,
+          style: textTheme.bodyLarge!.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          l10n.menuChristmasThemeBody,
+          style: textTheme.bodySmall!.copyWith(color: colors.textSecondary),
+        ),
+      ),
+    );
+    return Padding(padding: const EdgeInsets.only(top: 10), child: card);
   }
 }
 

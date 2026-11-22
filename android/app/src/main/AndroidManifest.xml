@@ -42,8 +42,10 @@
         android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- The app, opened by LauncherActivity, the widget, the notifications
+             and ShareActivity. -->
         <activity
-            android:name=".MainActivity"
+            android:name=".AppActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -59,13 +61,43 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+        </activity>
+        <!-- Opens AppActivity from the icons of the launcher, see
+             LauncherActivity: without anything to show, out of the recent
+             apps. -->
+        <activity
+            android:name=".LauncherActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay" />
+        <!-- The usual icon. Named as the activity was, so that the icons already
+             on home screens keep opening the app. -->
+        <activity-alias
+            android:name=".MainActivity"
+            android:exported="true"
+            android:targetActivity=".LauncherActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-        </activity>
+        </activity-alias>
+        <!-- The Christmas icon, in place of the usual one from December 1 to
+             25 when the Christmas theme is on, see LauncherIcon. -->
+        <activity-alias
+            android:name=".ChristmasLauncher"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_christmas"
+            android:targetActivity=".LauncherActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
         <!-- Receives the Hevy workouts export, shared to the app from Hevy,
-             and hands it to MainActivity in the task of the app: imported as
+             and hands it to AppActivity in the task of the app: imported as
              from the menu, see lib/core/hevy/shared_file.dart. -->
         <activity
             android:name=".ShareActivity"
@@ -87,6 +119,15 @@
                 <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
+        <!-- Puts the usual icon back at the end of the Christmas season, also
+             after a restart, see LauncherIcon. -->
+        <receiver
+            android:name=".LauncherIconReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
         <!-- Widget "Today's goal" of the home screen, see GoalWidget. -->
         <receiver
             android:name=".GoalWidget"
