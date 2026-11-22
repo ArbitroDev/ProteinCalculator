@@ -272,6 +272,17 @@ void main() {
     await disposeApp(tester, db);
   });
 
+  testWidgets('the menu keeps the theme a surprise before December', (
+    tester,
+  ) async {
+    await pumpApp(tester, db, now: DateTime(2026, 11, 30, 9), christmas: true);
+    await tester.tap(find.byTooltip('Menu'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('About'), 100);
+    expect(find.text('Christmas theme'), findsNothing);
+    await disposeApp(tester, db);
+  });
+
   test('the first frame is dressed while the setting and the day load', () {
     final container = ProviderContainer(
       overrides: [

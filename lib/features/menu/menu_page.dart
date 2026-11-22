@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/christmas.dart';
 import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/day_slot.dart';
 import 'package:protein_calculator/core/domain/grams.dart';
@@ -138,7 +139,6 @@ class MenuPage extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             const _SlotRemindersCard(),
-            const SizedBox(height: 10),
             const _ChristmasThemeCard(),
             const SizedBox(height: 16),
             _MenuItem(
@@ -660,8 +660,8 @@ class _HevySheetState extends ConsumerState<_HevySheet> {
   }
 }
 
-/// Switch of the Christmas theme, on by default, shown all year with its
-/// dates so the user knows when it comes back.
+/// Switch of the Christmas theme, on by default, under the cards above. Shown
+/// only from December 1 to 25: before, the theme stays a surprise.
 class _ChristmasThemeCard extends ConsumerWidget {
   const _ChristmasThemeCard();
 
@@ -670,8 +670,10 @@ class _ChristmasThemeCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final colors = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
+    final today = ref.watch(currentDayKeyProvider).value;
+    if (today == null || !isChristmasSeason(today)) return const SizedBox();
     final enabled = ref.watch(christmasThemeProvider).value;
-    return Material(
+    final card = Material(
       color: colors.surface,
       borderRadius: BorderRadius.circular(14),
       child: SwitchListTile(
@@ -702,6 +704,7 @@ class _ChristmasThemeCard extends ConsumerWidget {
         ),
       ),
     );
+    return Padding(padding: const EdgeInsets.only(top: 10), child: card);
   }
 }
 
