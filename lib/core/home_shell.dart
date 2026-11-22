@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
+import 'package:protein_calculator/core/widgets/knit.dart';
 import 'package:protein_calculator/core/widgets/shaker_icon.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
+import 'package:protein_calculator/core/widgets/snow.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Tab bar scaffold shared by the five main tabs.
-class HomeShell extends StatelessWidget {
+class HomeShell extends ConsumerWidget {
   const HomeShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
@@ -28,8 +32,9 @@ class HomeShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final christmas = ref.watch(christmasActiveProvider);
     final tabs = [
       (const ShakerIcon(), l10n.tabToday),
       (const Icon(LucideIcons.shoppingBasket), l10n.tabProducts),
@@ -45,6 +50,21 @@ class HomeShell extends StatelessWidget {
       onAdd: () => context.push(AppRoutes.newEntry),
       // In landscape, height is scarce: the bar stands on the left.
       vertical: MediaQuery.orientationOf(context) == Orientation.landscape,
+      knitted: christmas,
+    );
+    // From December 1 to 25, snow falls over the pages, behind the tab bar,
+    // and settles at their foot.
+    // Always in the same stack, so turning the theme on or off from the menu
+    // keeps the pages and their state.
+    final pages = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(child: navigationShell),
+        if (christmas) ...[
+          const Positioned.fill(child: Snowfall()),
+          const Positioned(left: 0, right: 0, bottom: 0, child: SnowBank()),
+        ],
+      ],
     );
     return bar.vertical
         ? Scaffold(
@@ -56,13 +76,13 @@ class HomeShell extends StatelessWidget {
                   child: MediaQuery.removePadding(
                     context: context,
                     removeLeft: true,
-                    child: navigationShell,
+                    child: pages,
                   ),
                 ),
               ],
             ),
           )
-        : Scaffold(body: navigationShell, bottomNavigationBar: bar);
+        : Scaffold(body: pages, bottomNavigationBar: bar);
   }
 }
 
@@ -76,7 +96,17 @@ class _TabBar extends StatelessWidget {
     required this.addLabel,
     required this.onAdd,
     required this.vertical,
+    this.knitted = false,
   });
+
+  /// Knitted motif of each tab, in the order of [tabs].
+  static const _motifs = [
+    KnitMotifs.today,
+    KnitMotifs.products,
+    KnitMotifs.history,
+    KnitMotifs.stats,
+    KnitMotifs.menu,
+  ];
 
   final List<(Widget, String)> tabs;
   final int selectedIndex;
@@ -84,6 +114,9 @@ class _TabBar extends StatelessWidget {
   final String addLabel;
   final VoidCallback onAdd;
   final bool vertical;
+
+  /// Whether the pill and the add button are knitted, for Christmas.
+  final bool knitted;
 
   /// Thickness of the pill and size of the add button.
   static const _thickness = 60.0;
@@ -122,47 +155,54 @@ class _TabBar extends StatelessWidget {
     final colors = AppColors.of(context);
     final direction = vertical ? Axis.vertical : Axis.horizontal;
 
-    final pill = Container(
-      width: vertical ? _thickness : null,
-      height: vertical
-          ? tabs.length * (tabLength + _gap) - _gap + 12
-          : _thickness,
-      padding: const EdgeInsets.all(6),
-      decoration: ShapeDecoration(
-        color: colors.surface,
-        shape: StadiumBorder(side: BorderSide(color: colors.divider)),
-      ),
-      child: SlidingSelector(
-        selectedIndex: selectedIndex,
-        gap: _gap,
-        direction: direction,
-        shape: const StadiumBorder(),
-        children: [
-          for (final (index, (icon, label)) in tabs.indexed)
-            _Tab(
-              icon: icon,
-              label: label,
-              selected: index == selectedIndex,
-              onTap: () => onSelected(index),
+    final pillWidth = vertical ? _thickness : null;
+    final pillHeight = vertical
+        ? tabs.length * (tabLength + _gap) - _gap + 12
+        : _thickness;
+    final pill = knitted
+        ? _knittedPill(context, pillWidth, pillHeight, direction)
+        : Container(
+            width: pillWidth,
+            height: pillHeight,
+            padding: const EdgeInsets.all(6),
+            decoration: ShapeDecoration(
+              color: colors.surface,
+              shape: StadiumBorder(side: BorderSide(color: colors.divider)),
             ),
-        ],
-      ),
-    );
-    final addButton = SizedBox.square(
-      dimension: _thickness,
-      child: IconButton.filled(
-        onPressed: onAdd,
-        tooltip: addLabel,
-        style: IconButton.styleFrom(
-          backgroundColor: AppColors.accent,
-          foregroundColor: AppColors.onAccent,
-        ),
-        icon: const Icon(LucideIcons.plus, size: 28),
-      ),
-    );
+            child: SlidingSelector(
+              selectedIndex: selectedIndex,
+              gap: _gap,
+              direction: direction,
+              shape: const StadiumBorder(),
+              children: [
+                for (final (index, (icon, label)) in tabs.indexed)
+                  _Tab(
+                    icon: icon,
+                    label: label,
+                    selected: index == selectedIndex,
+                    onTap: () => onSelected(index),
+                  ),
+              ],
+            ),
+          );
+    final addButton = knitted
+        ? _knittedAddButton(colors)
+        : SizedBox.square(
+            dimension: _thickness,
+            child: IconButton.filled(
+              onPressed: onAdd,
+              tooltip: addLabel,
+              style: IconButton.styleFrom(
+                backgroundColor: colors.accent,
+                foregroundColor: colors.onAccent,
+              ),
+              icon: const Icon(LucideIcons.plus, size: 28),
+            ),
+          );
 
     return ColoredBox(
-      color: colors.background,
+      // At the bottom, the knitted bar lies in the snow of the bank above it.
+      color: knitted && !vertical ? snowWhite : colors.background,
       child: SafeArea(
         top: vertical,
         right: !vertical,
@@ -186,6 +226,89 @@ class _TabBar extends StatelessWidget {
       ),
     );
   }
+
+  /// The pill knitted for Christmas, see [KnitTabBackground]: the tabs stay
+  /// for the touches, the tooltips and screen readers, their icons knitted
+  /// in the wool instead of drawn over it.
+  Widget _knittedPill(
+    BuildContext context,
+    double? width,
+    double? height,
+    Axis direction,
+  ) {
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 250);
+    return Container(
+      width: width,
+      height: height,
+      decoration: const ShapeDecoration(shape: StadiumBorder()),
+      clipBehavior: Clip.antiAlias,
+      // Knitted again at each frame of the slide of the selection: apart
+      // from the rest of the screen.
+      child: RepaintBoundary(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(end: selectedIndex.toDouble()),
+          duration: duration,
+          curve: Curves.easeOutCubic,
+          builder: (context, selection, child) => CustomPaint(
+            painter: KnitTabBackground(
+              colors: AppColors.of(context),
+              motifs: _motifs,
+              selection: selection,
+              vertical: vertical,
+              padding: 6,
+              gap: _gap,
+            ),
+            child: child,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Flex(
+              direction: direction,
+              children: [
+                for (final (index, (icon, label)) in tabs.indexed) ...[
+                  if (index > 0)
+                    SizedBox(
+                      width: vertical ? null : _gap,
+                      height: vertical ? _gap : null,
+                    ),
+                  Expanded(
+                    child: _Tab(
+                      icon: icon,
+                      label: label,
+                      selected: index == selectedIndex,
+                      knitted: true,
+                      onTap: () => onSelected(index),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The add button knitted in red, with a white plus.
+  Widget _knittedAddButton(AppColors colors) => Tooltip(
+    message: addLabel,
+    child: Semantics(
+      button: true,
+      child: Material(
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onAdd,
+          child: CustomPaint(
+            size: const Size.square(_thickness),
+            painter: KnitButtonPainter(colors),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// Icon of a tab; its name shows as a tooltip and is read by screen readers.
@@ -195,12 +318,17 @@ class _Tab extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.knitted = false,
   });
 
   final Widget icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Whether the icon is knitted in the pill rather than drawn: the tab
+  /// then only takes the touches.
+  final bool knitted;
 
   @override
   Widget build(BuildContext context) {
@@ -220,8 +348,10 @@ class _Tab extends StatelessWidget {
               child: IconTheme(
                 data: IconThemeData(
                   size: 22,
-                  color: selected
-                      ? AppColors.onAccent
+                  color: knitted
+                      ? Colors.transparent
+                      : selected
+                      ? AppColors.of(context).onSelection
                       : AppColors.of(context).textSecondary,
                 ),
                 child: icon,

@@ -22,9 +22,11 @@ import es.antonborri.home_widget.HomeWidgetPlugin
 import java.text.NumberFormat
 import java.time.LocalDateTime
 import java.time.ZoneId
+import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import org.json.JSONObject
 
 /**
@@ -32,7 +34,9 @@ import org.json.JSONObject
  * the goal of the day, open at the bottom, the protein total alone in its
  * middle, orange once the goal is reached, and the goal in the opening,
  * followed by a blue check once creatine is taken. An empty shaker until the
- * first launch is done. A tap opens the app.
+ * first launch is done. A tap opens the app. From December 1 to 25, while the
+ * Christmas theme of the app is on, red in place of the orange, the check
+ * fir green, and snowflakes in three corners.
  *
  * The app writes the day each time it changes, see `updateHomeWidget` in
  * lib/core/home_widget.dart. At the hour the app days start, the widget starts
@@ -74,22 +78,37 @@ class GoalWidget : AppWidgetProvider() {
         val total: Double,
         val goal: Double?,
         val creatineTaken: Boolean,
+        /** Whether the widget is dressed for Christmas, see [isChristmas]. */
+        val christmas: Boolean,
     ) {
         companion object {
             fun read(context: Context): Day? {
-                val json = HomeWidgetPlugin.getData(context).getString(DAY_KEY, null) ?: return null
+                val data = HomeWidgetPlugin.getData(context)
+                val json = data.getString(DAY_KEY, null) ?: return null
+                // Off until the app tells the setting.
+                val christmasTheme = data.getBoolean(CHRISTMAS_KEY, false)
                 return try {
                     val day = JSONObject(json)
+                    val dayKey = day.getInt("day")
                     val read = Day(
-                        dayKey = day.getInt("day"),
+                        dayKey = dayKey,
                         dayStartHour = day.getInt("dayStartHour"),
                         total = day.getDouble("total"),
                         goal = if (day.isNull("goal")) null else day.getDouble("goal"),
                         creatineTaken = day.getBoolean("creatine"),
+                        christmas = christmasTheme && isChristmas(dayKey),
                     )
                     // A new day started since the app wrote this one.
-                    if (currentDayKey(read.dayStartHour) > read.dayKey) {
-                        Day(currentDayKey(read.dayStartHour), read.dayStartHour, 0.0, read.goal, false)
+                    val today = currentDayKey(read.dayStartHour)
+                    if (today > read.dayKey) {
+                        Day(
+                            today,
+                            read.dayStartHour,
+                            0.0,
+                            read.goal,
+                            false,
+                            christmasTheme && isChristmas(today),
+                        )
                     } else {
                         read
                     }
@@ -130,7 +149,7 @@ class GoalWidget : AppWidgetProvider() {
                 PendingIntent.getActivity(
                     context,
                     0,
-                    Intent(context, MainActivity::class.java)
+                    Intent(context, AppActivity::class.java)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
                 ),
@@ -142,7 +161,12 @@ class GoalWidget : AppWidgetProvider() {
     private fun draw(context: Context, size: Int, day: Day?): Bitmap {
         val dark = context.resources.configuration.uiMode and
             Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        val colors = if (dark) DARK else LIGHT
+        val colors = when {
+            day?.christmas == true && dark -> CHRISTMAS_DARK
+            day?.christmas == true -> CHRISTMAS_LIGHT
+            dark -> DARK
+            else -> LIGHT
+        }
         val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
         val s = size.toFloat()
@@ -162,6 +186,14 @@ class GoalWidget : AppWidgetProvider() {
             return bitmap
         }
 
+        if (day.christmas) {
+            // In the corners, clear of the ring: the two at the top, and the
+            // one on the right of the goal.
+            drawSnowflake(canvas, s * 0.13f, s * 0.13f, s * 0.05f, colors.snowflake)
+            drawSnowflake(canvas, s * 0.87f, s * 0.13f, s * 0.045f, colors.snowflake)
+            drawSnowflake(canvas, s * 0.87f, s * 0.87f, s * 0.04f, colors.snowflake)
+        }
+
         val stroke = s * 0.085f
         val ring = RectF(s * 0.12f, s * 0.12f, s * 0.88f, s * 0.88f)
         paint.style = Paint.Style.STROKE
@@ -172,7 +204,7 @@ class GoalWidget : AppWidgetProvider() {
         canvas.drawArc(ring, RING_START, RING_SWEEP, false, paint)
         val progress = (round(day.total) / goal).coerceIn(0.0, 1.0)
         if (progress > 0) {
-            paint.color = ORANGE
+            paint.color = colors.accent
             canvas.drawArc(ring, RING_START, (RING_SWEEP * progress).toFloat(), false, paint)
         }
 
@@ -219,18 +251,51 @@ class GoalWidget : AppWidgetProvider() {
         return bitmap
     }
 
-    private class Colors(
+    /** A snowflake of six arms, each with two branches, of radius [r]. */
+    private fun drawSnowflake(canvas: Canvas, cx: Float, cy: Float, r: Float, color: Int) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = color
+            style = Paint.Style.STROKE
+            strokeWidth = r * 0.3f
+            strokeCap = Paint.Cap.ROUND
+        }
+        val path = Path()
+        for (arm in 0 until 6) {
+            val angle = Math.toRadians(30.0 + 60.0 * arm)
+            path.moveTo(cx, cy)
+            path.lineTo(cx + r * cos(angle).toFloat(), cy + r * sin(angle).toFloat())
+            val mx = cx + 0.6f * r * cos(angle).toFloat()
+            val my = cy + 0.6f * r * sin(angle).toFloat()
+            for (side in listOf(-1, 1)) {
+                val branch = angle + side * Math.toRadians(45.0)
+                path.moveTo(mx, my)
+                path.lineTo(
+                    mx + 0.32f * r * cos(branch).toFloat(),
+                    my + 0.32f * r * sin(branch).toFloat(),
+                )
+            }
+        }
+        canvas.drawPath(path, paint)
+    }
+
+    private data class Colors(
         val surface: Int,
         val track: Int,
         val text: Int,
         val textSecondary: Int,
+        /** The ring, once the day has protein. */
+        val accent: Int,
         val accentText: Int,
         val creatine: Int,
+        val snowflake: Int = 0,
     )
 
     companion object {
         /** Key of the day in the storage of `home_widget`, see `homeWidgetDayKey`. */
         private const val DAY_KEY = "day"
+
+        /** Key of the Christmas theme setting, see `homeWidgetChristmasKey`. */
+        private const val CHRISTMAS_KEY = "christmasTheme"
         private const val ACTION_NEW_DAY = "arbitro.android.protein_calculator.GOAL_WIDGET_NEW_DAY"
         private const val DEFAULT_SIZE_DP = 72
 
@@ -240,11 +305,13 @@ class GoalWidget : AppWidgetProvider() {
 
         // The colors of the app, see lib/core/theme.dart.
         private const val ORANGE = 0xFFFF8A3D.toInt()
+        private const val CHRISTMAS_RED = 0xFFD7263D.toInt()
         private val LIGHT = Colors(
             surface = 0xFFEEF2FF.toInt(),
             track = 0xFFC2CFFA.toInt(),
             text = 0xFF0F1A66.toInt(),
             textSecondary = 0xFF4A5699.toInt(),
+            accent = ORANGE,
             accentText = 0xFFB8440F.toInt(),
             creatine = 0xFF1A64A3.toInt(),
         )
@@ -253,9 +320,28 @@ class GoalWidget : AppWidgetProvider() {
             track = 0xFF272D50.toInt(),
             text = 0xFFFFFFFF.toInt(),
             textSecondary = 0xFFA6ADDD.toInt(),
+            accent = ORANGE,
             accentText = 0xFFFF8A3D.toInt(),
             creatine = 0xFF3FA9F5.toInt(),
         )
+
+        // The Christmas themes, AppColors.christmasLight and christmasDark.
+        private val CHRISTMAS_LIGHT = LIGHT.copy(
+            accent = CHRISTMAS_RED,
+            accentText = 0xFFB0182C.toInt(),
+            creatine = 0xFF1B7A45.toInt(),
+            snowflake = 0xFF8C9BEB.toInt(),
+        )
+        private val CHRISTMAS_DARK = DARK.copy(
+            accent = CHRISTMAS_RED,
+            accentText = 0xFFFF5A6A.toInt(),
+            creatine = 0xFF6BD69A.toInt(),
+            snowflake = 0xFFFFFFFF.toInt(),
+        )
+
+        /** Whether [dayKey] is from December 1 to 25, see `isChristmasSeason`. */
+        private fun isChristmas(dayKey: Int): Boolean =
+            dayKey / 100 % 100 == 12 && dayKey % 100 <= 25
 
         /** App day of now, as `yyyymmdd`: it starts at [dayStartHour]. */
         private fun currentDayKey(dayStartHour: Int): Int {

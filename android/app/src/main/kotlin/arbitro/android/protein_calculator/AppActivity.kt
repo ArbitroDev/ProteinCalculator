@@ -1,6 +1,7 @@
 package arbitro.android.protein_calculator
 
 import android.content.Intent
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -13,7 +14,18 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import kotlin.concurrent.thread
 
-class MainActivity : FlutterActivity() {
+/**
+ * The activity of the app. The launcher opens it through one of two aliases,
+ * the usual icon or the Christmas one, see [LauncherIcon]; its splash screen
+ * changes with it, see [setChristmasSplash].
+ */
+class AppActivity : FlutterActivity() {
+    /**
+     * Icon and splash screen to show once the app is left, see [onStop]:
+     * whether they are the Christmas ones, and until when.
+     */
+    private var wantedChristmasIcon: Pair<Boolean, Long?>? = null
+
     /** File shared to the app, kept until the app takes it. */
     private var sharedFile: Uri? = null
     private var sharedFileChannel: MethodChannel? = null
@@ -58,6 +70,21 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        // Shows the Christmas icon from December 1 to 25, see
+        // lib/core/launcher_icon.dart.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "protein_calculator/launcher_icon")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "setChristmas" -> {
+                        wantedChristmasIcon = Pair(
+                            call.argument<Boolean>("christmas") == true,
+                            call.argument<Number>("seasonEnd")?.toLong(),
+                        )
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         // Gives the app the file shared to it, see lib/core/hevy/shared_file.dart.
         sharedFileChannel =
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "protein_calculator/shared_file")
@@ -69,6 +96,29 @@ class MainActivity : FlutterActivity() {
                         }
                     }
                 }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // The icon changes once the app is no longer seen: launchers may redraw
+        // their screens when it does.
+        if (isChangingConfigurations) return
+        val (christmas, seasonEnd) = wantedChristmasIcon ?: return
+        LauncherIcon.set(this, christmas, seasonEnd)
+        setChristmasSplash(christmas)
+        wantedChristmasIcon = null
+    }
+
+    /**
+     * Shows the Christmas splash screen at the next launches if [christmas],
+     * the usual one otherwise. Android keeps the choice; it lets an app choose
+     * its splash screen from Android 13.
+     */
+    private fun setChristmasSplash(christmas: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        splashScreen.setSplashScreenTheme(
+            if (christmas) R.style.ChristmasLaunchTheme else Resources.ID_NULL,
+        )
     }
 
     private fun appSettings(): Intent =

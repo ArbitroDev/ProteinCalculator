@@ -348,6 +348,7 @@ void main() {
   testWidgets('opens the data and privacy page', (tester) async {
     await openMenu(tester);
 
+    await tester.scrollUntilVisible(find.text('Data and privacy'), 100);
     await tester.tap(find.text('Data and privacy'));
     await tester.pumpAndSettle();
 

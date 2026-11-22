@@ -44,7 +44,7 @@ class StackedBar extends StatelessWidget {
                     Container(
                       width: total == 0 ? 0 : width * bySlot[slot]! / total,
                       decoration: BoxDecoration(
-                        color: AppColors.slot(slot),
+                        color: colors.slot(slot),
                         border: index == 0
                             ? null
                             : Border(

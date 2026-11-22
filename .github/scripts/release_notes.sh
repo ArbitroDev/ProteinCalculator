@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Writes the changelog of the version being released, in Markdown, from the
 # Conventional Commits since the previous version tag (or since the start
-# when there is none).
+# when there is none). A commit with the trailer "Release-notes: hidden" is
+# left out: a surprise kept for the users, such as a seasonal theme.
 #
 # Usage: release_notes.sh <version> [<revision>]   (revision: HEAD by default)
 set -euo pipefail
@@ -17,7 +18,8 @@ declare -A sections=()
 breaking=""
 pattern='^([a-z]+)(\(([a-z0-9._/-]+)\))?(!)?: (.+)$'
 
-while IFS=$'\t' read -r sha subject body_flag; do
+while IFS=$'\t' read -r sha subject body_flag hidden; do
+  [[ "$hidden" == hidden ]] && continue
   [[ "$subject" =~ $pattern ]] || continue
   type="${BASH_REMATCH[1]}"
   scope="${BASH_REMATCH[3]}"
@@ -32,8 +34,8 @@ while IFS=$'\t' read -r sha subject body_flag; do
     breaking+="${line}"$'\n'
   fi
 done < <(git log --no-merges --reverse \
-  --format='%H%x09%s%x09%(trailers:key=BREAKING CHANGE,valueonly,separator=)' "$range" |
-  awk -F'\t' '{ print $1 "\t" $2 "\t" ($3 != "" ? "breaking" : "") }')
+  --format='%H%x09%s%x09%(trailers:key=BREAKING CHANGE,valueonly,separator=)%x09%(trailers:key=Release-notes,valueonly,separator=)' "$range" |
+  awk -F'\t' '{ print $1 "\t" $2 "\t" ($3 != "" ? "breaking" : "-") "\t" ($4 ~ /hidden/ ? "hidden" : "-") }')
 
 echo "## Protein Calculator ${version}"
 echo

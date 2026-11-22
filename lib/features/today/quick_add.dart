@@ -134,8 +134,8 @@ class _CreatineButtonState extends State<CreatineButton> {
         child: FilledButton(
           onPressed: _press,
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.creatine,
-            foregroundColor: AppColors.onAccent,
+            backgroundColor: AppColors.of(context).creatineFill,
+            foregroundColor: AppColors.ink,
             fixedSize: const Size.square(52),
             minimumSize: const Size.square(52),
             padding: EdgeInsets.zero,
@@ -152,21 +152,21 @@ class _CreatineButtonState extends State<CreatineButton> {
 Widget favoriteStar(double size, Color color) => Stack(
   alignment: Alignment.center,
   children: [
-    Icon(Icons.star_rounded, size: size, color: AppColors.onAccent),
+    Icon(Icons.star_rounded, size: size, color: AppColors.ink),
     Icon(Icons.star_rounded, size: size * 0.8, color: color),
   ],
 );
 
-/// A pinch of creatine powder: three grains, outlined so they show on any
-/// background.
-Widget creatinePowder(double size) {
+/// A pinch of creatine powder of [color]: three grains, outlined so they
+/// show on any background.
+Widget creatinePowder(double size, Color color) {
   Widget grain(double diameter) => Container(
     width: diameter,
     height: diameter,
     decoration: BoxDecoration(
-      color: AppColors.creatine,
+      color: color,
       shape: BoxShape.circle,
-      border: Border.all(color: AppColors.onAccent, width: diameter * 0.12),
+      border: Border.all(color: AppColors.ink, width: diameter * 0.12),
     ),
   );
   return Stack(

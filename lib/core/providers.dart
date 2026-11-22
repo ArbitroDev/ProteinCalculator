@@ -9,6 +9,7 @@ import 'package:protein_calculator/core/background_changes.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/database/entries_dao.dart';
 import 'package:protein_calculator/core/domain/app_day.dart';
+import 'package:protein_calculator/core/domain/christmas.dart';
 import 'package:protein_calculator/core/domain/creatine.dart';
 import 'package:protein_calculator/core/domain/day_progress.dart';
 import 'package:protein_calculator/core/domain/history_view.dart';
@@ -198,6 +199,30 @@ final creatineSettingsProvider = StreamProvider<CreatineSettings>(
 final slotRemindersProvider = StreamProvider<bool>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchSlotReminders(),
 );
+
+/// Whether the user leaves the Christmas theme on.
+final christmasThemeProvider = StreamProvider<bool>(
+  (ref) => ref.watch(databaseProvider).settingsDao.watchChristmasTheme(),
+);
+
+/// The Christmas theme setting as read before the first frame, see
+/// `startApp`; null when it was not.
+final initialChristmasThemeProvider = Provider<bool?>((ref) => null);
+
+/// Whether the app is dressed for Christmas now: the theme is on and today
+/// is in the season, see `isChristmasSeason`. While they load, the setting
+/// read at launch and the day of the clock, so that the first frame is
+/// already dressed.
+final christmasActiveProvider = Provider<bool>((ref) {
+  final on =
+      ref.watch(christmasThemeProvider).value ??
+      ref.watch(initialChristmasThemeProvider) ??
+      false;
+  final today =
+      ref.watch(currentDayKeyProvider).value ??
+      dayKeyOf(ref.watch(clockProvider)());
+  return on && isChristmasSeason(today);
+});
 
 /// Sort order chosen in the products tab, remembered between launches.
 final productSortProvider = StreamProvider<ProductSort>(

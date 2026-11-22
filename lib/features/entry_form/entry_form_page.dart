@@ -1047,7 +1047,7 @@ class _OptionSelector<T> extends StatelessWidget {
       final isSelected = value == selected;
       final isDisabled = disabled.contains(value);
       final color = isSelected
-          ? AppColors.onAccent
+          ? colors.onSelection
           : colors.textSecondary.withValues(alpha: isDisabled ? 0.5 : 1);
       return Semantics(
         button: true,

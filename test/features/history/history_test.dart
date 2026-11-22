@@ -296,7 +296,7 @@ void main() {
         (widget) =>
             widget is Material &&
             widget.shape is CircleBorder &&
-            widget.color == AppColors.accent,
+            widget.color == AppColors.light.accent,
       );
       final goalMark = find.byWidgetPredicate(
         (widget) => widget is Icon && widget.icon == LucideIcons.circleCheck,
@@ -521,7 +521,7 @@ void main() {
           (widget) =>
               widget is Material &&
               widget.shape is CircleBorder &&
-              widget.color == AppColors.accent,
+              widget.color == AppColors.light.accent,
         ),
         findsNothing,
       );

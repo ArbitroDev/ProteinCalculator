@@ -79,13 +79,13 @@ class _InsightsCard extends StatelessWidget {
           label: l10n.statsOnWorkoutDays,
           value: grams(byWorkout.first),
           fraction: fraction(byWorkout.first),
-          color: AppColors.accent,
+          color: AppColors.of(context).accent,
         ),
         CompareBar(
           label: l10n.statsOnRestDays,
           value: grams(byWorkout.second),
           fraction: fraction(byWorkout.second),
-          color: AppColors.progressHalf,
+          color: AppColors.of(context).progressHalf,
         ),
       ],
       if (afterDay != null)
@@ -93,7 +93,7 @@ class _InsightsCard extends StatelessWidget {
           label: l10n.statsDaysAfterWorkout,
           value: grams(afterDay),
           fraction: fraction(afterDay),
-          color: AppColors.progressHalf,
+          color: AppColors.of(context).progressHalf,
         ),
       if (stats.goalShareByWorkout case final shares?)
         StatsValueRow(
@@ -139,7 +139,7 @@ class _InsightsCard extends StatelessWidget {
                 final top = workoutTime.afterGrams.values.max;
                 return top <= 0 ? 0.0 : after / top;
               }(),
-              color: AppColors.slot(slot),
+              color: AppColors.of(context).slot(slot),
             ),
         ],
       ],
@@ -366,7 +366,9 @@ class _DayParts extends StatelessWidget {
                   for (final slot in shown)
                     Expanded(
                       flex: (shares[slot]! * 1000).round().clamp(1, 1000),
-                      child: ColoredBox(color: AppColors.slot(slot)),
+                      child: ColoredBox(
+                        color: AppColors.of(context).slot(slot),
+                      ),
                     ),
                 ],
               ),
@@ -386,7 +388,7 @@ class _DayParts extends StatelessWidget {
                     width: 9,
                     height: 9,
                     decoration: BoxDecoration(
-                      color: AppColors.slot(slot),
+                      color: AppColors.of(context).slot(slot),
                       shape: BoxShape.circle,
                     ),
                   ),

@@ -1868,5 +1868,39 @@
         "type": "int"
       }
     }
+  },
+  "menuChristmasTheme": "Thème de Noël",
+  "@menuChristmasTheme": {
+    "description": "Menu: switch of the Christmas theme, shown all year."
+  },
+  "menuChristmasThemeBody": "Du 1er au 25 décembre",
+  "@menuChristmasThemeBody": {
+    "description": "Menu: when the Christmas theme shows."
+  },
+  "christmasCountdown": "{count, plural, =1{Noël demain} other{Noël dans {count} jours}}",
+  "@christmasCountdown": {
+    "description": "Today: days left until Christmas, during the Christmas theme.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "christmasDay": "Joyeux Noël",
+  "@christmasDay": {
+    "description": "Today: on Christmas day, during the Christmas theme."
+  },
+  "christmasDaysShort": "{count, plural, =1{jour} other{jours}}",
+  "@christmasDaysShort": {
+    "description": "Today: unit under the days left until Christmas, in the badge under the share button.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "christmasDayShort": "Noël",
+  "@christmasDayShort": {
+    "description": "Today: the badge under the share button on Christmas day."
   }
 }

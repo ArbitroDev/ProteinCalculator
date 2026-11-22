@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:protein_calculator/core/daily_routines.dart';
 import 'package:protein_calculator/core/hevy/shared_file.dart';
+import 'package:protein_calculator/core/home_widget.dart';
+import 'package:protein_calculator/core/launcher_icon.dart';
 import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/router.dart';
 import 'package:protein_calculator/core/theme.dart';
@@ -21,12 +23,16 @@ class ProteinCalculatorApp extends ConsumerWidget {
     ref
       ..watch(backgroundChangesProvider)
       ..watch(dailyRoutinesProvider)
+      ..watch(homeWidgetChristmasProvider)
+      ..watch(launcherIconProvider)
       ..watch(sharedFileProvider)
       ..watch(watchSyncProvider);
+    // Red in place of the orange, snow and knitting from December 1 to 25.
+    final christmas = ref.watch(christmasActiveProvider);
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: christmas ? AppTheme.christmasLight : AppTheme.light,
+      darkTheme: christmas ? AppTheme.christmasDark : AppTheme.dark,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       localeListResolutionCallback: resolveLocale,

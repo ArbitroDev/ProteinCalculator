@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Christmas version of the logo, see ic_launcher_foreground: red liquid,
+     white motion lines and six snowflakes around the shaker. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <!-- Centered: 54 - 50 x scale. -->
+  <group android:translateX="19" android:translateY="19"
+      android:scaleX="0.70" android:scaleY="0.70">
+    <group android:rotation="-16" android:pivotX="50" android:pivotY="52">
+      <clip-path android:pathData="M37 40 L39.5 79 Q40 84 45 84 H55 Q60 84 60.5 79 L63 40 Z" />
+      <group android:rotation="16" android:pivotX="50" android:pivotY="52">
+        <path android:pathData="M20 57 Q35 51 50 57 T80 57 V100 H20 Z" android:fillColor="#D7263D" />
+      </group>
+    </group>
+    <group android:rotation="-16" android:pivotX="50" android:pivotY="52">
+        <path android:pathData="M37 40 L39.5 79 Q40 84 45 84 H55 Q60 84 60.5 79 L63 40 Z" android:strokeColor="#DCE3FF" android:strokeWidth="3.6" android:strokeLineJoin="round" />
+        <path android:pathData="M36.5 31 H63.5 Q66 31 66 33.5 V38.5 Q66 41 63.5 41 H36.5 Q34 41 34 38.5 V33.5 Q34 31 36.5 31 Z" android:fillColor="#DCE3FF" />
+        <path android:pathData="M36 31 Q36 23 43 23 H57 Q64 23 64 31 Z" android:fillColor="#DCE3FF" />
+        <path android:pathData="M41 17 H46 Q48 17 48 19 V22 Q48 24 46 24 H41 Q39 24 39 22 V19 Q39 17 41 17 Z" android:fillColor="#DCE3FF" />
+        <path android:pathData="M55 24 V18 Q55 13 59.5 13 Q64 13 64 18 V24" android:strokeColor="#DCE3FF" android:strokeWidth="2.8" />
+        <path android:pathData="M37 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M40 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M43 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M46 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M49 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M52 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M55 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M58 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+        <path android:pathData="M61 33 V39" android:strokeColor="#2D3FE0" android:strokeWidth="1" android:strokeAlpha="0.5" />
+    </group>
+        <path android:pathData="M22 32 Q16 44 22 56" android:strokeColor="#FFFFFF" android:strokeWidth="3.6" android:strokeLineCap="round" />
+        <path android:pathData="M79 46 Q85 58 79 70" android:strokeColor="#FFFFFF" android:strokeWidth="3.6" android:strokeLineCap="round" />
+        <!-- Snowflakes, inside the safe zone of the icon masks. -->
+        <path android:pathData="M26.00 15.00 L29.12 16.80 M27.87 16.08 l1.11 -0.30 M27.87 16.08 l0.30 1.11 M26.00 15.00 L26.00 18.60 M26.00 17.16 l0.81 0.81 M26.00 17.16 l-0.81 0.81 M26.00 15.00 L22.88 16.80 M24.13 16.08 l-0.30 1.11 M24.13 16.08 l-1.11 -0.30 M26.00 15.00 L22.88 13.20 M24.13 13.92 l-1.11 0.30 M24.13 13.92 l-0.30 -1.11 M26.00 15.00 L26.00 11.40 M26.00 12.84 l-0.81 -0.81 M26.00 12.84 l0.81 -0.81 M26.00 15.00 L29.12 13.20 M27.87 13.92 l0.30 -1.11 M27.87 13.92 l1.11 0.30" android:strokeColor="#FFFFFF" android:strokeWidth="1.4" android:strokeLineCap="round" />
+        <path android:pathData="M72.00 12.00 L74.42 13.40 M73.45 12.84 l0.87 -0.23 M73.45 12.84 l0.23 0.87 M72.00 12.00 L72.00 14.80 M72.00 13.68 l0.63 0.63 M72.00 13.68 l-0.63 0.63 M72.00 12.00 L69.58 13.40 M70.55 12.84 l-0.23 0.87 M70.55 12.84 l-0.87 -0.23 M72.00 12.00 L69.58 10.60 M70.55 11.16 l-0.87 0.23 M70.55 11.16 l-0.23 -0.87 M72.00 12.00 L72.00 9.20 M72.00 10.32 l-0.63 -0.63 M72.00 10.32 l0.63 -0.63 M72.00 12.00 L74.42 10.60 M73.45 11.16 l0.23 -0.87 M73.45 11.16 l0.87 0.23" android:strokeColor="#FFFFFF" android:strokeWidth="1.12" android:strokeLineCap="round" />
+        <path android:pathData="M85.00 30.00 L87.77 31.60 M86.66 30.96 l0.99 -0.27 M86.66 30.96 l0.27 0.99 M85.00 30.00 L85.00 33.20 M85.00 31.92 l0.72 0.72 M85.00 31.92 l-0.72 0.72 M85.00 30.00 L82.23 31.60 M83.34 30.96 l-0.27 0.99 M83.34 30.96 l-0.99 -0.27 M85.00 30.00 L82.23 28.40 M83.34 29.04 l-0.99 0.27 M83.34 29.04 l-0.27 -0.99 M85.00 30.00 L85.00 26.80 M85.00 28.08 l-0.72 -0.72 M85.00 28.08 l0.72 -0.72 M85.00 30.00 L87.77 28.40 M86.66 29.04 l0.27 -0.99 M86.66 29.04 l0.99 0.27" android:strokeColor="#FFFFFF" android:strokeWidth="1.4" android:strokeLineCap="round" />
+        <path android:pathData="M14.00 66.00 L16.25 67.30 M15.35 66.78 l0.80 -0.22 M15.35 66.78 l0.22 0.80 M14.00 66.00 L14.00 68.60 M14.00 67.56 l0.59 0.59 M14.00 67.56 l-0.59 0.59 M14.00 66.00 L11.75 67.30 M12.65 66.78 l-0.22 0.80 M12.65 66.78 l-0.80 -0.22 M14.00 66.00 L11.75 64.70 M12.65 65.22 l-0.80 0.22 M12.65 65.22 l-0.22 -0.80 M14.00 66.00 L14.00 63.40 M14.00 64.44 l-0.59 -0.59 M14.00 64.44 l0.59 -0.59 M14.00 66.00 L16.25 64.70 M15.35 65.22 l0.22 -0.80 M15.35 65.22 l0.80 0.22" android:strokeColor="#FFFFFF" android:strokeWidth="1.12" android:strokeLineCap="round" />
+        <path android:pathData="M30.00 86.00 L32.94 87.70 M31.77 87.02 l1.05 -0.28 M31.77 87.02 l0.28 1.05 M30.00 86.00 L30.00 89.40 M30.00 88.04 l0.77 0.77 M30.00 88.04 l-0.77 0.77 M30.00 86.00 L27.06 87.70 M28.23 87.02 l-0.28 1.05 M28.23 87.02 l-1.05 -0.28 M30.00 86.00 L27.06 84.30 M28.23 84.98 l-1.05 0.28 M28.23 84.98 l-0.28 -1.05 M30.00 86.00 L30.00 82.60 M30.00 83.96 l-0.77 -0.77 M30.00 83.96 l0.77 -0.77 M30.00 86.00 L32.94 84.30 M31.77 84.98 l0.28 -1.05 M31.77 84.98 l1.05 0.28" android:strokeColor="#FFFFFF" android:strokeWidth="1.4" android:strokeLineCap="round" />
+        <path android:pathData="M74.00 86.00 L76.25 87.30 M75.35 86.78 l0.80 -0.22 M75.35 86.78 l0.22 0.80 M74.00 86.00 L74.00 88.60 M74.00 87.56 l0.59 0.59 M74.00 87.56 l-0.59 0.59 M74.00 86.00 L71.75 87.30 M72.65 86.78 l-0.22 0.80 M72.65 86.78 l-0.80 -0.22 M74.00 86.00 L71.75 84.70 M72.65 85.22 l-0.80 0.22 M72.65 85.22 l-0.22 -0.80 M74.00 86.00 L74.00 83.40 M74.00 84.44 l-0.59 -0.59 M74.00 84.44 l0.59 -0.59 M74.00 86.00 L76.25 84.70 M75.35 85.22 l0.22 -0.80 M75.35 85.22 l0.80 0.22" android:strokeColor="#FFFFFF" android:strokeWidth="1.12" android:strokeLineCap="round" />
+  </group>
+</vector>

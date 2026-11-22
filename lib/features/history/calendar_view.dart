@@ -17,6 +17,7 @@ import 'package:protein_calculator/core/widgets/hevy_mark.dart';
 import 'package:protein_calculator/core/widgets/locale_name.dart';
 import 'package:protein_calculator/core/widgets/shaker_icon.dart';
 import 'package:protein_calculator/core/widgets/sliding_selector.dart';
+import 'package:protein_calculator/features/history/christmas_day.dart';
 import 'package:protein_calculator/l10n/app_localizations.dart';
 
 /// Calendar view of the history: the days of each month, colored by how far
@@ -115,6 +116,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   @override
   Widget build(BuildContext context) {
     final todayKey = ref.watch(currentDayKeyProvider).value;
+    final christmas = ref.watch(christmasActiveProvider);
     final goals = ref.watch(goalChangesProvider).value;
     final currentGoal = ref.watch(dailyGoalProvider).value;
     final days = ref.watch(historyProvider).value;
@@ -243,6 +245,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                               mode: mode,
                               titled: !_landscape,
                               gap: gap,
+                              christmas: christmas,
                             ),
                           ),
                         ),
@@ -401,7 +404,7 @@ class _ModeFilter extends StatelessWidget {
     // the Hevy workouts while they color the days, in the accent otherwise.
     final pill = selected == CalendarMode.hevy
         ? (fill: colors.hevy, icon: colors.onHevy)
-        : (fill: AppColors.selection, icon: AppColors.onAccent);
+        : (fill: colors.selection, icon: colors.onSelection);
 
     return Container(
       width: _optionWidth * options.length + _padding * (options.length + 1),
@@ -584,6 +587,7 @@ class _MonthSection extends StatelessWidget {
     required this.mode,
     this.titled = true,
     this.gap = _gap,
+    this.christmas = false,
   });
 
   final DateTime month;
@@ -609,6 +613,10 @@ class _MonthSection extends StatelessWidget {
 
   /// Space between two columns of days.
   final double gap;
+
+  /// Whether the Christmas theme is on: in December, the days up to the
+  /// 25th hang from a garland, see [ChristmasDay].
+  final bool christmas;
 
   /// Height of the title above the weeks.
   static const _titleHeight = 46.0;
@@ -682,6 +690,7 @@ class _MonthSection extends StatelessWidget {
                 for (var day = 1; day <= length; day++)
                   _dayCell(
                     dayKeyOfDate(DateTime(month.year, month.month, day)),
+                    garland: christmas && month.month == 12 && day <= 25,
                   ),
               ],
             );
@@ -691,7 +700,7 @@ class _MonthSection extends StatelessWidget {
     );
   }
 
-  Widget _dayCell(int dayKey) {
+  Widget _dayCell(int dayKey, {bool garland = false}) {
     final total = totals[dayKey];
     final goal = goalOf(dayKey);
     final workedOut = hevyDays.contains(dayKey);
@@ -708,6 +717,7 @@ class _MonthSection extends StatelessWidget {
       creatineTaken: creatineDays.contains(dayKey),
       workedOut: workedOut,
       mode: mode,
+      garlandGap: garland ? gap : null,
     );
   }
 }
@@ -720,13 +730,13 @@ class _MonthSection extends StatelessWidget {
   DayProgress.none => (fill: colors.surface, text: colors.textSecondary),
   DayProgress.low => (
     fill: Color.alphaBlend(
-      AppColors.accent.withValues(alpha: 0.3),
+      colors.accent.withValues(alpha: 0.3),
       colors.surface,
     ),
     text: colors.text,
   ),
-  DayProgress.half => (fill: AppColors.progressHalf, text: AppColors.onAccent),
-  DayProgress.reached => (fill: AppColors.accent, text: AppColors.onAccent),
+  DayProgress.half => (fill: colors.progressHalf, text: AppColors.ink),
+  DayProgress.reached => (fill: colors.accent, text: colors.onAccent),
 };
 
 /// Fill and text colors of a day in the creatine mode: blue if creatine was
@@ -735,7 +745,7 @@ class _MonthSection extends StatelessWidget {
   bool taken,
   AppColors colors,
 ) => taken
-    ? (fill: AppColors.creatine, text: AppColors.onAccent)
+    ? (fill: colors.creatineFill, text: AppColors.ink)
     : calendarProgressColors(DayProgress.none, colors);
 
 /// Fill and text colors of a day in the Hevy mode: black or white, by the
@@ -759,6 +769,7 @@ class _DayCell extends StatelessWidget {
     required this.creatineTaken,
     required this.workedOut,
     required this.mode,
+    this.garlandGap,
   });
 
   final int dayKey;
@@ -776,6 +787,10 @@ class _DayCell extends StatelessWidget {
   /// Colors the day by its [progress], by whether [creatineTaken], or by
   /// whether it [workedOut]; its marks stay the same.
   final CalendarMode mode;
+
+  /// Set in the Christmas theme for the days of December up to the 25th:
+  /// the space between two days, which the garland they hang from crosses.
+  final double? garlandGap;
 
   @override
   Widget build(BuildContext context) {
@@ -826,36 +841,53 @@ class _DayCell extends StatelessWidget {
       excludeSemantics: true,
       child: Column(
         children: [
-          AspectRatio(
-            aspectRatio: 1,
-            child: Material(
-              color: style.fill,
-              shape: CircleBorder(
-                side: isToday
-                    ? BorderSide(color: colors.structure, width: 2)
-                    : BorderSide.none,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
+          if (garlandGap case final gap?)
+            AspectRatio(
+              aspectRatio: 1,
+              child: ChristmasDay(
+                day: dayKey % 100,
+                fill: style.fill,
+                textColor: style.text,
+                bold: isToday || highlighted,
+                isToday: isToday,
+                lit: highlighted,
+                gap: gap,
                 onTap: opens
                     ? () => context.go(AppRoutes.historyDay(dayKey))
                     : null,
-                child: Center(
-                  child: Text(
-                    '${dayKey % 100}',
-                    style: textTheme.bodyLarge!.copyWith(
-                      fontSize: 15,
-                      height: 1,
-                      color: style.text,
-                      fontWeight: isToday || highlighted
-                          ? FontWeight.w700
-                          : FontWeight.w500,
+              ),
+            )
+          else
+            AspectRatio(
+              aspectRatio: 1,
+              child: Material(
+                color: style.fill,
+                shape: CircleBorder(
+                  side: isToday
+                      ? BorderSide(color: colors.structure, width: 2)
+                      : BorderSide.none,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: opens
+                      ? () => context.go(AppRoutes.historyDay(dayKey))
+                      : null,
+                  child: Center(
+                    child: Text(
+                      '${dayKey % 100}',
+                      style: textTheme.bodyLarge!.copyWith(
+                        fontSize: 15,
+                        height: 1,
+                        color: style.text,
+                        fontWeight: isToday || highlighted
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
           Expanded(
             // Three marks are wider than the day on the narrowest screens:
             // they shrink to fit.

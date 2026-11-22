@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
+import 'package:protein_calculator/core/widgets/snow.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 /// [Shaker] whose liquid stays level when the phone tilts and mixes when the
@@ -21,6 +22,7 @@ class MotionShaker extends StatefulWidget {
     required this.goal,
     required this.semanticLabel,
     this.creatineDoses = 0,
+    this.snowy = false,
   });
 
   final List<ShakerLayer> layers;
@@ -29,6 +31,9 @@ class MotionShaker extends StatefulWidget {
 
   /// See [Shaker.creatineDoses].
   final int creatineDoses;
+
+  /// See [Shaker.snowy].
+  final bool snowy;
 
   @override
   State<MotionShaker> createState() => _MotionShakerState();
@@ -66,6 +71,9 @@ class _MotionShakerState extends State<MotionShaker>
   /// Shortest time between two counted jolts: the samples of one movement
   /// and of its rebound count once.
   static const _minJoltGap = Duration(milliseconds: 250);
+
+  /// Time the snow takes to settle again on the lid once it fell off.
+  static const _snowReturn = Duration(seconds: 10);
   static const _maxTilt = 0.6;
 
   @override
@@ -110,13 +118,14 @@ class _MotionShakerState extends State<MotionShaker>
     _sensor = null;
   }
 
-  /// Puts the liquid back at rest at once, without animating.
+  /// Puts the liquid back at rest at once, without animating, and the snow
+  /// back on the lid.
   void _settle() {
     _ticker.stop();
     _lastTick = null;
     _targetTilt = 0;
     _lastShake = null;
-    _motion.update(tilt: 0, mix: 0, phase: _motion.phase);
+    _motion.update(tilt: 0, mix: 0, phase: _motion.phase, snow: 1);
   }
 
   void _onSensor(AccelerometerEvent event) {
@@ -177,10 +186,36 @@ class _MotionShakerState extends State<MotionShaker>
         ? min(1.0, _motion.mix + dt * 4)
         : max(0.0, _motion.mix - dt * 0.7);
     final phase = _motion.phase + dt * 7 * max(mix, 0.2);
-    _motion.update(tilt: tilt, mix: mix, phase: phase);
+
+    // The snow of the lid falls off when shaken, then settles again.
+    var snow = _motion.snow;
+    var fall = _motion.snowFall;
+    var fallen = _motion.fallenSnow;
+    if (widget.snowy && shaking && snow > 0.05) {
+      fallen = snow;
+      snow = 0;
+      fall = 0;
+    } else if (fall != null) {
+      fall += dt;
+      if (fall >= snowFallSeconds) fall = null;
+    } else if (snow < 1) {
+      snow = min(1.0, snow + dt / _snowReturn.inMilliseconds * 1000);
+    }
+    _motion.update(
+      tilt: tilt,
+      mix: mix,
+      phase: phase,
+      snow: snow,
+      snowFall: fall,
+      fallenSnow: fallen,
+    );
 
     if (!shaking) _lastShake = null;
-    final atRest = (_targetTilt - tilt).abs() < 0.002 && mix == 0;
+    final atRest =
+        (_targetTilt - tilt).abs() < 0.002 &&
+        mix == 0 &&
+        snow >= 1 &&
+        fall == null;
     if (atRest) {
       _ticker.stop();
       _lastTick = null;
@@ -203,5 +238,6 @@ class _MotionShakerState extends State<MotionShaker>
     semanticLabel: widget.semanticLabel,
     motion: _motion,
     creatineDoses: widget.creatineDoses,
+    snowy: widget.snowy,
   );
 }
