@@ -1,12 +1,13 @@
 package arbitro.android.protein_calculator
 
-import android.content.ComponentName
+import android.app.ActivityManager
+import android.app.KeyguardManager
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.content.IntentCompat
 import io.flutter.embedding.android.FlutterActivity
@@ -18,14 +19,15 @@ import kotlin.concurrent.thread
 
 /**
  * The activity of the app. The launcher opens it through one of two aliases,
- * the usual icon (`.MainActivity`, the name the activity had, so the icons
- * already on home screens keep working) or the Christmas one
- * (`.ChristmasLauncher`), see [setChristmasIcon]; its splash screen changes
- * with it, see [setChristmasSplash].
+ * the usual icon or the Christmas one, see [LauncherIcon]; its splash screen
+ * changes with it, see [setChristmasSplash].
  */
 class AppActivity : FlutterActivity() {
-    /** Icon and splash screen to show once the app is left, see [onStop]. */
-    private var wantedChristmasIcon: Boolean? = null
+    /**
+     * Icon and splash screen to show once the app is left, see [onStop]:
+     * whether they are the Christmas ones, and until when.
+     */
+    private var wantedChristmasIcon: Pair<Boolean, Long?>? = null
 
     /** File shared to the app, kept until the app takes it. */
     private var sharedFile: Uri? = null
@@ -77,7 +79,10 @@ class AppActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "setChristmas" -> {
-                        wantedChristmasIcon = call.arguments as Boolean
+                        wantedChristmasIcon = Pair(
+                            call.argument<Boolean>("christmas") == true,
+                            call.argument<Number>("seasonEnd")?.toLong(),
+                        )
                         result.success(null)
                     }
                     else -> result.notImplemented()
@@ -98,14 +103,39 @@ class AppActivity : FlutterActivity() {
 
     override fun onStop() {
         super.onStop()
-        // Android closes the screens of an app whose launcher entry turns off:
-        // the icon changes once the app is no longer seen, not while in use.
         if (isChangingConfigurations) return
-        wantedChristmasIcon?.let {
-            setChristmasIcon(it)
-            setChristmasSplash(it)
-        }
+        val (christmas, seasonEnd) = wantedChristmasIcon ?: return
+        // Android closes the tasks opened from an alias it turns off: the icon
+        // changes once the user left the app, not when the app opens a screen
+        // of another app over itself (a file picker, the share sheet, the
+        // settings) nor when the screen turns off. It is then kept for the
+        // next time.
+        if (!userLeft()) return
+        LauncherIcon.set(this, christmas, seasonEnd)
+        setChristmasSplash(christmas)
         wantedChristmasIcon = null
+    }
+
+    /**
+     * Whether the user left the app: the screen is on and unlocked, and this
+     * activity is still at the top of its task, no screen of another app
+     * opened over it.
+     */
+    private fun userLeft(): Boolean {
+        val power = getSystemService(PowerManager::class.java)
+        val keyguard = getSystemService(KeyguardManager::class.java)
+        if (!power.isInteractive || keyguard.isKeyguardLocked) return false
+        val task = getSystemService(ActivityManager::class.java).appTasks
+            .map { it.taskInfo }
+            .firstOrNull { info ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    info.taskId == taskId
+                } else {
+                    @Suppress("DEPRECATION")
+                    info.id == taskId
+                }
+            }
+        return task?.topActivity?.className == javaClass.name
     }
 
     /**
@@ -117,42 +147,6 @@ class AppActivity : FlutterActivity() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
         splashScreen.setSplashScreenTheme(
             if (christmas) R.style.ChristmasLaunchTheme else Resources.ID_NULL,
-        )
-    }
-
-    /**
-     * Shows the Christmas icon in the launcher if [christmas], the usual one
-     * otherwise, by turning on one alias and off the other. Does nothing when
-     * the right one already shows: launchers may move or drop the icon of a
-     * home screen when it changes.
-     */
-    private fun setChristmasIcon(christmas: Boolean) {
-        val shown = if (christmas) CHRISTMAS_ALIAS else USUAL_ALIAS
-        val hidden = if (christmas) USUAL_ALIAS else CHRISTMAS_ALIAS
-        // The new icon first, so the app never leaves the launcher.
-        setAliasEnabled(shown, true)
-        setAliasEnabled(hidden, false)
-    }
-
-    private fun setAliasEnabled(alias: String, enabled: Boolean) {
-        val component = ComponentName(packageName, "${javaClass.`package`!!.name}.$alias")
-        val state = packageManager.getComponentEnabledSetting(component)
-        // Until changed once, an alias is as the manifest declares it.
-        val isEnabled = when (state) {
-            PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
-            PackageManager.COMPONENT_ENABLED_STATE_DEFAULT -> alias == USUAL_ALIAS
-            else -> false
-        }
-        if (isEnabled == enabled) return
-        packageManager.setComponentEnabledSetting(
-            component,
-            if (enabled) {
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-            } else {
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-            },
-            // The app stays open while its icon changes.
-            PackageManager.DONT_KILL_APP,
         )
     }
 
@@ -222,10 +216,6 @@ class AppActivity : FlutterActivity() {
     }
 
     companion object {
-        /** Aliases of this activity in the manifest, one per launcher icon. */
-        private const val USUAL_ALIAS = "MainActivity"
-        private const val CHRISTMAS_ALIAS = "ChristmasLauncher"
-
         /** Largest file the app takes: an export of years of workouts is far smaller. */
         private const val MAX_SHARED_FILE_BYTES = 32 * 1024 * 1024
     }

@@ -53,7 +53,7 @@ class PillTabs<T> extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: style.copyWith(
                         color: value == selected
-                            ? colors.onAccent
+                            ? colors.onSelection
                             : colors.textSecondary,
                         fontWeight: value == selected
                             ? FontWeight.w600

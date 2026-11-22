@@ -22,4 +22,10 @@ void main() {
     expect(AppColors.christmasLight.creatineFill, const Color(0xFF2E9E5B));
     expect(AppColors.light.creatineFill, AppColors.creatine);
   });
+
+  test('the selected options keep dark ink, readable on the light red', () {
+    expect(AppColors.light.onSelection, AppColors.ink);
+    expect(AppColors.christmasLight.onSelection, AppColors.ink);
+    expect(AppColors.christmasDark.onSelection, AppColors.ink);
+  });
 }

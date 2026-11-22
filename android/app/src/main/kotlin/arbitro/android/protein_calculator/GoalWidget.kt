@@ -36,7 +36,7 @@ import org.json.JSONObject
  * followed by a blue check once creatine is taken. An empty shaker until the
  * first launch is done. A tap opens the app. From December 1 to 25, while the
  * Christmas theme of the app is on, red in place of the orange, the check
- * fir green, a snowflake in each top corner and one above the total.
+ * fir green, and snowflakes in three corners.
  *
  * The app writes the day each time it changes, see `updateHomeWidget` in
  * lib/core/home_widget.dart. At the hour the app days start, the widget starts
@@ -187,11 +187,11 @@ class GoalWidget : AppWidgetProvider() {
         }
 
         if (day.christmas) {
-            // In the top corners, clear of the ring.
-            drawSnowflake(canvas, s * 0.15f, s * 0.15f, s * 0.055f, colors.snowflake)
-            drawSnowflake(canvas, s * 0.86f, s * 0.14f, s * 0.04f, colors.snowflake)
-            // Inside the ring, above the total.
-            drawSnowflake(canvas, s * 0.5f, s * 0.27f, s * 0.045f, colors.snowflake)
+            // In the corners, clear of the ring: the two at the top, and the
+            // one on the right of the goal.
+            drawSnowflake(canvas, s * 0.13f, s * 0.13f, s * 0.05f, colors.snowflake)
+            drawSnowflake(canvas, s * 0.87f, s * 0.13f, s * 0.045f, colors.snowflake)
+            drawSnowflake(canvas, s * 0.87f, s * 0.87f, s * 0.04f, colors.snowflake)
         }
 
         val stroke = s * 0.085f

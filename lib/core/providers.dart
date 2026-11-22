@@ -205,12 +205,23 @@ final christmasThemeProvider = StreamProvider<bool>(
   (ref) => ref.watch(databaseProvider).settingsDao.watchChristmasTheme(),
 );
 
+/// The Christmas theme setting as read before the first frame, see
+/// `startApp`; null when it was not.
+final initialChristmasThemeProvider = Provider<bool?>((ref) => null);
+
 /// Whether the app is dressed for Christmas now: the theme is on and today
-/// is in the season, see `isChristmasSeason`. False while either loads.
+/// is in the season, see `isChristmasSeason`. While they load, the setting
+/// read at launch and the day of the clock, so that the first frame is
+/// already dressed.
 final christmasActiveProvider = Provider<bool>((ref) {
-  final on = ref.watch(christmasThemeProvider).value ?? false;
-  final today = ref.watch(currentDayKeyProvider).value;
-  return on && today != null && isChristmasSeason(today);
+  final on =
+      ref.watch(christmasThemeProvider).value ??
+      ref.watch(initialChristmasThemeProvider) ??
+      false;
+  final today =
+      ref.watch(currentDayKeyProvider).value ??
+      dayKeyOf(ref.watch(clockProvider)());
+  return on && isChristmasSeason(today);
 });
 
 /// Sort order chosen in the products tab, remembered between launches.

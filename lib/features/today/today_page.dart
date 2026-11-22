@@ -401,7 +401,6 @@ class _Summary extends StatelessWidget {
                 const SizedBox(width: 8),
               if (onAddCreatine case final onAddCreatine?)
                 CreatineButton(onPressed: onAddCreatine),
-              // Lower than the buttons: the row keeps its height.
             ],
           ),
         ],
@@ -451,7 +450,10 @@ class _ChristmasCountdown extends StatelessWidget {
               ),
               Text(
                 l10n.christmasDaysShort(days),
-                style: textTheme.labelSmall!.copyWith(fontSize: 9, height: 1.2),
+                style: textTheme.labelSmall!.copyWith(
+                  fontSize: 11,
+                  height: 1.2,
+                ),
               ),
             ] else
               Text(

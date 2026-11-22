@@ -390,7 +390,7 @@ class ShareTileFrame extends StatelessWidget {
 /// on the orange, light on the Christmas red.
 Color shareOnAccentSecondary(BuildContext context) =>
     ShareTileChristmas.of(context)
-    ? const Color(0xFFFFE3E7)
+    ? const Color(0xFFFFF5F6)
     : const Color(0xFF5A2A08);
 
 class _Signature extends StatelessWidget {

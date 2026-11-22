@@ -73,7 +73,7 @@
             </intent-filter>
         </activity-alias>
         <!-- The Christmas icon, in place of the usual one from December 1 to
-             25 when the Christmas theme is on, see AppActivity.setChristmasIcon. -->
+             25 when the Christmas theme is on, see LauncherIcon. -->
         <activity-alias
             android:name=".ChristmasLauncher"
             android:enabled="false"
@@ -108,6 +108,15 @@
                 <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
+        <!-- Puts the usual icon back at the end of the Christmas season, also
+             after a restart, see LauncherIcon. -->
+        <receiver
+            android:name=".LauncherIconReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
         <!-- Widget "Today's goal" of the home screen, see GoalWidget. -->
         <receiver
             android:name=".GoalWidget"

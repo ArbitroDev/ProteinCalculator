@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:protein_calculator/core/database/app_database.dart';
 import 'package:protein_calculator/core/domain/protein_amount.dart';
+import 'package:protein_calculator/core/providers.dart';
 import 'package:protein_calculator/core/theme.dart';
 import 'package:protein_calculator/core/widgets/knit.dart';
 import 'package:protein_calculator/core/widgets/shaker.dart';
@@ -237,6 +239,72 @@ void main() {
       tileApp(CalendarMonthTile(data: month(12)), christmas: false),
     );
     expect(find.byType(ChristmasDay), findsNothing);
+  });
+
+  testWidgets('turning the theme off in the menu undresses the app', (
+    tester,
+  ) async {
+    reduceMotion(tester);
+    final themes = StreamController<bool>();
+    addTearDown(themes.close);
+    themes.add(true);
+    await pumpApp(
+      tester,
+      db,
+      now: DateTime(2026, 12, 15, 9),
+      christmasThemes: themes.stream,
+    );
+    expect(knitted, findsOneWidget);
+
+    await tester.tap(find.byTooltip('Menu'));
+    await tester.pumpAndSettle();
+    final setting = find.widgetWithText(SwitchListTile, 'Christmas theme');
+    await tester.scrollUntilVisible(setting, 100);
+    await tester.tap(setting);
+    await tester.pumpAndSettle();
+    expect(await tester.runAsync(db.settingsDao.getChristmasTheme), isFalse);
+
+    // The database tells the app, as its stream does on a phone.
+    themes.add(false);
+    await tester.pumpAndSettle();
+    expect(knitted, findsNothing);
+    expect(find.byType(Snowfall), findsNothing);
+    await disposeApp(tester, db);
+  });
+
+  test('the first frame is dressed while the setting and the day load', () {
+    final container = ProviderContainer(
+      overrides: [
+        christmasThemeProvider.overrideWith((ref) => const Stream.empty()),
+        currentDayKeyProvider.overrideWith((ref) => const Stream.empty()),
+        initialChristmasThemeProvider.overrideWithValue(true),
+        clockProvider.overrideWithValue(() => DateTime(2026, 12, 15, 9)),
+      ],
+    );
+    addTearDown(container.dispose);
+    expect(container.read(christmasActiveProvider), isTrue);
+  });
+
+  Widget snowApp() => MaterialApp(
+    theme: AppTheme.christmasLight,
+    home: const Stack(children: [Snowfall()]),
+  );
+
+  testWidgets('the snow falls while animations run', (tester) async {
+    await tester.pumpWidget(snowApp());
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.hasRunningAnimations, isTrue);
+    // Never settles: removed before the end of the test.
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the snow stays still where animations are reduced', (
+    tester,
+  ) async {
+    reduceMotion(tester);
+    await tester.pumpWidget(snowApp());
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.hasRunningAnimations, isFalse);
   });
 
   testWidgets('the bar stays knitted in landscape', (tester) async {

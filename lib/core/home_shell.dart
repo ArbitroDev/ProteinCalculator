@@ -244,43 +244,47 @@ class _TabBar extends StatelessWidget {
       height: height,
       decoration: const ShapeDecoration(shape: StadiumBorder()),
       clipBehavior: Clip.antiAlias,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(end: selectedIndex.toDouble()),
-        duration: duration,
-        curve: Curves.easeOutCubic,
-        builder: (context, selection, child) => CustomPaint(
-          painter: KnitTabBackground(
-            colors: AppColors.of(context),
-            motifs: _motifs,
-            selection: selection,
-            vertical: vertical,
-            padding: 6,
-            gap: _gap,
+      // Knitted again at each frame of the slide of the selection: apart
+      // from the rest of the screen.
+      child: RepaintBoundary(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(end: selectedIndex.toDouble()),
+          duration: duration,
+          curve: Curves.easeOutCubic,
+          builder: (context, selection, child) => CustomPaint(
+            painter: KnitTabBackground(
+              colors: AppColors.of(context),
+              motifs: _motifs,
+              selection: selection,
+              vertical: vertical,
+              padding: 6,
+              gap: _gap,
+            ),
+            child: child,
           ),
-          child: child,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Flex(
-            direction: direction,
-            children: [
-              for (final (index, (icon, label)) in tabs.indexed) ...[
-                if (index > 0)
-                  SizedBox(
-                    width: vertical ? null : _gap,
-                    height: vertical ? _gap : null,
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Flex(
+              direction: direction,
+              children: [
+                for (final (index, (icon, label)) in tabs.indexed) ...[
+                  if (index > 0)
+                    SizedBox(
+                      width: vertical ? null : _gap,
+                      height: vertical ? _gap : null,
+                    ),
+                  Expanded(
+                    child: _Tab(
+                      icon: icon,
+                      label: label,
+                      selected: index == selectedIndex,
+                      knitted: true,
+                      onTap: () => onSelected(index),
+                    ),
                   ),
-                Expanded(
-                  child: _Tab(
-                    icon: icon,
-                    label: label,
-                    selected: index == selectedIndex,
-                    knitted: true,
-                    onTap: () => onSelected(index),
-                  ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -347,7 +351,7 @@ class _Tab extends StatelessWidget {
                   color: knitted
                       ? Colors.transparent
                       : selected
-                      ? AppColors.of(context).onAccent
+                      ? AppColors.of(context).onSelection
                       : AppColors.of(context).textSecondary,
                 ),
                 child: icon,

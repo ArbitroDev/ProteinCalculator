@@ -660,7 +660,6 @@ class _HevySheetState extends ConsumerState<_HevySheet> {
   }
 }
 
-/// Switch of the reminders of the parts of the day left empty, see
 /// Switch of the Christmas theme, on by default, shown all year with its
 /// dates so the user knows when it comes back.
 class _ChristmasThemeCard extends ConsumerWidget {
@@ -706,6 +705,7 @@ class _ChristmasThemeCard extends ConsumerWidget {
   }
 }
 
+/// Switch of the reminders of the parts of the day left empty, see
 /// `SlotReminder`, with a banner when their notifications are off or late.
 class _SlotRemindersCard extends ConsumerWidget {
   const _SlotRemindersCard();

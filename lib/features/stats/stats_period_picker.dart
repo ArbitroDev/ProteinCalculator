@@ -138,7 +138,7 @@ class _PeriodPickerState extends State<_PeriodPicker> {
                 style: textTheme.bodyLarge!.copyWith(
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                   color: selected
-                      ? colors.onAccent
+                      ? colors.onSelection
                       : enabled
                       ? colors.text
                       : colors.textSecondary.withValues(alpha: 0.4),

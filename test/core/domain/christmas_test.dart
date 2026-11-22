@@ -22,6 +22,11 @@ void main() {
     expect(daysUntilChristmas(20261225), 0);
   });
 
+  test('the season ends when the app day of December 26 starts', () {
+    expect(christmasSeasonEnd(20261201, 4), DateTime(2026, 12, 26, 4));
+    expect(christmasSeasonEnd(20271225, 0), DateTime(2027, 12, 26));
+  });
+
   test('follows the start hour of the app day', () {
     appDayStartHour = 3;
     // Still November 30 for the app.

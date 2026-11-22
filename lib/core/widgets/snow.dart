@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:protein_calculator/core/theme.dart';
 
 /// White of the snow of the Christmas theme, outlined with the structure
@@ -27,11 +31,23 @@ class Snowfall extends StatefulWidget {
 
 class _SnowfallState extends State<Snowfall>
     with SingleTickerProviderStateMixin {
-  /// Time of the fall, in seconds; every flake falls in 9 to 17 seconds.
-  late final AnimationController _clock = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 3600),
-  );
+  /// Time of the fall, in seconds, going on from where it stopped; every
+  /// flake falls in 9 to 17 seconds.
+  final _seconds = ValueNotifier<double>(0);
+  late final Ticker _ticker = createTicker(_tick);
+
+  /// Time of the fall when the ticker started, and of the frame shown.
+  var _startSeconds = 0.0;
+  var _shown = Duration.zero;
+
+  /// About 30 frames a second: the flakes fall slowly.
+  static const _frame = Duration(milliseconds: 32);
+
+  void _tick(Duration elapsed) {
+    if (elapsed - _shown < _frame) return;
+    _shown = elapsed;
+    _seconds.value = _startSeconds + elapsed.inMicroseconds / 1e6;
+  }
 
   static final List<_Flake> _flakes = () {
     // Always the same flakes, so the screen does not jump on a rebuild.
@@ -52,15 +68,18 @@ class _SnowfallState extends State<Snowfall>
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (MediaQuery.disableAnimationsOf(context)) {
-      _clock.stop();
-    } else if (!_clock.isAnimating) {
-      _clock.repeat();
+      _ticker.stop();
+    } else if (!_ticker.isActive) {
+      _startSeconds = _seconds.value;
+      _shown = Duration.zero;
+      unawaited(_ticker.start());
     }
   }
 
   @override
   void dispose() {
-    _clock.dispose();
+    _ticker.dispose();
+    _seconds.dispose();
     super.dispose();
   }
 
@@ -71,7 +90,7 @@ class _SnowfallState extends State<Snowfall>
         size: Size.infinite,
         painter: _SnowfallPainter(
           flakes: _flakes,
-          clock: _clock,
+          seconds: _seconds,
           colors: AppColors.of(context),
         ),
       ),
@@ -103,17 +122,17 @@ class _Flake {
 class _SnowfallPainter extends CustomPainter {
   _SnowfallPainter({
     required this.flakes,
-    required this.clock,
+    required this.seconds,
     required this.colors,
-  }) : super(repaint: clock);
+  }) : super(repaint: seconds);
 
   final List<_Flake> flakes;
-  final Animation<double> clock;
+  final ValueListenable<double> seconds;
   final AppColors colors;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final seconds = clock.value * 3600;
+    final seconds = this.seconds.value;
     final fill = Paint()..color = _snow;
     final outline = _outline(colors, 0.8);
     for (final flake in flakes) {
@@ -130,7 +149,7 @@ class _SnowfallPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SnowfallPainter old) =>
-      old.flakes != flakes || old.colors != colors;
+      old.flakes != flakes || old.colors != colors || old.seconds != seconds;
 }
 
 /// A low bank of snow along the bottom of the pages, just above the tab bar.

@@ -27,6 +27,7 @@ class AppColors extends ThemeExtension<AppColors> {
     this.accent = brandAccent,
     this.onAccent = ink,
     this.selection = _brandSelection,
+    this.onSelection = ink,
     this.progressHalf = brandProgressHalf,
     this.slotMorning = _brandMorning,
     this.slotAfternoon = brandAccent,
@@ -75,6 +76,10 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Selected option of the pill selectors (tabs, sorts, entry modes): a
   /// lighter [accent], so it does not look like an add button.
   final Color selection;
+
+  /// Text and icons on [selection]: dark ink, readable on the light orange
+  /// and on the light Christmas red, where the white of [onAccent] is not.
+  final Color onSelection;
 
   /// Calendar days at half of their goal or more: a lighter [accent], the
   /// full one marking the goal reached. Halfway between, so it stands apart
@@ -160,7 +165,7 @@ class AppColors extends ThemeExtension<AppColors> {
     slotAfternoon: _christmasHalf,
     slotEvening: _christmasSelection,
     creatineFill: _christmasGreen,
-    creatineText: const Color(0xFF1B7A45),
+    creatineText: const Color(0xFF176C3D),
   );
 
   static final christmasDark = dark.copyWith(
@@ -223,6 +228,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? accent,
     Color? onAccent,
     Color? selection,
+    Color? onSelection,
     Color? progressHalf,
     Color? slotMorning,
     Color? slotAfternoon,
@@ -248,6 +254,7 @@ class AppColors extends ThemeExtension<AppColors> {
     accent: accent ?? this.accent,
     onAccent: onAccent ?? this.onAccent,
     selection: selection ?? this.selection,
+    onSelection: onSelection ?? this.onSelection,
     progressHalf: progressHalf ?? this.progressHalf,
     slotMorning: slotMorning ?? this.slotMorning,
     slotAfternoon: slotAfternoon ?? this.slotAfternoon,
@@ -279,6 +286,7 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: mix(accent, other.accent),
       onAccent: mix(onAccent, other.onAccent),
       selection: mix(selection, other.selection),
+      onSelection: mix(onSelection, other.onSelection),
       progressHalf: mix(progressHalf, other.progressHalf),
       slotMorning: mix(slotMorning, other.slotMorning),
       slotAfternoon: mix(slotAfternoon, other.slotAfternoon),

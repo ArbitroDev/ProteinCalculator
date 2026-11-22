@@ -404,7 +404,7 @@ class _ModeFilter extends StatelessWidget {
     // the Hevy workouts while they color the days, in the accent otherwise.
     final pill = selected == CalendarMode.hevy
         ? (fill: colors.hevy, icon: colors.onHevy)
-        : (fill: colors.selection, icon: colors.onAccent);
+        : (fill: colors.selection, icon: colors.onSelection);
 
     return Container(
       width: _optionWidth * options.length + _padding * (options.length + 1),

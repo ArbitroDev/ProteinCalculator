@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:protein_calculator/core/theme.dart';
@@ -15,9 +16,8 @@ const _redWool = Color(0xFFA3172B);
 
 /// Icons of the tab bar knitted stitch by stitch, `#` for a stitch, 17 by
 /// 17: the Lucide icons of the tabs (and the shaker of the today tab) traced
-/// with lines one stitch wide, centered by their weight rather than their
-/// edges: the shaker, heavy at the top, sits a stitch lower, and the basket,
-/// heavy at the bottom, a stitch higher.
+/// with lines one stitch wide, centered: the shaker, heavy at the top, by its
+/// weight, a stitch lower than by its edges.
 abstract final class KnitMotifs {
   static const today = [
     '.................',
@@ -41,6 +41,7 @@ abstract final class KnitMotifs {
 
   static const products = [
     '.................',
+    '.................',
     '......#...#......',
     '.....#.....#.....',
     '....#.......#....',
@@ -54,7 +55,6 @@ abstract final class KnitMotifs {
     '...#..#...#..#...',
     '...#..#...#..#...',
     '....#########....',
-    '.................',
     '.................',
     '.................',
   ];
@@ -228,6 +228,9 @@ void _stamp(
 /// dots along each long edge, the tab icons in white, and the selected tab
 /// on a patch of red wool, shaped like the usual selection. Laid out like
 /// the tabs of the pill: [padding] around them and [gap] between two of them.
+///
+/// The knitting without the patch is recorded once, see [_StillKnit]: only
+/// the patch is knitted again at each frame of its slide.
 class KnitTabBackground extends CustomPainter {
   KnitTabBackground({
     required this.colors,
@@ -251,21 +254,82 @@ class KnitTabBackground extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final length = vertical ? size.height : size.width;
-    final thickness = vertical ? size.width : size.height;
-    final count = motifs.length;
-    final tab = (length - 2 * padding - gap * (count - 1)) / count;
-    double tabStart(double index) => padding + index * (tab + gap);
+    final grid = _TabGrid(
+      size: size,
+      count: motifs.length,
+      vertical: vertical,
+      padding: padding,
+      gap: gap,
+    );
+    final still = _StillKnit.of(this, size, grid);
+    canvas.drawPicture(still.picture);
 
-    // Across the bar, a cell in the middle; along it, the cells from the
-    // start, each icon on the cell closest to the middle of its tab.
-    final crossOrigin = _origin(thickness);
-    final crossCells = ((thickness - crossOrigin) / knitCell).ceil();
-    final crossCenter = _cellAt(thickness / 2, crossOrigin);
+    // The red patch: the stitches whose middle falls in the pill of the
+    // usual selection, inside the padding of the bar; the icons stay white
+    // over it.
+    final start = grid.tabStart(selection);
+    final patch = RRect.fromLTRBR(
+      start,
+      padding,
+      start + grid.tab,
+      grid.thickness - padding,
+      Radius.circular(min(grid.tab, grid.thickness - 2 * padding) / 2),
+    );
+    final wool = Path();
+    final legs = Path();
+    for (
+      var m = _cellAt(start, grid.mainOrigin) - 1;
+      m <= _cellAt(start + grid.tab, grid.mainOrigin) + 1;
+      m++
+    ) {
+      for (var c = 0; c < grid.crossCells; c++) {
+        final middle = Offset(
+          grid.mainOrigin + m * knitCell + knitCell / 2,
+          grid.crossOrigin + c * knitCell + knitCell / 2,
+        );
+        final cell = grid.cell(m, c);
+        if (!patch.contains(middle) || still.icons.contains(cell)) continue;
+        final offset = grid.offsetOf(cell);
+        wool.addRect(offset & const Size(knitCell, knitCell));
+        legs.addPath(_stitch, offset);
+      }
+    }
+    canvas
+      ..drawPath(wool, Paint()..color = _redWool)
+      ..drawPath(legs, Paint()..color = colors.accent);
+  }
+
+  @override
+  bool shouldRepaint(KnitTabBackground old) =>
+      old.selection != selection ||
+      old.colors != colors ||
+      old.vertical != vertical ||
+      old.motifs != motifs ||
+      old.padding != padding ||
+      old.gap != gap;
+}
+
+/// The cells of the knitted tab bar, along it (main) and across it (cross).
+class _TabGrid {
+  _TabGrid({
+    required Size size,
+    required int count,
+    required this.vertical,
+    required double padding,
+    required double gap,
+  }) : length = vertical ? size.height : size.width,
+       thickness = vertical ? size.width : size.height {
+    tab = (length - 2 * padding - gap * (count - 1)) / count;
+    _padding = padding;
+    _gap = gap;
+    // Across the bar, a cell in the middle.
+    crossOrigin = _origin(thickness);
+    crossCells = ((thickness - crossOrigin) / knitCell).ceil();
+    crossCenter = _cellAt(thickness / 2, crossOrigin);
     // Along the bar, the start of the cells that puts the middles of the
     // tabs closest to the middles of cells: the tabs are not a whole number
     // of cells apart.
-    final middles = [
+    middles = [
       for (var i = 0; i < count; i++) tabStart(i.toDouble()) + tab / 2,
     ];
     double misfit(double origin) => middles
@@ -274,77 +338,91 @@ class KnitTabBackground extends CustomPainter {
           return pow(min(off, knitCell - off), 2).toDouble();
         })
         .fold(0.0, (a, b) => a + b);
-    final mainOrigin = [
-      for (var k = 0; k < 8; k++) -knitCell + k * knitCell / 8,
-    ].reduce((a, b) => misfit(a) <= misfit(b) ? a : b);
-    final mainCells = ((length - mainOrigin) / knitCell).ceil();
-    final cells = <(int, int), Color>{};
-    // (main, cross) → (row, col).
-    void put(int main, int cross, Color color) =>
-        cells[vertical ? (main, cross) : (cross, main)] = color;
+    mainOrigin = [for (var k = 0; k < 8; k++) -knitCell + k * knitCell / 8]
+        .reduce((a, b) => misfit(a) <= misfit(b) ? a : b);
+    mainCells = ((length - mainOrigin) / knitCell).ceil();
+  }
 
-    // The dots along the long edges.
-    for (var main = 1; main < mainCells - 1; main += 3) {
-      put(main, 1, _white);
-      put(main, crossCells - 2, _white);
-    }
+  final bool vertical;
+  final double length;
+  final double thickness;
+  late final double tab;
+  late final double _padding;
+  late final double _gap;
+  late final double crossOrigin;
+  late final int crossCells;
+  late final int crossCenter;
+  late final List<double> middles;
+  late final double mainOrigin;
+  late final int mainCells;
 
-    // The red patch: the stitches whose middle falls in the pill of the
-    // usual selection, inside the padding of the bar.
-    final start = tabStart(selection);
-    final patch = RRect.fromLTRBR(
-      start,
-      padding,
-      start + tab,
-      thickness - padding,
-      Radius.circular(min(tab, thickness - 2 * padding) / 2),
+  double tabStart(double index) => _padding + index * (tab + _gap);
+
+  /// The (row, col) of the cell ([main], [cross]).
+  (int, int) cell(int main, int cross) =>
+      vertical ? (main, cross) : (cross, main);
+
+  /// Where the cells start, as rows and columns.
+  Offset get origin => vertical
+      ? Offset(crossOrigin, mainOrigin)
+      : Offset(mainOrigin, crossOrigin);
+
+  Offset offsetOf((int, int) cell) =>
+      origin + Offset(cell.$2 * knitCell, cell.$1 * knitCell);
+}
+
+/// The knitting of the tab bar without its red patch, recorded once for a
+/// size, colors and layout: the patch slides over it.
+class _StillKnit {
+  _StillKnit(this.key, this.picture, this.icons);
+
+  final Object key;
+  final ui.Picture picture;
+
+  /// Cells of the icons, which the patch leaves white.
+  final Set<(int, int)> icons;
+
+  static _StillKnit? _last;
+
+  static _StillKnit of(KnitTabBackground bar, Size size, _TabGrid grid) {
+    final key = (
+      size,
+      bar.colors,
+      bar.motifs,
+      bar.vertical,
+      bar.padding,
+      bar.gap,
     );
-    for (
-      var m = _cellAt(start, mainOrigin) - 1;
-      m <= _cellAt(start + tab, mainOrigin) + 1;
-      m++
-    ) {
-      for (var c = 0; c < crossCells; c++) {
-        final middle = Offset(
-          mainOrigin + m * knitCell + knitCell / 2,
-          crossOrigin + c * knitCell + knitCell / 2,
-        );
-        if (patch.contains(middle)) put(m, c, colors.accent);
-      }
-    }
+    final last = _last;
+    if (last != null && last.key == key) return last;
 
+    final cells = <(int, int), Color>{};
+    // The dots along the long edges.
+    for (var main = 1; main < grid.mainCells - 1; main += 3) {
+      cells[grid.cell(main, 1)] = _white;
+      cells[grid.cell(main, grid.crossCells - 2)] = _white;
+    }
     // The icons, upright whatever the direction of the bar.
     final icons = <(int, int), Color>{};
-    for (final (index, motif) in motifs.indexed) {
-      final main = _cellAt(middles[index], mainOrigin);
-      _stamp(
-        icons,
-        motif,
-        vertical ? main : crossCenter,
-        vertical ? crossCenter : main,
-        _white,
-      );
+    for (final (index, motif) in bar.motifs.indexed) {
+      final main = _cellAt(grid.middles[index], grid.mainOrigin);
+      final (row, col) = grid.cell(main, grid.crossCenter);
+      _stamp(icons, motif, row, col, _white);
     }
     cells.addAll(icons);
 
+    final recorder = ui.PictureRecorder();
     _paintStitches(
-      canvas,
+      Canvas(recorder),
       size,
       (row, col) => cells[(row, col)],
-      base: colors.knitBase,
-      stitch: colors.knitStitch,
-      origin: vertical
-          ? Offset(crossOrigin, mainOrigin)
-          : Offset(mainOrigin, crossOrigin),
+      base: bar.colors.knitBase,
+      stitch: bar.colors.knitStitch,
+      origin: grid.origin,
     );
+    last?.picture.dispose();
+    return _last = _StillKnit(key, recorder.endRecording(), icons.keys.toSet());
   }
-
-  @override
-  bool shouldRepaint(KnitTabBackground old) =>
-      old.selection != selection ||
-      old.colors != colors ||
-      old.vertical != vertical ||
-      old.motifs != motifs;
 }
 
 /// The round add button knitted in red, with a white plus in its middle.

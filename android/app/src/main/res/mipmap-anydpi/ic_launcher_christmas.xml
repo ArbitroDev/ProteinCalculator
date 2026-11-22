@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The Christmas icon before Android 8, without adaptive icons; from Android 8
-     on, mipmap-anydpi-v26 has the adaptive one. -->
+<!-- The Christmas icon before Android 8, without adaptive icons: round like
+     the usual one, the wool of the knitted background as a plain color.
+     From Android 8 on, mipmap-anydpi-v26 has the adaptive one. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/ic_launcher_christmas_background" />
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#2D3FE0" />
+        </shape>
+    </item>
     <item android:drawable="@drawable/ic_launcher_christmas_foreground" />
 </layer-list>
