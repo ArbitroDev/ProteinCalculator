@@ -1,13 +1,10 @@
 package arbitro.android.protein_calculator
 
-import android.app.ActivityManager
-import android.app.KeyguardManager
 import android.content.Intent
 import android.content.res.Resources
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.content.IntentCompat
 import io.flutter.embedding.android.FlutterActivity
@@ -103,39 +100,13 @@ class AppActivity : FlutterActivity() {
 
     override fun onStop() {
         super.onStop()
+        // The icon changes once the app is no longer seen: launchers may redraw
+        // their screens when it does.
         if (isChangingConfigurations) return
         val (christmas, seasonEnd) = wantedChristmasIcon ?: return
-        // Android closes the tasks opened from an alias it turns off: the icon
-        // changes once the user left the app, not when the app opens a screen
-        // of another app over itself (a file picker, the share sheet, the
-        // settings) nor when the screen turns off. It is then kept for the
-        // next time.
-        if (!userLeft()) return
         LauncherIcon.set(this, christmas, seasonEnd)
         setChristmasSplash(christmas)
         wantedChristmasIcon = null
-    }
-
-    /**
-     * Whether the user left the app: the screen is on and unlocked, and this
-     * activity is still at the top of its task, no screen of another app
-     * opened over it.
-     */
-    private fun userLeft(): Boolean {
-        val power = getSystemService(PowerManager::class.java)
-        val keyguard = getSystemService(KeyguardManager::class.java)
-        if (!power.isInteractive || keyguard.isKeyguardLocked) return false
-        val task = getSystemService(ActivityManager::class.java).appTasks
-            .map { it.taskInfo }
-            .firstOrNull { info ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    info.taskId == taskId
-                } else {
-                    @Suppress("DEPRECATION")
-                    info.id == taskId
-                }
-            }
-        return task?.topActivity?.className == javaClass.name
     }
 
     /**

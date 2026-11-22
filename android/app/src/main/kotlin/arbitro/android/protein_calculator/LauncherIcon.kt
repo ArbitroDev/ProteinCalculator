@@ -14,8 +14,10 @@ import android.content.pm.PackageManager
  * working) or the Christmas one (alias `.ChristmasLauncher`), from December 1
  * to 25 while the Christmas theme is on.
  *
- * The app asks for the icon while it runs, see lib/core/launcher_icon.dart;
- * [AppActivity] applies it once the user leaves it. The Christmas icon also
+ * Both aliases open [LauncherActivity], so that the app stays in the recent
+ * apps when its icon changes. The app asks for the icon while it runs, see
+ * lib/core/launcher_icon.dart; [AppActivity] applies it once the app is no
+ * longer seen. The Christmas icon also
  * sets an alarm at the end of the season, so that the usual icon comes back
  * on December 26 even if the app is not opened, see [LauncherIconReceiver].
  */
@@ -32,8 +34,6 @@ object LauncherIcon {
     /**
      * Shows the Christmas icon in the launcher if [christmas], until
      * [seasonEnd] (milliseconds since the epoch), the usual one otherwise.
-     * Android closes the tasks opened from an alias it turns off: call it
-     * once the app is no longer seen.
      */
     fun set(context: Context, christmas: Boolean, seasonEnd: Long?) {
         setChristmasAlias(context, christmas)

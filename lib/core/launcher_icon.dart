@@ -13,10 +13,10 @@ const launcherIconChannel = MethodChannel('protein_calculator/launcher_icon');
 /// Shows the Christmas icon in the launcher while the Christmas theme is on,
 /// the usual one otherwise: checked when the app opens, at the start of each
 /// app day and when the user turns the theme on or off. The icon changes
-/// once the user leaves the app, as Android closes an app whose icon
-/// changes, and goes back to the usual one at the end of the season even if
-/// the app is not opened. Waits for the setting, the day and its start hour,
-/// so the icon does not change back and forth while they load.
+/// once the app is no longer seen, and goes back to the usual one at the end
+/// of the season even if the app is not opened. Waits for the setting, the
+/// day and its start hour, so the icon does not change back and forth while
+/// they load.
 final launcherIconProvider = Provider<void>((ref) {
   if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
   final on = ref.watch(christmasThemeProvider).value;
