@@ -261,10 +261,10 @@ packages:
     dependency: "direct main"
     description:
       name: drift
-      sha256: ef9598e1785c18db37209e8554fc79aff94632209d384ec98984b9e3184af0f7
+      sha256: "3eafa443c385724806a8648129583b4b140b7472f3feb6d1f321bdcf0fc853d4"
       url: "https://pub.dev"
     source: hosted
-    version: "2.35.2"
+    version: "2.35.4"
   drift_dev:
     dependency: "direct dev"
     description:
@@ -505,10 +505,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_zxing
-      sha256: ee2b97bf69b01385b91497501c060f4e3b53686709892e005de10f3ad30eee98
+      sha256: aba36b8235a3a985da7dc9e300be05b62ed0a8b1b27f04cbc299ef3246e70bc6
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.0"
+    version: "3.1.1"
   glob:
     dependency: transitive
     description:
@@ -521,10 +521,10 @@ packages:
     dependency: "direct main"
     description:
       name: go_router
-      sha256: "530dcbb298dc7c319aea9e3b7c580a61effb2abee2c93825d2dd8d5af0e230f1"
+      sha256: d4105f50c438c37d0d1372b1fbf1617fe9be398b559fa29d2067756ebbd42b69
       url: "https://pub.dev"
     source: hosted
-    version: "18.0.2"
+    version: "18.1.4"
   graphs:
     dependency: transitive
     description:
@@ -729,10 +729,10 @@ packages:
     dependency: "direct main"
     description:
       name: lucide_icons_flutter
-      sha256: "41329b0493e799d481a59e704f5d950d0382414596c57ccf4bb620faec345c97"
+      sha256: d2ad72b8059ee0ad578d0aeb72bf4e7841c0126f360a8aa37f06e305e1fc7e4b
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.21"
+    version: "4.0.3"
   matcher:
     dependency: transitive
     description:
@@ -1134,10 +1134,10 @@ packages:
     dependency: transitive
     description:
       name: test_api
-      sha256: "2a122cbe059f8b610d3a5415f42e255b6c17b1f21eee1d960f31080237fb4f11"
+      sha256: "0a10344e901e5b2e63819567951cb6a06673ed6b84f40462188ff5a0c41f371f"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.12"
+    version: "0.7.14"
   timezone:
     dependency: "direct main"
     description:
